@@ -1,0 +1,99 @@
+{% extends "index.html" %}
+
+{% block title %}ALALAY-AI | My Decks{% endblock %}
+
+{% block homepage_content %}
+<div class="row align-items-center mb-5">
+    <!-- TITLE COLUMN -->
+    <div class="col">
+        <h1 class="display-6 fw-bold mb-0">My Decks</h1>
+    </div>
+
+    <!-- BUTTONS COLUMN -->
+    <div class="col-auto">
+        <div class="d-flex gap-2">
+            <button class="btn-study btn btn-primary btn-lg rounded-pill px-4">Add deck</button>
+            <button class="btn-add btn btn-outline-primary btn-lg rounded-pill px-4">
+                Study
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- DECKS LIST -->
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    <div class="col">
+        <a href="{{ url_for('flashcard') }}" class="deck-card-link text-decoration-none">
+            <div class="deck-card border p-4 shadow-sm rounded-4 text-left h-80 overflow-hidden">
+                <!-- DECK COLOR -->
+                <div class="deck-color"></div>
+
+                <!-- DECK DETAILS-->
+                <h5 class="fw-semibold">Social Sciences</h5>
+                <p class="text-muted mb-0">53 cards</p>
+            </div>
+        </a>
+    </div>
+    <div class="col">
+        <a href="{{ url_for('flashcard') }}" class="deck-card-link text-decoration-none">
+            <div class="deck-card border p-4 shadow-sm rounded-4 text-left h-80 overflow-hidden">
+                <!-- DECK COLOR -->
+                <div class="deck-color"></div>
+
+                <!-- DECK DETAILS-->
+                <h5 class="fw-semibold">Linguistics</h5>
+                <p class="text-muted mb-0">129 cards</p>
+            </div>
+        </a>
+    </div>
+    <div class="col">
+        <a href="{{ url_for('flashcard') }}" class="deck-card-link text-decoration-none">
+            <div class="deck-card border p-4 shadow-sm rounded-4 text-left h-80 overflow-hidden">
+                <!-- DECK COLOR -->
+                <div class="deck-color"></div>
+
+                <!-- DECK DETAILS-->
+                <h5 class="fw-semibold">Computer Science</h5>
+                <p class="text-muted mb-0">24 cards</p>
+            </div>
+        </a>
+    </div>
+    <div class="col">
+        <a href="{{ url_for('flashcard') }}" class="deck-card-link text-decoration-none">
+            <div class="deck-card border p-4 shadow-sm rounded-4 text-left h-80 overflow-hidden">
+                <!-- DECK COLOR -->
+                <div class="deck-color"></div>
+
+                <!-- DECK DETAILS-->
+                <h5 class="fw-semibold">MMW</h5>
+                <p class="text-muted mb-0">24 cards</p>
+            </div>
+        </a>
+    </div>
+    <div class="col">
+        <a href="{{ url_for('flashcard') }}" class="deck-card-link text-decoration-none">
+            <div class="deck-card border p-4 shadow-sm rounded-4 text-left h-80 overflow-hidden">
+                <!-- DECK COLOR -->
+                <div class="deck-color"></div>
+
+                <!-- DECK DETAILS-->
+                <h5 class="fw-semibold">Software Engineering</h5>
+                <p class="text-muted mb-0">24 cards</p>
+            </div>
+        </a>
+    </div>
+    <div class="col">
+        <a href="{{ url_for('flashcard') }}" class="deck-card-link text-decoration-none">
+            <div class="deck-card border p-4 shadow-sm rounded-4 text-left h-80 overflow-hidden">
+                <!-- DECK COLOR -->
+                <div class="deck-color"></div>
+
+                <!-- DECK DETAILS-->
+                <h5 class="fw-semibold">OS Simulation</h5>
+                <p class="text-muted mb-0">24 cards</p>
+            </div>
+        </a>
+    </div>
+</div>
+
+{% endblock %}

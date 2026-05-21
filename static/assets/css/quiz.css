@@ -1,0 +1,113 @@
+/* 
+---------------------------------------------
+Quiz Page
+---------------------------------------------
+*/
+
+body {
+    background: var(--secondary-white);
+}
+
+.quiz-header {
+    border-bottom: 2px solid var(--primary-border);
+    height: 120px;
+}
+
+.quiz-subject-tag {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+}
+
+.quiz-subject-title {
+    font-family: var(--primary-font);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-text);
+}
+
+/* Circular utilities design buttons matching Figma anchors */
+.btn-quiz-utility {
+    width: 42px;
+    height: 42px;
+    border-radius: 50% !important;
+    background-color: var(--quaternary-white) !important;
+    color: var(--primary-text) !important;
+    border: none !important;
+    font-size: 1.1rem;
+    padding: 0 !important;
+    transition: background-color 0.2s ease;
+}
+
+.btn-quiz-utility:hover {
+    background-color: var(--primary-blue) !important;
+}
+
+/* 2. Primary Navigation Step Selectors */
+.btn-quiz-nav {
+    width: 46px;
+    height: 46px;
+    border-radius: 50% !important;
+    background-color: var(--quaternary-white) !important;
+    color: var(--primary-text) !important;
+    border: none !important;
+    font-size: 1.1rem;
+    padding: 0 !important;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-quiz-nav:hover {
+    background-color: var(--primary-blue) !important;
+    transform: scale(1.05);
+}
+
+/* 3. Central Quiz Question Frame block */
+.quiz-question-card {
+    border: 2px solid var(--pastel-red); /* Exact soft framing accent highlighting matching Quiz.png */
+    border-radius: 1.25rem;
+    min-height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.quiz-question-text {
+    font-family: var(--primary-font);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--primary-text);
+    line-height: 1.5;
+}
+
+/* 4. Choice Selection Buttons Stack system */
+.btn-quiz-option {
+    background-color: var(--primary-white) !important;
+    color: var(--primary-text) !important;
+    border: 1px solid var(--quaternary-border) !important;
+    border-radius: 1.5rem !important;
+    font-family: var(--primary-font);
+    font-size: 1.05rem;
+    font-weight: 700;
+    width: 100%;
+    transition: all 0.15s ease-in-out;
+}
+
+.btn-quiz-option:hover {
+    background-color: var(--secondary-white) !important;
+    border-color: var(--secondary-blue) !important;
+    transform: translateY(-1px);
+}
+
+.btn-quiz-option:active {
+    background-color: var(--tertiary-white) !important;
+}
+
+/* 5. Responsive Layer Positioning Tweaks for Desktop Media targets */
+@media (min-width: 768px) {
+    .position-md-absolute {
+        position: absolute !important;
+        top: 28%;
+        transform: translateY(-50%);
+        width: auto !important;
+    }
+}

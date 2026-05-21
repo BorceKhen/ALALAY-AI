@@ -1,0 +1,50 @@
+{% extends "index.html" %}
+
+{% block title %}ALALAY-AI | Deck{% endblock %}
+
+{% block homepage_content %}
+<div class="d-flex align-items-center justify-content-between mb-5 pb-3">
+    <!-- DECK TITLE-->
+    <div class="d-flex align-items-center gap-3">
+        <span class="rounded-1 flex-shrink-0" style="width: 16px; height: 16px; background-color: var(--pastel-purple);"></span>
+        <h1 class="h2 fw-bold text-dark mb-0 text-truncate" style="max-width: 450px;">Simulation Experi...</h1>
+    </div>
+
+    <!-- BUTTONS COLUMN -->
+
+    <div class="d-flex gap-2">
+        <button class="btn-study btn btn-primary btn-lg rounded-pill px-4">Add deck</button>
+        <a href="{{ url_for('quiz') }}" class="btn-add btn btn-outline-primary btn-lg rounded-pill px-4 d-inline-flex align-items-center justify-content-center">
+        Study
+        </a>
+    </div>
+
+</div>
+<hr class="divider-line">
+<!-- DECK LISTS -->
+ <h2 class="h5 fw-bold mb-4 mt-5">Decks (53)</h2>
+<div class="deck-cards-stack">
+    <div class="flashcard-item rounded-4 mb-3 shadow-sm bg-white overflow-hidden border">
+        <div class="flashcard-panel-top p-3">
+            <h2 class="flashcard-text-title mb-0">What is the first core component of simulation experiment control?</h2>
+        </div>
+        
+        <div class="flashcard-divider"></div>
+        
+        <div class="flashcard-panel-bottom p-3">
+            <p class="flashcard-text-body mb-0">Planning and designing experiments</p>
+        </div>
+    </div>
+    
+    <div class="flashcard-item rounded-4 mb-3 shadow-sm bg-white overflow-hidden border">
+        <div class="flashcard-panel-top p-3">
+            <h2 class="flashcard-text-title mb-0">What is the first core component of simulation experiment control?</h2>
+        </div>
+        <div class="flashcard-divider"></div>
+        <div class="flashcard-panel-bottom p-3">
+            <p class="flashcard-text-body mb-0">Planning and designing experiments</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

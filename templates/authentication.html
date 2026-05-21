@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}ALALAY-AI | Authentication{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/auth.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper d-flex align-items-center justify-content-center min-vh-100 py-5">
+    <div class="auth-card p-5 bg-white shadow-xl state-signin border" id="authCard">
+        
+        <div class="toggle-container mx-auto mb-5 d-flex position-relative border p-1">
+            <div class="toggle-slider position-absolute"></div>
+            <button type="button" class="toggle-btn w-50 z-1" id="toggleSignUpBtn">Sign Up</button>
+            <button type="button" class="toggle-btn w-50 z-1 active" id="toggleSignInBtn">Sign In</button>
+        </div>
+
+        <div class="auth-view-section" id="signInView">
+            <h2 class="auth-title text-center mb-4">Sign In Using your Email</h2>
+            
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="mb-3">
+                    <input type="email" class="form-control auth-input" placeholder="Email" required>
+                </div>
+                <div class="mb-4">
+                    <input type="password" class="form-control auth-input" placeholder="Password" required>
+                </div>
+                
+                <button type="submit" class="btn btn-auth-primary w-100 mb-4">Sign In</button>
+            </form>
+
+            <div class="divider d-flex align-items-center mb-4">
+                <span class="divider-line flex-grow-1"></span>
+                <span class="divider-text mx-3">Other options</span>
+                <span class="divider-line flex-grow-1"></span>
+            </div>
+
+            <button class="btn btn-auth-outline w-100 d-flex align-items-center justify-content-center gap-2">
+                Sign Up with Google
+            </button>
+        </div>
+
+        <div class="auth-view-section d-none" id="signUpView">
+            <h2 class="auth-title text-center mb-4">Sign up Using your Email</h2>
+            
+            <form method="POST" action="{{ url_for('register') if 'register' in signup_flows else '#' }}">
+                <div class="mb-3">
+                    <input type="email" class="form-control auth-input" placeholder="Email" required>
+                </div>
+                
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <input type="text" class="form-control auth-input" placeholder="Disability Type">
+                    </div>
+                    <div class="col-md-6">
+                        <input type="text" class="form-control auth-input" placeholder="Gender">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <input type="text" class="form-control auth-input" placeholder="Birthdate" onfocus="(this.type='date')" onblur="(this.type='text')">
+                </div>
+                <div class="mb-3">
+                    <input type="password" class="form-control auth-input" placeholder="Password" required>
+                </div>
+                <div class="mb-4">
+                    <input type="password" class="form-control auth-input" placeholder="Re-enter Password" required>
+                </div>
+                
+                <button type="submit" class="btn btn-auth-primary w-100 mb-4">Sign Up</button>
+
+                <div class="divider d-flex align-items-center mb-4">
+                    <span class="divider-line flex-grow-1"></span>
+                    <span class="divider-text mx-3">Other options</span>
+                    <span class="divider-line flex-grow-1"></span>
+                </div>
+
+                <button class="btn btn-auth-outline w-100 d-flex align-items-center justify-content-center gap-2">
+                    Sign Up with Google
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    const card = document.getElementById('authCard');
+    const btnSignIn = document.getElementById('toggleSignInBtn');
+    const btnSignUp = document.getElementById('toggleSignUpBtn');
+    const signInView = document.getElementById('signInView');
+    const signUpView = document.getElementById('signUpView');
+
+    function setViewState(isSignIn) {
+        if (isSignIn) {
+            btnSignIn.classList.add('active');
+            btnSignUp.classList.remove('active');
+            card.classList.replace('state-signup', 'state-signin');
+            
+            // Handle form swaps cleanly
+            signUpView.classList.add('d-none');
+            signInView.classList.remove('d-none');
+        } else {
+            btnSignUp.classList.add('active');
+            btnSignIn.classList.remove('active');
+            card.classList.replace('state-signin', 'state-signup');
+            
+            signInView.classList.add('d-none');
+            signUpView.classList.remove('d-none');
+        }
+    }
+
+    btnSignIn.addEventListener('click', () => setViewState(true));
+    btnSignUp.addEventListener('click', () => setViewState(false));
+</script>
+{% endblock %}

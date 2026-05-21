@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}
+ALALAY-AI | Main Interface
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/quiz.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="quiz-container min-vh-100 d-flex flex-column">
+
+    <header class="quiz-header bg-white px-4 py-3 d-flex align-items-center justify-content-between">
+        <a href="{{ url_for('home') }}" class="btn btn-quiz-utility d-flex align-items-center justify-content-center" aria-label="Close Quiz">
+            <i class="bi bi-x-lg"></i>
+        </a>
+
+        <div class="d-flex align-items-center gap-2">
+            <span class="quiz-subject-tag rounded-1" style="background-color: var(--pastel-peach);"></span>
+            <h1 class="quiz-subject-title mb-0">Simulation Experiments</h1>
+        </div>
+
+        <button type="button" class="btn btn-quiz-utility d-flex align-items-center justify-content-center" aria-label="Quiz Settings">
+            <i class="bi bi-gear"></i>
+        </button>
+    </header>
+
+    <main class="quiz-workspace flex-grow-1 d-flex align-items-center py-5">
+        <div class="container px-md-5">
+            <div class="row align-items-center justify-content-center position-relative">
+                
+                <div class="col-auto position-md-absolute start-0 text-end z-2">
+                    <button class="btn btn-quiz-nav d-flex align-items-center justify-content-center shadow-sm" aria-label="Previous Question">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                </div>
+
+                <div class="col-12 col-md-9 col-lg-7 quiz-content-stack">
+                    
+                    <div class="quiz-question-card bg-white p-5 mb-4 shadow-sm text-center">
+                        <h2 class="quiz-question-text mb-0">
+                            What is the first core component of simulation experiment control?
+                        </h2>
+                    </div>
+
+                    <div class="quiz-options-group d-flex flex-column gap-3">
+                        <button type="button" class="btn btn-quiz-option shadow-sm text-center p-4">
+                            Planning and designing components
+                        </button>
+                        <button type="button" class="btn btn-quiz-option shadow-sm text-center p-4">
+                            Input parameter selection
+                        </button>
+                        <button type="button" class="btn btn-quiz-option shadow-sm text-center p-4">
+                            Validation and Verification
+                        </button>
+                        <button type="button" class="btn btn-quiz-option shadow-sm text-center p-4">
+                            Reporting results
+                        </button>
+                    </div>
+
+                </div>
+
+                <div class="col-auto position-md-absolute end-0 text-start z-2">
+                    <button class="btn btn-quiz-nav d-flex align-items-center justify-content-center shadow-sm" aria-label="Next Question">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+</div>
+{% endblock %}

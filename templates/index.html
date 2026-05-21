@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}
+ALALAY-AI | Main Interface
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/homepage.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<main class="container py-5">
+
+    <!-- CONTAINER WRAPPER -->
+    <div class="rounded-5 p-3 p-xl-4 shadow-xl bg-white bg-opacity-50 border border-white border-3"
+         style="backdrop-filter: blur(18px);">
+
+        <!-- MAIN CONTAINER -->
+        <div class="main-container p-2 rounded-4">
+
+            <div class="row g-0">
+
+                <!-- SIDEBAR -->
+                <aside class="col-xl-3">
+
+                    <div class="sidebar bg-white h-100 p-4">
+
+                        <!-- LOGO -->
+                        <div class="text-center">
+                            <div class="mx-auto d-inline-flex align-items-center justify-content-center">
+                                <img src="{{ url_for('static', filename='assets/ALALAY-AI_Logo.png') }}"
+                                     alt="ALALAY-AI"
+                                     class="logo">
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- NAVIGATION -->
+                        <nav class="nav flex-column gap-3 mb-4">
+                            
+                            <a class="nav-link {% if request.endpoint == 'index' %}text-dark fw-semibold{% else %}text-secondary{% endif %}"
+                               href="{{ url_for('home') }}">
+                               Home
+                            </a>
+
+                            <a class="nav-link {% if request.endpoint == 'my_decks' %}text-dark fw-semibold{% else %}text-secondary{% endif %}"
+                               href="{{ url_for('my_decks') }}">
+                                My Decks
+                            </a>
+
+                            <a class="nav-link {% if request.endpoint == 'accessibility' %}text-dark fw-semibold{% else %}text-secondary{% endif %}"
+                               href="{{ url_for('accessibility') }}">
+                                Accessibility
+                            </a>
+
+                            <a class="nav-link {% if request.endpoint == 'profile' %}text-dark fw-semibold{% else %}text-secondary{% endif %}"
+                               href="{{ url_for('profile') }}">
+                                Profile
+                            </a>
+
+                        </nav>
+
+                        <!-- BUTTONS -->
+                        <div class="d-grid gap-2 mb-4">
+                            <button class="btn-study btn btn-primary btn-lg rounded-pill">
+                                Study
+                            </button>
+
+                            <button class="btn-add btn btn-outline-primary btn-lg rounded-pill">
+                                Add
+                            </button>
+                        </div>
+
+                        <hr>
+
+                        <!-- DECK DISPLAY -->
+                        <div>
+
+                            <h6 class="text-uppercase text-secondary mb-3">
+                                My decks
+                            </h6>
+
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="me-2 rounded-1"
+                                      style="width:14px;height:14px;background:#D8C8FF;">
+                                </span>
+
+                                <span class="text-secondary">
+                                    Social Sciences
+                                </span>
+                            </div>
+
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="me-2 rounded-1"
+                                      style="width:14px;height:14px;background:#C1D9FF;"></span>
+
+                                <span class="text-secondary">
+                                    Political Science
+                                </span>
+                            </div>
+
+                            <div class="d-flex align-items-center">
+                                <span class="me-2 rounded-1"
+                                      style="width:14px;height:14px;background:#DEFFCA;"></span>
+
+                                <span class="text-secondary">
+                                    Psychology
+                                </span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </aside>
+
+                <!-- MAIN CONTENT -->
+                <section class="col-xl-9">
+
+                    <div class="main-content rounded-4 p-5">
+
+                        {% block homepage_content %}
+                        {% endblock %}
+
+                    </div>
+
+                </section>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</main>
+
+{% endblock %}

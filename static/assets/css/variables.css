@@ -1,0 +1,44 @@
+/* 
+---------------------------------------------
+Pallete 
+---------------------------------------------
+*/
+:root{
+    /* White Colors */
+    --primary-white: #fff; /* White Text Color */
+    --secondary-white: #F8FAFC;
+    --tertiary-white: #F1F4F9;
+    --quaternary-white: #F1F5F9;
+    /* Border Colors*/
+    --primary-border: #E2E8F0;
+    --secondary-border: #E3E8EC;
+    --tertiary-white: #E2E3E6;
+    --quaternary-border: #E7E8EA;
+    /* Text Colors*/
+    --primary-text: #000000;
+    --secondary-text: #64748B;
+    --tertiary-text: #757C84;
+    /* Primary Colors*/
+    --primary-blue: #5671C9;
+    --secondary-blue: #6E86D0;
+    --tertiary-blue: #131F4B;
+    --primary-yellow: #FFFFD6;
+    --primary-green: #6CC48F;
+    /* Pastel Colors */
+    --pastel-purple: #EBCFFF;
+    --pastel-blue: #CBECFF;
+    --pastel-green: #E9FFDB;
+    --pastel-orange: #FFDBA7;
+    --pastel-yellow: #FFF6BF;
+    --pastel-peach: #FFD4C4;
+    --pastel-red: #FF9E97;
+    --pastel-pink: #FFE4ED;
+    /* Gradients */
+    --blue-gradient: linear-gradient(145deg, #6074e7 0%, #4a5bb4 100%);
+    /* Drop Shadow */
+    --primary-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    /* Font Family */
+    --primary-font: 'Josefin Sans', Arial;
+    --secondary-font: 'Open Sans', sans-serif;
+}
+

@@ -1,0 +1,283 @@
+/*
+---------------------------------------------
+Sidebar & Home Content
+---------------------------------------------
+*/
+
+body {
+    background: var(--blue-gradient);
+}
+
+nav .nav-link {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+nav .nav-link.active,
+nav .nav-link:hover {
+    color: var(--primary-blue);
+}
+.main-container {
+    background: var(--secondary-white);
+}
+.main-content {
+    background: var(--secondary-white);
+}
+
+.sidebar {
+    border-right: 3px solid var(--primary-border);
+}
+
+/* "Study" Button - Solid Dark Theme */
+.btn-study {
+    background-color: var(--tertiary-blue) !important;
+    color: var(--primary-white) !important;
+    border: none;
+    transition: background-color 0.2s ease;
+}
+
+.btn-study:hover {
+    background-color: var(--secondary-blue) !important;
+    color: var(--primary-white) !important;
+}
+
+/* "Add" Button - Outline Theme */
+.btn-add {
+    background-color: transparent !important;
+    color: var(--primary-text) !important;
+    border: 2px solid var(--primary-border) !important;
+    transition: all 0.2s ease;
+}
+
+.btn-add:hover {
+    background-color: var(--tertiary-blue) !important;
+    border-color: var(--secondary-border) !important;
+    color: var(--primary-white) !important;
+}
+
+.card h5,
+.list-group-item h6 {
+    color: var(--primary-text);
+}
+
+/*
+---------------------------------------------
+My Decks
+---------------------------------------------
+*/
+.deck-card-link {
+    display: block;
+    cursor: pointer;
+}
+
+.deck-card {
+    transition: transform 0.2s ease, shadow 0.2s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.deck-card-link:hover .deck-card {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+}
+.deck-color {
+    /* Matches the p-4 (1.5rem) of the parent to "break out" */
+    margin-top: -1.5rem;
+    margin-left: -1.5rem;
+    margin-right: -1.5rem;
+    
+    /* This creates the space between the color and your text */
+    margin-bottom: 1.5rem; 
+    
+    height: 60px;
+    background-color: var(--pastel-yellow);
+    
+    /* Ensures the width stretches to fill the negative margin space */
+    width: calc(100% + 3rem); 
+}
+
+.col:nth-child(2) .deck-color {
+    background-color: var(--pastel-red);
+}
+.col:nth-child(3) .deck-color {
+    background-color: var(--pastel-green);
+}
+.col:nth-child(4) .deck-color {
+    background-color: var(--pastel-orange);
+}
+
+.col:nth-child(5) .deck-color {
+    background-color: var(--pastel-pink);
+}
+
+.col:nth-child(6) .deck-color {
+    background-color: var(--pastel-peach);
+}
+/*
+---------------------------------------------
+ACCESSIBILITY PAGE
+---------------------------------------------
+*/
+
+/* Accessibility Card Base */
+.access-card {
+    background-color: var(--primary-white);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: 1px solid var(--primary-border) !important;
+}
+
+.access-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.05) !important;
+    border-color: var(--primary-border) !important;
+}
+
+/* The Circular Icon Background */
+.icon-circle {
+    width: 45px;
+    height: 45px;
+    background-color: var(--quaternary-white);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-text);
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+/* Customizing the Bootstrap Switch to match the UI */
+.custom-switch {
+    width: 3rem !important;
+    height: 1.5rem !important;
+    cursor: pointer;
+}
+
+.custom-switch:checked {
+    background-color: var(--tertiary-blue) !important;
+    border-color: var(--tertiary-blue) !important;
+}
+
+/* Typography Tweaks */
+.access-card h6 {
+    font-family: var(--primary-font);
+    font-size: 1rem;
+}
+
+.access-card small {
+    font-family: var(--secondary-font);
+    display: block;
+}
+
+/*
+---------------------------------------------
+PROFILE PAGE
+---------------------------------------------
+*/
+
+/* Profile Header Styling */
+.profile-img {
+    width: 160px;
+    height: 160px;
+    object-fit: cover;
+    border: 3px solid white;
+}
+
+
+.btn-edit-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: none;
+    background-color: var(--quaternary-white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.btn-edit-icon:hover {
+    background-color: var(--primary-blue);
+    transform: scale(1.05);
+}
+
+.divider-line {
+    /* Negates the p-5 (3rem) padding on both sides */
+    margin-left: -3rem;
+    margin-right: -3rem;
+    
+    width: calc(100% + 6rem);
+    
+    border: 0;
+    border-top: 3px solid var(--primary-border);
+    opacity: 1;
+    margin-top: 2rem;
+    margin-bottom: 3rem;
+}
+
+.progress-deck-card {
+    transition: 0.3s ease;
+}
+
+.progress-deck-card:hover {
+    transform: translateY(-2px);
+}
+
+.progress-circle {
+    width: 60px;
+    height: 60px;
+    border: 4px solid #e5e5e5;
+    background: white;
+    flex-shrink: 0;
+    position: relative;
+}
+
+/* OPTIONAL GREEN PROGRESS EFFECT */
+.progress-circle::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 4px solid var(--primary-green);
+    clip-path: inset(0 50% 0 0);
+}
+
+/*
+---------------------------------------------
+DECK PAGE
+---------------------------------------------
+*/
+
+/* Flashcard Component Panels Layout rules */
+.flashcard-item {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.flashcard-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Clean border separator strip between sections inside cards */
+.flashcard-divider {
+    height: 1px;
+    width: 100%;
+    background-color: var(--primary-border);
+}
+
+/* Text Stylings Matching Your Global Config System Typography definitions */
+.flashcard-text-title {
+    font-family: var(--primary-font);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--primary-text);
+    line-height: 1.4;
+}
+
+.flashcard-text-body {
+    font-family: var(--secondary-font);
+    font-size: 0.95rem;
+    color: var(--secondary-text);
+    line-height: 1.4;
+}

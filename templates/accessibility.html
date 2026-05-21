@@ -1,0 +1,120 @@
+{% extends "index.html" %}
+
+{% block title %}ALALAY-AI | Accessibility{% endblock %}
+
+{% block homepage_content %}
+<h1 class="display-6 fw-bold mb-5">Accessibility Settings</h1>
+
+<!-- ACCESSIBILITY OPTIONS -->
+
+    <div class="d-flex flex-column gap-3 mb-5">
+        <a href="#" class="access-card border d-flex align-items-center p-3 shadow-sm rounded-4 text-decoration-none">
+            <!-- ACCESSIBILITY ICON -->
+            <div class="icon-circle me-3">
+                <i class="bi bi-type"></i> 
+            </div>
+
+            <!-- ACCESSIBILITY DESCRIPTION -->
+            <div class="flex-grow-1">
+                <h6 class="mb-1">Text Modifications</h6>
+                <p class="mb-0 text-muted">Modifiable font options for dyslexia. Adjustable text size and spacing.</p>
+            </div>
+
+            <!-- ARROW -->
+            <i class="bi bi-chevron-right text-secondary ms-2"></i>
+
+        </a>
+
+        <a href="#" class="access-card border d-flex align-items-center p-3 shadow-sm rounded-4 text-decoration-none">
+            <!-- ACCESSIBILITY ICON -->
+            <div class="icon-circle me-3">
+                <i class="bi bi-palette"></i>
+            </div>
+
+            <!-- ACCESSIBILITY DESCRIPTION -->
+            <div class="flex-grow-1">
+                <h6 class="mb-1">Color Filters</h6>
+                <p class="mb-0 text-muted">Daltonization color blindness filters</p>
+            </div>
+
+            <!-- ARROW -->
+            <i class="bi bi-chevron-right text-secondary ms-2"></i>
+
+        </a>
+
+        <a href="#" class="access-card border d-flex align-items-center p-3 shadow-sm rounded-4 text-decoration-none">
+            <!-- ACCESSIBILITY ICON -->
+            <div class="icon-circle me-3">
+                <i class="bi bi-highlights"></i>
+            </div>
+
+            <!-- ACCESSIBILITY DESCRIPTION -->
+            <div class="flex-grow-1">
+                <h6 class="mb-1">Contrast Themes</h6>
+                <p class="mb-0 text-muted">Color themes for Low Vision</p>
+            </div>
+
+            <!-- ARROW -->
+            <i class="bi bi-chevron-right text-secondary ms-2"></i>
+
+        </a>
+    </div>
+
+    <h6 class="fw-bold text-dark mb-3">Accessibility Study Features</h6>
+    <div class="d-flex flex-column gap-3">
+        <div class="access-card d-flex align-items-center p-3 shadow-sm border rounded-4">
+            <!-- ACCESSIBILITY ICON -->
+            <div class="icon-circle me-3">
+                <i class="bi bi-megaphone"></i>
+            </div>
+
+            <!-- ACCESSIBILITY DESCRIPTION -->
+            <div class="flex-grow-1">
+                <h6 class="mb-1">Text-to-Speech</h6>
+                <p class="mb-0 text-muted">Phonics & Decoding, Phonetic Highlighting and TTS</p>
+            </div>
+
+            <!-- ACCESSIBILITY TOGGLE -->
+            <div class="form-check form-switch mb-0">
+                <input class="form-check-input custom-switch" type="checkbox" role="switch" checked>
+            </div>
+        </div>
+
+        <div class="access-card d-flex align-items-center p-3 shadow-sm border rounded-4">
+            <!-- ACCESSIBILITY ICON -->
+            <div class="icon-circle me-3">
+                <i class="bi bi-highlighter"></i>
+            </div>
+
+            <!-- ACCESSIBILITY DESCRIPTION -->
+            <div class="flex-grow-1">
+                <h6 class="mb-1">Line Focus & Color Overlays</h6>
+                <p class="mb-0 text-muted">Text highlight for text decks</p>
+            </div>
+
+            <!-- ACCESSIBILITY TOGGLE -->
+            <div class="form-check form-switch mb-0">
+                <input class="form-check-input custom-switch" type="checkbox" role="switch">
+            </div>
+        </div>
+
+        <div class="access-card d-flex align-items-center p-3 shadow-sm border rounded-4">
+            <!-- ACCESSIBILITY ICON-->
+            <div class="icon-circle me-3">
+                <i class="bi bi-arrow-down-up"></i>
+            </div>
+
+            <!-- ACCESSIBILITY DESCRIPTION -->
+            <div class="flex-grow-1">
+                <h6 class="mb-1">Auto Scroll</h6>
+                <p class="mb-0 text-muted">Enable Auto Scroll when reading Decks</p>
+            </div>
+
+            <!-- ACCESSIBILITY TOGGLE-->
+            <div class="form-check form-switch mb-0">
+                <input class="form-check-input custom-switch" type="checkbox" role="switch">
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

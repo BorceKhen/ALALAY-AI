@@ -1,0 +1,133 @@
+/* 
+---------------------------------------------
+Authentication Page
+---------------------------------------------
+*/
+
+body {
+    background: var(--secondary-white);
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 540px;
+    border-radius: 1.25rem; /* Clean rounded card styling */
+    border: none;
+    transition: all 0.3s ease-in-out;
+}
+
+/* Custom Sliding Toggle Mechanism */
+.toggle-container {
+    background-color: var(--tertiary-white);
+    border-radius: 2rem;
+    padding: 6px;
+    width: 260px;
+}
+
+.toggle-btn {
+    background: transparent;
+    border: none;
+    padding: 10px 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--primary-text);
+    border-radius: 1.5rem;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+/* The Sliding Capsule Background Element */
+.toggle-slider {
+    position: absolute;
+    top: 6px;
+    bottom: 6px;
+    width: calc(50% - 6px);
+    background-color: var(--primary-white);
+    border-radius: 1.5rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Update slider handle offsets based on active view states */
+.state-signin .toggle-slider {
+    transform: translateX(100%);
+}
+
+.state-signup .toggle-slider {
+    transform: translateX(0%);
+}
+
+/* Forms Section Transitions */
+.auth-title {
+    font-family: var(--primary-font);
+    font-weight: 700;
+    font-size: 1.75rem;
+    color: var(--primary-text);
+}
+
+/* Input Fields styling matching your wireframe fields */
+.auth-input {
+    background-color: var(--primary-white) !important;
+    border: 2px solid var(--quaternary-border) !important;
+    border-radius: 1.5rem !important;
+    height: 56px;
+    padding: 0 1.5rem;
+    font-family: var(--secondary-font);
+    font-size: 0.95rem;
+    color: var(--primary-text);
+}
+
+.auth-input::placeholder {
+    color: var(--secondary-text);
+    opacity: 0.8;
+}
+
+.auth-input:focus {
+    border-color: var(--secondary-blue) !important;
+    box-shadow: none !important;
+}
+
+/* Action Buttons */
+.btn-auth-primary {
+    background-color: var(--secondary-blue) !important;
+    color: var(--primary-white) !important;
+    border-radius: 1.5rem !important;
+    height: 54px;
+    font-weight: 600;
+    font-size: 1rem;
+    border: none;
+    transition: background-color 0.2s ease;
+}
+
+.btn-auth-primary:hover {
+    background-color: var(--primary-blue) !important;
+}
+
+.btn-auth-outline {
+    background-color: transparent !important;
+    color: var(--primary-text) !important;
+    border: 2px solid var(--primary-border) !important;
+    border-radius: 1.5rem !important;
+    height: 54px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.btn-auth-outline:hover {
+    background-color: var(--secondary-white) !important;
+    border-color: var(--secondary-text) !important;
+}
+
+/* Line Divider for Social Login Split */
+.divider-line {
+    height: 2px;
+    background-color: var(--primary-border);
+}
+
+.divider-text {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--primary-text);
+    white-space: nowrap;
+}

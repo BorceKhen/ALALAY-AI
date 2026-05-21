@@ -1,0 +1,80 @@
+{% extends "index.html" %}
+
+{% block title %}ALALAY-AI | Profile{% endblock %}
+
+{% block homepage_content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <!-- PROFILE-DETAILS -->
+    <div class="d-flex align-items-center gap-4">
+        <!-- USER PROFILE IMAGE -->
+        <div class="profile-avatar-container">
+            <img src="{{ url_for('static', filename='assets/avatar.jpg') }}" 
+                 alt="Username" 
+                 class="rounded-circle shadow-sm profile-img">
+        </div>
+
+        <!-- USER INFO -->
+        <div>
+            <h1 class="display-6 fw-bold mb-0">Username</h1>
+            <p class="text-muted mb-0">Age | Gender | Birthdate</p>
+        </div>
+    </div>
+
+    <!-- EDIT BUTTON -->
+    <button class="btn-edit-icon shadow-sm" title="Edit Profile">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-person-fill-gear" viewBox="0 0 16 16">
+            <path d="M11 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0m-9 8c0 1 1 1 1 1h5.256A4.5 4.5 0 0 1 8 12.5a4.5 4.5 0 0 1 1.544-3.393Q8.844 9.002 8 9c-5 0-6 3-6 4"/>
+            <path d="M16 12.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0m-3.5-2a.5.5 0 0 0-.5.5v1.5a.5.5 0 0 0 .5.5H14a.5.5 0 0 0 0-1h-1v-1a.5.5 0 0 0-.5-.5"/>
+        </svg>
+    </button>
+</div>
+<hr class="divider-line">
+
+<!-- DECK PROGRESS -->
+<h2 class="h5 fw-bold mb-4 mt-5">Deck Progress</h2>
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    <div class="col">
+        <div class="progress-deck-card bg-white py-3 border p-4 shadow-sm rounded-4 text-left d-flex alignt-items-center h-80 overflow-hidden">
+            <!-- PROGRESS CIRCLE -->
+            <div class="progress-circle d-flex align-items-center justify-content-center rounded-circle">
+                <span class="fw-semibold small text-success">0%</span>
+            </div>
+            
+            <!-- DECK DETAILS -->
+            <div>
+                <h6 class="fw-semibold mb-1">Social Sciences</h6>
+                <p class="text-muted small mb-0">0 of 53 cards</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="progress-deck-card bg-white py-3 border p-4 shadow-sm rounded-4 text-left d-flex alignt-items-center h-80 overflow-hidden">
+            <!-- PROGRESS CIRCLE -->
+            <div class="progress-circle d-flex align-items-center justify-content-center rounded-circle">
+                <span class="fw-semibold small text-success">0%</span>
+            </div>
+            
+            <!-- DECK DETAILS -->
+            <div>
+                <h6 class="fw-semibold mb-1">Social Sciences</h6>
+                <p class="text-muted small mb-0">0 of 53 cards</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="progress-deck-card bg-white py-3 border p-4 shadow-sm rounded-4 text-left d-flex align-items-center h-80 overflow-hidden">
+            <!-- PROGRESS CIRCLE -->
+            <div class="progress-circle d-flex align-items-center justify-content-center rounded-circle">
+                <span class="fw-semibold small text-success">0%</span>
+            </div>
+            
+            <!-- DECK DETAILS -->
+            <div>
+                <h6 class="fw-semibold mb-1">Social Sciences</h6>
+                <p class="text-muted small mb-0">0 of 53 cards</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
