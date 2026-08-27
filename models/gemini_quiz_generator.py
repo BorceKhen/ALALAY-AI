@@ -105,7 +105,7 @@ class GeminiQuizGenerator:
                 'question': q_text,
                 'correct_answer': c_ans,
                 'options': options
-            }, answer_pool)
+            }, answer_pool, content_level=content_level)
             
             if norm:
                 quiz_data.append(norm)
@@ -156,7 +156,7 @@ Expected JSON Output format:
             print(f"[Gemini-QuizGen] Failed to generate batch distractors: {e}")
         return {}
 
-    def _normalize_quiz_item(self, q: Dict, fallback_pool: List[str] = None) -> Dict:
+    def _normalize_quiz_item(self, q: Dict, fallback_pool: List[str] = None, content_level: str = "Medium") -> Dict:
         """
         Guarantees that every quiz item has a valid question, correct answer,
         and strictly 4 distinct, randomized options.
@@ -216,7 +216,7 @@ Expected JSON Output format:
             from models.distractor_generator import SmartDistractorGenerator
             generator = SmartDistractorGenerator.get_instance()
             needed = 4 - len(unique_options)
-            smart_dist = generator.generate_distractors(question, correct_ans, existing_deck_answers=fallback_pool or [], count=needed)
+            smart_dist = generator.generate_distractors(question, correct_ans, existing_deck_answers=fallback_pool or [], count=needed, content_level=content_level)
             for sd in smart_dist:
                 if sd.lower() not in seen_texts:
                     seen_texts.add(sd.lower())

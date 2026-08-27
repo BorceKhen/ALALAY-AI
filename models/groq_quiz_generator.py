@@ -103,7 +103,7 @@ class GroqQuizGenerator:
                 'question': q_text,
                 'correct_answer': c_ans,
                 'options': options
-            }, answer_pool)
+            }, answer_pool, content_level=content_level)
             
             if norm:
                 quiz_data.append(norm)
@@ -113,7 +113,7 @@ class GroqQuizGenerator:
 
     def _generate_batch_distractors(self, items: List[Dict]) -> Dict[str, List[str]]:
         """
-        Generates 3 semantic-category-matched incorrect options for each Q-A pair in batch using Groq.
+        Generates 3 semantic-category-matched incorrect options for each Q-A pair in batch.
         """
         try:
             self._init_client()
@@ -143,21 +143,19 @@ Expected JSON Output format:
   "question text here": ["distractor 1", "distractor 2", "distractor 3"]
 }}
 """
-            model_to_use = "llama-3.3-70b-versatile"
             response = self.client.chat.completions.create(
-                model=model_to_use,
+                model="llama-3.3-70b-versatile",
                 messages=[{"role": "user", "content": prompt}],
                 response_format={"type": "json_object"}
             )
-            response_text = response.choices[0].message.content
-            if response_text:
-                res_dict = json.loads(response_text.strip())
+            if response and response.choices:
+                res_dict = json.loads(response.choices[0].message.content.strip())
                 return {str(k).lower().strip(): v for k, v in res_dict.items() if isinstance(v, list)}
         except Exception as e:
             print(f"[Groq-QuizGen] Failed to generate batch distractors: {e}")
         return {}
 
-    def _normalize_quiz_item(self, q: Dict, fallback_pool: List[str] = None) -> Dict:
+    def _normalize_quiz_item(self, q: Dict, fallback_pool: List[str] = None, content_level: str = "Medium") -> Dict:
         """
         Guarantees that every quiz item has a valid question, correct answer,
         and strictly 4 distinct, randomized options.
@@ -217,7 +215,7 @@ Expected JSON Output format:
             from models.distractor_generator import SmartDistractorGenerator
             generator = SmartDistractorGenerator.get_instance()
             needed = 4 - len(unique_options)
-            smart_dist = generator.generate_distractors(question, correct_ans, existing_deck_answers=fallback_pool or [], count=needed)
+            smart_dist = generator.generate_distractors(question, correct_ans, existing_deck_answers=fallback_pool or [], count=needed, content_level=content_level)
             for sd in smart_dist:
                 if sd.lower() not in seen_texts:
                     seen_texts.add(sd.lower())
