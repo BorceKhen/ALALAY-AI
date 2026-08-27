@@ -78,34 +78,13 @@ class T5QuizGenerator:
         return best_answer if best_answer else "N/A"
 
     @staticmethod
-    def _make_distractors(correct_answer: str, all_answers: List[str], count: int = 3) -> List[str]:
+    def _make_distractors(question: str, correct_answer: str, all_answers: List[str], count: int = 3) -> List[str]:
         """
-        Picks `count` distractor answers from the pool, excluding the correct answer.
-        If there aren't enough unique answers, generates placeholder distractors.
+        Uses SmartDistractorGenerator to generate contextually matched, high-quality distractors.
         """
-        pool = [a for a in all_answers if a.lower().strip() != correct_answer.lower().strip()]
-
-        # Remove duplicates while preserving order
-        seen = set()
-        unique_pool = []
-        for a in pool:
-            key = a.lower().strip()
-            if key not in seen:
-                seen.add(key)
-                unique_pool.append(a)
-
-        if len(unique_pool) >= count:
-            return random.sample(unique_pool, count)
-        else:
-            # Pad with generic distractors if not enough unique answers
-            distractors = unique_pool[:]
-            placeholders = ["None of the above", "All of the above", "Not applicable"]
-            for p in placeholders:
-                if len(distractors) >= count:
-                    break
-                if p.lower() != correct_answer.lower().strip():
-                    distractors.append(p)
-            return distractors[:count]
+        from models.distractor_generator import SmartDistractorGenerator
+        generator = SmartDistractorGenerator.get_instance()
+        return generator.generate_distractors(question, correct_answer, existing_deck_answers=all_answers, count=count)
 
     def generate_quiz(
         self,
@@ -146,8 +125,8 @@ class T5QuizGenerator:
             q_text = card.get('question', '').strip()
             correct = card.get('answer', '').strip()
 
-            # Build distractors from other flashcard answers
-            distractors = self._make_distractors(correct, all_answers, count=3)
+            # Build smart distractors matching the specific question category
+            distractors = self._make_distractors(q_text, correct, all_answers, count=3)
 
             # Combine and shuffle options
             options = [{"text": correct, "is_correct": True}]

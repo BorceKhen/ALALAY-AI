@@ -211,24 +211,18 @@ Expected JSON Output format:
                 seen_texts.add(key)
                 unique_options.append(opt)
         
-        # If fewer than 4 options, fill distractors from pool
-        if len(unique_options) < 4 and fallback_pool:
-            for fb in fallback_pool:
+        # If fewer than 4 options, generate smart contextual distractors
+        if len(unique_options) < 4:
+            from models.distractor_generator import SmartDistractorGenerator
+            generator = SmartDistractorGenerator.get_instance()
+            needed = 4 - len(unique_options)
+            smart_dist = generator.generate_distractors(question, correct_ans, existing_deck_answers=fallback_pool or [], count=needed)
+            for sd in smart_dist:
+                if sd.lower() not in seen_texts:
+                    seen_texts.add(sd.lower())
+                    unique_options.append({"text": sd, "is_correct": False})
                 if len(unique_options) >= 4:
                     break
-                fb_text = str(fb).strip()
-                if fb_text and fb_text.lower() not in seen_texts:
-                    seen_texts.add(fb_text.lower())
-                    unique_options.append({"text": fb_text, "is_correct": False})
-        
-        # If still fewer than 4, add standard plausible fallback choices
-        generic_distractors = ["None of the above", "All of the above", "Cannot be determined", "Both A and B"]
-        for gd in generic_distractors:
-            if len(unique_options) >= 4:
-                break
-            if gd.lower() not in seen_texts:
-                seen_texts.add(gd.lower())
-                unique_options.append({"text": gd, "is_correct": False})
         
         # If more than 4 options, keep 1 correct and 3 incorrect
         if len(unique_options) > 4:

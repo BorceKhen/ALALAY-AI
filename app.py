@@ -383,6 +383,21 @@ def quiz_deck(deck_name):
     # ── Check if quiz is already cached under the deck document ──
     quiz_items = deck.get('quiz_items')
     
+    # Validate cached quiz_items to ensure distractors are not stale or repetitive across questions
+    if quiz_items:
+        distractor_counts = {}
+        for item in quiz_items:
+            opts = item.get('options', [])
+            for opt in opts:
+                txt = (opt.get('text') if isinstance(opt, dict) else str(opt)).strip()
+                if txt and not (isinstance(opt, dict) and opt.get('is_correct')):
+                    distractor_counts[txt] = distractor_counts.get(txt, 0) + 1
+        if len(quiz_items) >= 3:
+            max_freq = max(distractor_counts.values()) if distractor_counts else 0
+            if max_freq > (len(quiz_items) * 0.35):
+                print(f"[Quiz-Route] Stale repetitive distractors detected (max_freq={max_freq}/{len(quiz_items)}). Purging stale cache for fresh smart distractor generation.")
+                quiz_items = None
+    
     # Fetch user recommended content level from Firestore profile document
     db = get_db()
     content_level = "Medium"
