@@ -197,14 +197,15 @@ Requirements:
             prompt = f"""
 You are an expert educational test designer. For each of the following quiz questions and correct answers, generate exactly 3 incorrect distractors.
 
-CRITICAL REQUIREMENTS:
-1. Category Matching: The 3 distractors must belong to the exact same semantic category and grammatical form as the correct answer.
-   - Example (Shapes): If the correct answer is "Oktagono", distractors must be shapes in the same language, e.g., ["Tatsulok", "Bilog", "Parisukat"].
-   - Example (Phobias): If the correct answer is "Takot sa aso", distractors must be other phobias in the same language, e.g., ["Takot sa dilim", "Takot sa gagamba", "Takot sa matataas na lugar"].
-   - Example (Cities): If the correct answer is "Maynila", distractors must be other cities, e.g., ["Cebu", "Davao", "Iloilo"].
-2. Context-Specific Distractors: Do not reuse distractors across different topics (e.g., do not use city names for a shape question, and do not use phobia answers for a food question).
+CRITICAL CHOICE CORRELATION REQUIREMENTS:
+1. Strict Category Matching: Every distractor MUST belong to the exact same domain, entity type, and topic as the correct answer.
+   - Tech / Acronym (e.g., "www" -> "World Wide Web"): Distractors MUST be plausible tech acronym variations (e.g., ["Wide World Web", "World Web Wide", "Web Wide Window"]). NEVER use city, province, or mountain names!
+   - Island Province (e.g., "Romblon"): Distractors MUST be other island provinces (e.g., ["Palawan", "Marinduque", "Batanes"]). NEVER use mountains ("Bundok Apo") or historical sites ("Intramuros")!
+   - Mountain (e.g., "Bundok Apo"): Distractors MUST be other mountains (e.g., ["Bundok Pulag", "Bundok Mayon", "Bundok Kanlaon"]). NEVER use city names!
+   - City (e.g., "Maynila"): Distractors MUST be other cities (e.g., ["Cebu City", "Davao City", "Iloilo City"]).
+2. Zero Cross-Topic Contamination: Do NOT reuse options across unrelated topics. Options for a question MUST be 100% relevant to that specific question's concept.
 3. Plausibility: Distractors must be plausible and challenging, not obviously wrong or silly.
-4. Language: Distractors must be in the exact same language (Filipino/Tagalog/Taglish or English) as the correct answer. Keep the options natural and grammatically correct in Filipino/Taglish when appropriate.
+4. Language: Distractors must be in the exact same language (Filipino/Tagalog/Taglish or English) as the correct answer.
 5. Output must be a JSON object mapping the lowercase question text to an array of exactly 3 distractor strings. Do not include markdown wrappers.
 
 Input Questions and Answers:
