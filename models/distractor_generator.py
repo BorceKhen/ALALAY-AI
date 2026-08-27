@@ -1,12 +1,14 @@
 # models/distractor_generator.py
 """
 Smart Contextual Distractor Generator for ALALAY-AI
-Generates semantically matched, plausible distractors for quiz options
-matching language (Filipino/English), category (Numbers, Tech Acronyms, Provinces, Mountains, Cities, Persons),
-and guarantees no mismatched or repetitive distractors across questions.
+Uses Groq (openai/gpt-oss-20b) and Gemini (gemini-3.6-flash) dynamically
+to generate highly accurate, domain-correlated distractors.
+Falls back to category matching if APIs are offline.
 """
 
+import os
 import re
+import json
 import random
 from typing import List, Dict
 
@@ -33,11 +35,16 @@ class SmartDistractorGenerator:
         ans_str = (correct_answer or "").strip()
         level = (content_level or "Medium").strip().capitalize()
 
-        is_filipino = self._is_tagalog(q_lower + " " + a_lower)
-        distractors = []
+        # ── 1. AI-Powered Dynamic Distractor Generation ───────────────
+        ai_distractors = self._generate_ai_distractors(question, ans_str, count=count, content_level=level)
+        if len(ai_distractors) >= count:
+            return ai_distractors[:count]
 
-        # ── Category 1: Tech / Acronyms / Web Terms ───────────────────
-        if any(w in q_lower or w in a_lower for w in ["www", "http", "html", "browser", "acronym", "stands for", "ibig sabihin", "cpu", "ram", "url", "ip"]):
+        is_filipino = self._is_tagalog(q_lower + " " + a_lower)
+        distractors = list(ai_distractors)
+
+        # ── 2. Category Fallback: Tech / Acronyms / Web Terms ─────────
+        if not distractors and any(w in q_lower or w in a_lower for w in ["www", "http", "html", "browser", "acronym", "stands for", "ibig sabihin", "cpu", "ram", "url", "ip"]):
             if "world wide web" in a_lower or "www" in q_lower:
                 if is_filipino or level == "Easy":
                     candidates = ["Wide World Web", "World Web Wide", "Web Wide World", "World Wide Window"]
@@ -49,7 +56,7 @@ class SmartDistractorGenerator:
                     if len(distractors) >= count:
                         break
 
-        # ── Category 2: Mountains / Volcanoes / Natural Peaks ─────────
+        # ── 3. Category Fallback: Mountains / Volcanoes ───────────────
         if not distractors and (
             any(w in q_lower or w in a_lower for w in ["bundok", "mountain", "mt.", "bulkan", "volcano", "peak", "pinakamataas na bundok"]) or
             ("apo" in a_lower or "pulag" in a_lower or "mayon" in a_lower)
@@ -78,7 +85,7 @@ class SmartDistractorGenerator:
                 if len(distractors) >= count:
                     break
 
-        # ── Category 3: Provinces & Island Provinces ──────────────────
+        # ── 4. Category Fallback: Provinces & Island Provinces ────────
         if not distractors and (
             any(w in q_lower or w in a_lower for w in ["probinsya", "province", "isla", "island", "marmol", "romblon", "batanes", "marinduque", "palawan"]) or
             any(p in a_lower for p in ["romblon", "batanes", "marinduque", "palawan", "bohol", "catanduanes"])
@@ -107,7 +114,7 @@ class SmartDistractorGenerator:
                 if len(distractors) >= count:
                     break
 
-        # ── Category 4: Cities (Only for specific city/capital questions) ──
+        # ── 5. Category Fallback: Cities ──────────────────────────────
         if not distractors and any(w in q_lower for w in ["kapital", "capital", "lungsod ng", "city", "lunsod"]) and not any(w in q_lower for w in ["bundok", "probinsya", "isla"]):
             if is_filipino or "pilipinas" in q_lower or "philippines" in q_lower:
                 candidates = [
@@ -133,7 +140,7 @@ class SmartDistractorGenerator:
                 if len(distractors) >= count:
                     break
 
-        # ── Category 5: Historical Persons / Figures ──────────────────
+        # ── 6. Category Fallback: Historical Persons ──────────────────
         if not distractors and any(w in q_lower or w in a_lower for w in ["sino", "who", "bayani", "hero", "presidente", "president", "dr.", "heneral", "general", "rizal", "bonifacio"]):
             if is_filipino:
                 candidates = [
@@ -157,7 +164,7 @@ class SmartDistractorGenerator:
                 if len(distractors) >= count:
                     break
 
-        # ── Category 6: Numbers / Quantities / Measurements ──────────
+        # ── 7. Category Fallback: Numbers / Measurements ──────────────
         if not distractors:
             num_match = re.search(r'\b(\d+(?:\.\d+)?)\s*([a-zA-Z\u00C0-\u024F\u1E00-\u1EFF]*)\b', ans_str)
             if num_match and not self._is_year(ans_str):
@@ -199,7 +206,7 @@ class SmartDistractorGenerator:
                 except Exception:
                     pass
 
-        # ── Category 7: Shapes / Geometry ────────────────────────────
+        # ── 8. Category Fallback: Shapes / Geometry ───────────────────
         if not distractors and any(w in q_lower or w in a_lower for w in ["shape", "hugis", "oktagono", "tatsulok", "bilog", "parisukat", "hexagon", "pentagon", "sulok"]):
             if is_filipino:
                 if level == "Easy":
@@ -231,38 +238,13 @@ class SmartDistractorGenerator:
                 if len(distractors) >= count:
                     break
 
-        # ── Category 8: Countries / Alliances ────────────────────────
-        if not distractors and any(w in q_lower or w in a_lower for w in ["bansa", "country", "countries", "axis", "allies", "nations", "digmaan", "war"]):
-            if is_filipino:
-                candidates = [
-                    "Estados Unidos, Gran Britanya, at Rusya",
-                    "Pransya, Espanya, at Portugal",
-                    "Tsina, Timog Korea, at Hapon",
-                    "Alemanya, Austria, at Hungary",
-                    "Kanada, Australia, at Bagong Silang"
-                ]
-            else:
-                candidates = [
-                    "United States, Great Britain, and Soviet Union",
-                    "France, Spain, and Portugal",
-                    "China, South Korea, and Japan",
-                    "Germany, Austria, and Hungary",
-                    "Canada, Australia, and New Zealand"
-                ]
-            for c in candidates:
-                if c.lower() != a_lower and c not in distractors:
-                    distractors.append(c)
-                if len(distractors) >= count:
-                    break
-
-        # ── Category 9: Strictly Filtered Existing Deck Answers ───────
+        # ── 9. Filtered Deck Answers Fallback ─────────────────────────
         if len(distractors) < count and existing_deck_answers:
             for ans in existing_deck_answers:
                 ans_clean = (ans or "").strip()
                 if not ans_clean or ans_clean.lower() == a_lower:
                     continue
                 
-                # Check semantic type mismatch to prevent mixing tech/acronym with location/mountain
                 is_acronym_q = any(w in q_lower for w in ["www", "http", "html", "browser", "acronym", "stands for", "ibig sabihin"])
                 ans_is_loc = any(l in ans_clean.lower() for l in ["romblon", "cebu", "maynila", "apo", "baguio", "intramuros"])
                 if is_acronym_q and ans_is_loc:
@@ -278,7 +260,7 @@ class SmartDistractorGenerator:
                 if len(distractors) >= count:
                     break
 
-        # ── Fallback filler if still needed ───────────────────────────
+        # ── 10. Fallback Filler ───────────────────────────────────────
         if len(distractors) < count:
             if is_filipino:
                 fallback_pool = [
@@ -301,6 +283,104 @@ class SmartDistractorGenerator:
                     break
 
         return distractors[:count]
+
+    def _generate_ai_distractors(self, question: str, correct_answer: str, count: int = 3, content_level: str = "Medium") -> List[str]:
+        """
+        Dynamically queries Groq (openai/gpt-oss-20b) or Gemini (gemini-3.6-flash)
+        to generate 3 highly accurate, correlated distractors for the given question.
+        """
+        # 1. Try Groq (openai/gpt-oss-20b)
+        groq_key = os.environ.get("GROQ_API_KEY")
+        if groq_key:
+            try:
+                from groq import Groq
+                client = Groq(api_key=groq_key)
+                prompt = f"""
+You are an expert test designer. For the question below, generate exactly {count} incorrect multiple-choice distractor options.
+
+Question: {question}
+Correct Answer: {correct_answer}
+Difficulty Level: {content_level}
+
+CRITICAL RULES:
+1. Every distractor MUST be 100% correlated and belong to the exact same domain, entity type, and topic as the correct answer.
+   - Example: If question asks for acronym ("www" -> "World Wide Web"), distractors MUST be plausible tech acronym variations (e.g. ["Wide World Web", "World Web Wide", "Web Wide Window"]). NEVER use city or mountain names!
+   - Example: If question asks for island province ("Romblon"), distractors MUST be other island provinces ("Palawan", "Batanes"). NEVER use mountains or cities!
+2. Match the exact same language (Filipino/Tagalog or English) as the question.
+3. Output MUST be a JSON object mapping "distractors" to an array of exactly {count} string distractors:
+{{
+  "distractors": ["distractor 1", "distractor 2", "distractor 3"]
+}}
+"""
+                response = client.chat.completions.create(
+                    model="openai/gpt-oss-20b",
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"}
+                )
+                if response and response.choices:
+                    res_text = response.choices[0].message.content.strip()
+                    res_data = json.loads(res_text)
+                    if isinstance(res_data, dict) and "distractors" in res_data:
+                        items = res_data["distractors"]
+                        if isinstance(items, list):
+                            clean = [str(d).strip() for d in items if str(d).strip().lower() != correct_answer.lower()]
+                            if len(clean) >= count:
+                                print(f"[SmartDistractorGen] Groq AI generated distractors for '{question[:30]}...': {clean}")
+                                return clean[:count]
+                    elif isinstance(res_data, list):
+                        clean = [str(d).strip() for d in res_data if str(d).strip().lower() != correct_answer.lower()]
+                        if len(clean) >= count:
+                            print(f"[SmartDistractorGen] Groq AI generated distractors for '{question[:30]}...': {clean}")
+                            return clean[:count]
+            except Exception as e:
+                print(f"[SmartDistractorGen] Groq AI distractor generation failed: {e}")
+
+        # 2. Try Gemini (gemini-3.6-flash)
+        gemini_key = os.environ.get("GEMINI_API_KEY")
+        if gemini_key:
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=gemini_key)
+                model = genai.GenerativeModel('gemini-3.6-flash')
+                prompt = f"""
+You are an expert test designer. For the question below, generate exactly {count} incorrect multiple-choice distractor options.
+
+Question: {question}
+Correct Answer: {correct_answer}
+Difficulty Level: {content_level}
+
+CRITICAL RULES:
+1. Every distractor MUST be 100% correlated and belong to the exact same domain, entity type, and topic as the correct answer.
+   - Example: If question asks for acronym ("www" -> "World Wide Web"), distractors MUST be plausible tech acronym variations (e.g. ["Wide World Web", "World Web Wide", "Web Wide Window"]). NEVER use city or mountain names!
+   - Example: If question asks for island province ("Romblon"), distractors MUST be other island provinces ("Palawan", "Batanes"). NEVER use mountains or cities!
+2. Match the exact same language (Filipino/Tagalog or English) as the question.
+3. Output MUST be a JSON object mapping "distractors" to an array of exactly {count} string distractors:
+{{
+  "distractors": ["distractor 1", "distractor 2", "distractor 3"]
+}}
+"""
+                response = model.generate_content(
+                    prompt,
+                    generation_config={"response_mime_type": "application/json"}
+                )
+                if response and response.text:
+                    res_data = json.loads(response.text.strip())
+                    if isinstance(res_data, dict) and "distractors" in res_data:
+                        items = res_data["distractors"]
+                        if isinstance(items, list):
+                            clean = [str(d).strip() for d in items if str(d).strip().lower() != correct_answer.lower()]
+                            if len(clean) >= count:
+                                print(f"[SmartDistractorGen] Gemini AI generated distractors for '{question[:30]}...': {clean}")
+                                return clean[:count]
+                    elif isinstance(res_data, list):
+                        clean = [str(d).strip() for d in res_data if str(d).strip().lower() != correct_answer.lower()]
+                        if len(clean) >= count:
+                            print(f"[SmartDistractorGen] Gemini AI generated distractors for '{question[:30]}...': {clean}")
+                            return clean[:count]
+            except Exception as e:
+                print(f"[SmartDistractorGen] Gemini AI distractor generation failed: {e}")
+
+        return []
 
     @staticmethod
     def _is_tagalog(text: str) -> bool:
