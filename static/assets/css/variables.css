@@ -42,3 +42,151 @@ Pallete
     --secondary-font: 'Open Sans', sans-serif;
 }
 
+/* ============================================================
+   Low Vision Contrast Themes Overrides
+   ============================================================ */
+
+/* High Contrast Dark: Yellow-on-Black */
+body.contrast-theme-dark {
+    background-color: #000000 !important;
+    color: #ffff00 !important;
+
+    /* Theme Variable Overrides */
+    --primary-white: #000000;
+    --secondary-white: #080808;
+    --tertiary-white: #101010;
+    --quaternary-white: #181818;
+    
+    --primary-border: #ffff00;
+    --secondary-border: #ffff00;
+    --tertiary-border: #ffff00;
+    --quaternary-border: #ffff00;
+    
+    --primary-text: #ffff00;
+    --secondary-text: #ffffff;
+    --tertiary-text: #e0e0e0;
+    
+    --primary-blue: #000000;
+    --secondary-blue: #111111;
+    --tertiary-blue: #ffff00;
+    --primary-yellow: #000000;
+    --primary-green: #00ff00;
+    
+    --blue-gradient: linear-gradient(145deg, #000000 0%, #111111 100%);
+    --primary-shadow: 0 0 0 2px #ffff00;
+}
+
+body.contrast-theme-dark .card,
+body.contrast-theme-dark .access-card,
+body.contrast-theme-dark .access-card-wrapper,
+body.contrast-theme-dark .deck-card,
+body.contrast-theme-dark .navbar,
+body.contrast-theme-dark .modal-content,
+body.contrast-theme-dark .alert,
+body.contrast-theme-dark .collapse,
+body.contrast-theme-dark .dropdown-menu {
+    background-color: #000000 !important;
+    border: 2px solid #ffff00 !important;
+    color: #ffff00 !important;
+}
+
+body.contrast-theme-dark .text-dark,
+body.contrast-theme-dark .text-muted,
+body.contrast-theme-dark .text-primary,
+body.contrast-theme-dark .text-secondary,
+body.contrast-theme-dark h1,
+body.contrast-theme-dark h2,
+body.contrast-theme-dark h3,
+body.contrast-theme-dark h4,
+body.contrast-theme-dark h5,
+body.contrast-theme-dark h6,
+body.contrast-theme-dark p,
+body.contrast-theme-dark a,
+body.contrast-theme-dark span,
+body.contrast-theme-dark label,
+body.contrast-theme-dark i {
+    color: #ffff00 !important;
+}
+
+body.contrast-theme-dark .btn {
+    background-color: #000000 !important;
+    border: 2px solid #ffff00 !important;
+    color: #ffff00 !important;
+}
+body.contrast-theme-dark .btn:hover {
+    background-color: #ffff00 !important;
+    color: #000000 !important;
+}
+
+/* High Contrast Light: Black-on-White */
+body.contrast-theme-light {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+
+    /* Theme Variable Overrides */
+    --primary-white: #ffffff;
+    --secondary-white: #ffffff;
+    --tertiary-white: #ffffff;
+    --quaternary-white: #fcfcfc;
+    
+    --primary-border: #000000;
+    --secondary-border: #000000;
+    --tertiary-border: #000000;
+    --quaternary-border: #000000;
+    
+    --primary-text: #000000;
+    --secondary-text: #000000;
+    --tertiary-text: #111111;
+    
+    --primary-blue: #ffffff;
+    --secondary-blue: #ffffff;
+    --tertiary-blue: #000000;
+    --primary-yellow: #ffffff;
+    --primary-green: #008000;
+    
+    --blue-gradient: linear-gradient(145deg, #ffffff 0%, #eeeeee 100%);
+    --primary-shadow: 0 0 0 2px #000000;
+}
+
+body.contrast-theme-light .card,
+body.contrast-theme-light .access-card,
+body.contrast-theme-light .access-card-wrapper,
+body.contrast-theme-light .deck-card,
+body.contrast-theme-light .navbar,
+body.contrast-theme-light .modal-content,
+body.contrast-theme-light .alert,
+body.contrast-theme-light .collapse,
+body.contrast-theme-light .dropdown-menu {
+    background-color: #ffffff !important;
+    border: 2px solid #000000 !important;
+    color: #000000 !important;
+}
+
+body.contrast-theme-light .text-dark,
+body.contrast-theme-light .text-muted,
+body.contrast-theme-light .text-primary,
+body.contrast-theme-light .text-secondary,
+body.contrast-theme-light h1,
+body.contrast-theme-light h2,
+body.contrast-theme-light h3,
+body.contrast-theme-light h4,
+body.contrast-theme-light h5,
+body.contrast-theme-light h6,
+body.contrast-theme-light p,
+body.contrast-theme-light a,
+body.contrast-theme-light span,
+body.contrast-theme-light label,
+body.contrast-theme-light i {
+    color: #000000 !important;
+}
+
+body.contrast-theme-light .btn {
+    background-color: #ffffff !important;
+    border: 2px solid #000000 !important;
+    color: #000000 !important;
+}
+body.contrast-theme-light .btn:hover {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+}
+

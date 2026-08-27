@@ -7,27 +7,161 @@
 {% endblock %}
 
 {% block content %}
-<div class="auth-wrapper d-flex align-items-center justify-content-center min-vh-100 py-5">
-    <div class="auth-card p-5 bg-white shadow-xl state-signin border" id="authCard">
+<main class="auth-wrapper d-flex align-items-center justify-content-center min-vh-100 py-5">
+    <div class="auth-card p-5 bg-white shadow-xl state-signup" id="authCard" role="region" aria-label="User Authentication">
         
-        <div class="toggle-container mx-auto mb-5 d-flex position-relative border p-1">
-            <div class="toggle-slider position-absolute"></div>
-            <button type="button" class="toggle-btn w-50 z-1" id="toggleSignUpBtn">Sign Up</button>
-            <button type="button" class="toggle-btn w-50 z-1 active" id="toggleSignInBtn">Sign In</button>
+        <!-- Toggle Tabs for Sign Up / Sign In (WCAG-compliant tablist) -->
+        <div class="toggle-container mx-auto mb-5 d-flex position-relative border p-1" role="tablist" aria-label="Auth Mode Select">
+            <div class="toggle-slider position-absolute" id="toggleSlider"></div>
+            <button type="button" class="toggle-btn w-50 z-1 active" id="toggleSignUpBtn" role="tab" aria-selected="true" aria-controls="signUpView" tabindex="0">Sign Up</button>
+            <button type="button" class="toggle-btn w-50 z-1" id="toggleSignInBtn" role="tab" aria-selected="false" aria-controls="signInView" tabindex="-1">Sign In</button>
         </div>
 
-        <div class="auth-view-section" id="signInView">
-            <h2 class="auth-title text-center mb-4">Sign In Using your Email</h2>
+        <!-- Live Region for Accessibility Announcements (Errors & Success) -->
+        <div id="authAlert" class="alert d-none mb-4" role="alert" aria-live="assertive"></div>
+
+        <!-- ------------------------------------------------------------- -->
+        <!-- SIGN UP VIEW -->
+        <!-- ------------------------------------------------------------- -->
+        <div class="auth-view-section" id="signUpView" role="tabpanel" aria-labelledby="toggleSignUpBtn">
+            <h1 class="auth-title text-center mb-4">Sign up Using your Email</h1>
             
-            <form method="POST" action="{{ url_for('login') }}">
-                <div class="mb-3">
-                    <input type="email" class="form-control auth-input" placeholder="Email" required>
+            <form id="signUpForm" novalidate>
+                <!-- Hidden Input to store the chosen disability type -->
+                <input type="hidden" id="signUpDisability" value="">
+
+                <!-- STEP 1: Disability Profile Selector -->
+                <div class="wizard-step" id="signUpStep1">
+                    <p class="text-muted text-center mb-4">Step 1 of 2: Let's customize your accessibility experience. Choose a profile:</p>
+                    
+                    <div class="disability-card-grid" role="radiogroup" aria-label="Accessibility Profiles">
+                        <!-- None -->
+                        <div class="disability-option-card" data-value="None" tabindex="0" role="radio" aria-checked="false">
+                            <div class="card-icon"><i class="bi bi-eye"></i></div>
+                            <div>
+                                <div class="card-title">Standard Layout</div>
+                                <div class="card-desc">Default visual experience without additional adjustments.</div>
+                            </div>
+                        </div>
+                        <!-- Low-Vision -->
+                        <div class="disability-option-card" data-value="Low-Vision" tabindex="0" role="radio" aria-checked="false">
+                            <div class="card-icon"><i class="bi bi-zoom-in"></i></div>
+                            <div>
+                                <div class="card-title">Low-Vision Support</div>
+                                <div class="card-desc">Larger text size and high-contrast styling for better visibility.</div>
+                            </div>
+                        </div>
+                        <!-- Dyslexia -->
+                        <div class="disability-option-card" data-value="Dyslexia" tabindex="0" role="radio" aria-checked="false">
+                            <div class="card-icon"><i class="bi bi-fonts"></i></div>
+                            <div>
+                                <div class="card-title">Dyslexia Friendly</div>
+                                <div class="card-desc">Specialized dyslexic font, wider word spacing, and text guidance ruler.</div>
+                            </div>
+                        </div>
+                        <!-- Complete Blindness -->
+                        <div class="disability-option-card" data-value="Complete Blindness" tabindex="0" role="radio" aria-checked="false">
+                            <div class="card-icon"><i class="bi bi-volume-up"></i></div>
+                            <div>
+                                <div class="card-title">Screen Reader Support</div>
+                                <div class="card-desc">Auditory narration that reads page content out loud immediately.</div>
+                            </div>
+                        </div>
+                        <!-- Color Blindness -->
+                        <div class="disability-option-card" data-value="Color Blindness" tabindex="0" role="radio" aria-checked="false">
+                            <div class="card-icon"><i class="bi bi-palette"></i></div>
+                            <div>
+                                <div class="card-title">Color Blindness Filter</div>
+                                <div class="card-desc">Daltonization color correction overlays to distinguish contrasting colors.</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="button" id="signUpNextBtn" class="btn btn-auth-primary w-100 mb-4" disabled>Next: Account Details</button>
                 </div>
-                <div class="mb-4">
-                    <input type="password" class="form-control auth-input" placeholder="Password" required>
+
+                <!-- STEP 2: Account Details -->
+                <div class="wizard-step d-none" id="signUpStep2">
+                    <p class="text-muted text-center mb-4">Step 2 of 2: Create your account</p>
+                    
+                    <!-- Email Input -->
+                    <div class="mb-3">
+                        <label for="signUpEmail" class="visually-hidden">Email Address</label>
+                        <input type="email" id="signUpEmail" class="form-control auth-input" placeholder="Email" aria-required="true" required>
+                    </div>
+
+                    <!-- Gender and Birthdate row -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="signUpGender" class="visually-hidden">Gender</label>
+                            <select id="signUpGender" class="form-select auth-input" aria-required="false">
+                                <option value="" disabled selected hidden>Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Non-binary">Non-binary</option>
+                                <option value="Prefer not to say">Prefer not to say</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="signUpBirthdate" class="visually-hidden">Birthdate</label>
+                            <input type="date" id="signUpBirthdate" class="form-control auth-input" aria-required="true" required title="Birthdate">
+                        </div>
+                    </div>
+
+                    <!-- Password Fields -->
+                    <div class="mb-3">
+                        <label for="signUpPassword" class="visually-hidden">Password</label>
+                        <input type="password" id="signUpPassword" class="form-control auth-input" placeholder="Password" aria-required="true" minlength="8" required>
+                        <small id="passwordHelp" class="form-text text-muted visually-hidden">Password must be at least 8 characters long.</small>
+                    </div>
+                    <div class="mb-4">
+                        <label for="signUpRePassword" class="visually-hidden">Re-enter Password</label>
+                        <input type="password" id="signUpRePassword" class="form-control auth-input" placeholder="Re-enter Password" aria-required="true" required>
+                    </div>
+
+                    <div class="d-flex gap-3 mb-4">
+                        <button type="button" id="signUpBackBtn" class="btn btn-auth-outline w-50">Back</button>
+                        <button type="submit" id="signUpSubmitBtn" class="btn btn-auth-primary w-50">Sign Up</button>
+                    </div>
+                </div>
+            </form>
+            
+            <div id="signUpDivider" class="divider d-flex align-items-center mb-4">
+                <span class="divider-line flex-grow-1"></span>
+                <span class="divider-text mx-3">Other options</span>
+                <span class="divider-line flex-grow-1"></span>
+            </div>
+
+            <button type="button" id="signUpGoogleBtn" class="btn btn-auth-outline w-100 d-flex align-items-center justify-content-center gap-2 google-auth-btn" aria-label="Sign up using your Google account">
+                <i class="bi bi-google" aria-hidden="true"></i> Sign Up with Google
+            </button>
+        </div>
+
+        <!-- ------------------------------------------------------------- -->
+        <!-- SIGN IN VIEW -->
+        <!-- ------------------------------------------------------------- -->
+        <div class="auth-view-section d-none" id="signInView" role="tabpanel" aria-labelledby="toggleSignInBtn">
+            <h1 class="auth-title text-center mb-4">Sign In Using your Email</h1>
+            
+            <form id="signInForm" novalidate>
+                <!-- Email Input -->
+                <div class="mb-3">
+                    <label for="signInEmail" class="visually-hidden">Email Address</label>
+                    <input type="email" id="signInEmail" class="form-control auth-input" placeholder="Email" aria-required="true" required>
+                </div>
+
+                <!-- Password Input -->
+                <div class="mb-2">
+                    <label for="signInPassword" class="visually-hidden">Password</label>
+                    <input type="password" id="signInPassword" class="form-control auth-input" placeholder="Password" aria-required="true" required>
+                </div>
+
+                <div class="d-flex justify-content-end mb-4">
+                    <button type="button" id="btnForgotPassword" class="btn btn-link text-decoration-none p-0" style="color: #6E86D0; font-weight: 600; font-size: 0.9rem;" tabindex="0">Forgot Password?</button>
                 </div>
                 
-                <button type="submit" class="btn btn-auth-primary w-100 mb-4">Sign In</button>
+                <button type="submit" id="signInSubmitBtn" class="btn btn-auth-primary w-100 mb-4">Sign In</button>
             </form>
 
             <div class="divider d-flex align-items-center mb-4">
@@ -36,82 +170,1732 @@
                 <span class="divider-line flex-grow-1"></span>
             </div>
 
-            <button class="btn btn-auth-outline w-100 d-flex align-items-center justify-content-center gap-2">
-                Sign Up with Google
+            <!-- Aligning with image 2 text: "Sign Up with Google" -->
+            <button type="button" class="btn btn-auth-outline w-100 d-flex align-items-center justify-content-center gap-2 google-auth-btn" aria-label="Sign in using your Google account">
+                <i class="bi bi-google" aria-hidden="true"></i> Sign Up with Google
             </button>
         </div>
 
-        <div class="auth-view-section d-none" id="signUpView">
-            <h2 class="auth-title text-center mb-4">Sign up Using your Email</h2>
+        <!-- ------------------------------------------------------------- -->
+        <!-- FORGOT PASSWORD VIEW -->
+        <!-- ------------------------------------------------------------- -->
+        <div class="auth-view-section d-none" id="forgotPasswordView" role="tabpanel" aria-label="Reset Password Form">
+            <h1 class="auth-title text-center mb-2">Reset Password</h1>
+            <p class="text-muted text-center mb-4" style="font-size: 0.95rem;">Enter your registered email address and we will send you a secure link to reset your password.</p>
             
-            <form method="POST" action="{{ url_for('register') if 'register' in signup_flows else '#' }}">
-                <div class="mb-3">
-                    <input type="email" class="form-control auth-input" placeholder="Email" required>
-                </div>
-                
-                <div class="row g-3 mb-3">
-                    <div class="col-md-6">
-                        <input type="text" class="form-control auth-input" placeholder="Disability Type">
-                    </div>
-                    <div class="col-md-6">
-                        <input type="text" class="form-control auth-input" placeholder="Gender">
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <input type="text" class="form-control auth-input" placeholder="Birthdate" onfocus="(this.type='date')" onblur="(this.type='text')">
-                </div>
-                <div class="mb-3">
-                    <input type="password" class="form-control auth-input" placeholder="Password" required>
-                </div>
+            <form id="forgotPasswordForm" novalidate>
                 <div class="mb-4">
-                    <input type="password" class="form-control auth-input" placeholder="Re-enter Password" required>
+                    <label for="forgotEmail" class="visually-hidden">Email Address</label>
+                    <input type="email" id="forgotEmail" class="form-control auth-input" placeholder="Email" aria-required="true" required>
                 </div>
                 
-                <button type="submit" class="btn btn-auth-primary w-100 mb-4">Sign Up</button>
+                <button type="submit" id="forgotSubmitBtn" class="btn btn-auth-primary w-100 mb-3">Send Reset Link</button>
+                <button type="button" id="forgotBackBtn" class="btn btn-auth-outline w-100">Back to Sign In</button>
+            </form>
+        </div>
 
-                <div class="divider d-flex align-items-center mb-4">
-                    <span class="divider-line flex-grow-1"></span>
-                    <span class="divider-text mx-3">Other options</span>
-                    <span class="divider-line flex-grow-1"></span>
+        <!-- ------------------------------------------------------------- -->
+        <!-- COMPLETE PROFILE VIEW (GOOGLE OAUTH FALLBACK) -->
+        <!-- ------------------------------------------------------------- -->
+        <div class="auth-view-section d-none" id="completeProfileView" role="tabpanel" aria-label="Complete Profile Form">
+            <h1 class="auth-title text-center mb-4">Complete your Profile</h1>
+            
+            <form id="completeProfileForm" novalidate>
+                <!-- Hidden Input to store chosen disability type -->
+                <input type="hidden" id="completeDisability" value="">
+
+                <!-- STEP 1: Disability Card Selection -->
+                <div class="wizard-step" id="completeStep1">
+                    <p class="text-muted text-center mb-4">Step 1 of 2: Let's customize your accessibility experience. Choose a profile:</p>
+                    
+                    <div class="disability-card-grid" role="radiogroup" aria-label="Accessibility Profiles">
+                        <!-- None -->
+                        <div class="disability-option-card" data-value="None" tabindex="0" role="radio" aria-checked="false">
+                            <div class="card-icon"><i class="bi bi-eye"></i></div>
+                            <div>
+                                <div class="card-title">Standard Layout</div>
+                                <div class="card-desc">Default visual experience without additional adjustments.</div>
+                            </div>
+                        </div>
+                        <!-- Low-Vision -->
+                        <div class="disability-option-card" data-value="Low-Vision" tabindex="0" role="radio" aria-checked="false">
+                            <div class="card-icon"><i class="bi bi-zoom-in"></i></div>
+                            <div>
+                                <div class="card-title">Low-Vision Support</div>
+                                <div class="card-desc">Larger text size and high-contrast styling for better visibility.</div>
+                            </div>
+                        </div>
+                        <!-- Dyslexia -->
+                        <div class="disability-option-card" data-value="Dyslexia" tabindex="0" role="radio" aria-checked="false">
+                            <div class="card-icon"><i class="bi bi-fonts"></i></div>
+                            <div>
+                                <div class="card-title">Dyslexia Friendly</div>
+                                <div class="card-desc">Specialized dyslexic font, wider word spacing, and text guidance ruler.</div>
+                            </div>
+                        </div>
+                        <!-- Complete Blindness -->
+                        <div class="disability-option-card" data-value="Complete Blindness" tabindex="0" role="radio" aria-checked="false">
+                            <div class="card-icon"><i class="bi bi-volume-up"></i></div>
+                            <div>
+                                <div class="card-title">Screen Reader Support</div>
+                                <div class="card-desc">Auditory narration that reads page content out loud immediately.</div>
+                            </div>
+                        </div>
+                        <!-- Color Blindness -->
+                        <div class="disability-option-card" data-value="Color Blindness" tabindex="0" role="radio" aria-checked="false">
+                            <div class="card-icon"><i class="bi bi-palette"></i></div>
+                            <div>
+                                <div class="card-title">Color Blindness Filter</div>
+                                <div class="card-desc">Daltonization color correction overlays to distinguish contrasting colors.</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="button" id="completeNextBtn" class="btn btn-auth-primary w-100" disabled>Next: Account Details</button>
                 </div>
 
-                <button class="btn btn-auth-outline w-100 d-flex align-items-center justify-content-center gap-2">
-                    Sign Up with Google
-                </button>
+                <!-- STEP 2: Profile Details -->
+                <div class="wizard-step d-none" id="completeStep2">
+                    <p class="text-muted text-center mb-4">Step 2 of 2: Complete your details</p>
+                    
+                    <!-- Gender Input -->
+                    <div class="mb-3">
+                        <label for="completeGender" class="visually-hidden">Gender</label>
+                        <select id="completeGender" class="form-select auth-input" aria-required="true" required>
+                            <option value="" disabled selected hidden>Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Non-binary">Non-binary</option>
+                            <option value="Prefer not to say">Prefer not to say</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <!-- Birthdate Picker -->
+                    <div class="mb-4">
+                        <label for="completeBirthdate" class="visually-hidden">Birthdate</label>
+                        <input type="date" id="completeBirthdate" class="form-control auth-input" aria-required="true" required title="Birthdate">
+                    </div>
+                    
+                    <div class="d-flex gap-3">
+                        <button type="button" id="completeBackBtn" class="btn btn-auth-outline w-50">Back</button>
+                        <button type="submit" id="completeProfileSubmitBtn" class="btn btn-auth-primary w-50">Save Profile</button>
+                    </div>
+                </div>
             </form>
         </div>
 
     </div>
-</div>
+</main>
+
+<!-- Firebase CDN Compat Libraries -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
 <script>
+    // Configuration values passed down from Flask or fallback placeholders
+    const firebaseConfig = {
+        apiKey: "{{ firebase_api_key or '' }}" || "AIzaSyCn1xmFi0Ac5ovyuqvQ0DrYOwN5X95YkbU",
+        authDomain: "{{ firebase_auth_domain or '' }}" || "alalay-ai.firebaseapp.com",
+        projectId: "{{ firebase_project_id or '' }}" || "alalay-ai",
+        storageBucket: "{{ firebase_storage_bucket or '' }}" || "alalay-ai.firebasestorage.app",
+        messagingSenderId: "{{ firebase_messaging_sender_id or '' }}" || "341311861621",
+        appId: "{{ firebase_app_id or '' }}" || "1:341311861621:web:b2eec1ee828b7e7f1a993c"
+    };
+
+    let firebaseApp = null;
+    let firebaseAuth = null;
+    let firebaseDb = null;
+    
+    // Initialize Firebase
+    if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "your-api-key") {
+        try {
+            firebaseApp = firebase.initializeApp(firebaseConfig);
+            firebaseAuth = firebase.auth();
+            firebaseDb = firebase.firestore();
+        } catch (e) {
+            console.error("Failed to initialize Firebase client:", e);
+        }
+    } else {
+        console.warn("Firebase credentials not configured. Using client-side placeholders.");
+    }
+
     const card = document.getElementById('authCard');
     const btnSignIn = document.getElementById('toggleSignInBtn');
     const btnSignUp = document.getElementById('toggleSignUpBtn');
     const signInView = document.getElementById('signInView');
     const signUpView = document.getElementById('signUpView');
+    const authAlert = document.getElementById('authAlert');
 
+    // Accessibility focus retention and message alerts
+    function showAlert(message, isError = true) {
+        authAlert.className = `alert ${isError ? 'alert-danger' : 'alert-success'} mb-4`;
+        authAlert.textContent = message;
+        authAlert.classList.remove('d-none');
+        
+        // Speak alert audibly if built-in screen reader is active
+        speakWithNarrator((isError ? "Error: " : "Success: ") + message);
+    }
+
+    function hideAlert() {
+        authAlert.classList.add('d-none');
+        authAlert.textContent = '';
+    }
+
+    // Check if redirect contains a deletion or logout message
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('deleted') === 'true') {
+        showAlert("Deletion Account Successful", false);
+        window.history.replaceState(null, '', window.location.pathname);
+        if (btnSignUp) btnSignUp.focus();
+    } else if (urlParams.get('logout') === 'true') {
+        showAlert("Logged out successfully", false);
+        window.history.replaceState(null, '', window.location.pathname);
+        if (btnSignUp) btnSignUp.focus();
+    }
+
+    // Toggle logic with full WCAG support (ARIA tabs management)
     function setViewState(isSignIn) {
+        hideAlert();
+        const forgotPasswordView = document.getElementById('forgotPasswordView');
+        if (forgotPasswordView) forgotPasswordView.classList.add('d-none');
+
         if (isSignIn) {
             btnSignIn.classList.add('active');
-            btnSignUp.classList.remove('active');
-            card.classList.replace('state-signup', 'state-signin');
+            btnSignIn.setAttribute('aria-selected', 'true');
+            btnSignIn.setAttribute('tabindex', '0');
             
-            // Handle form swaps cleanly
+            btnSignUp.classList.remove('active');
+            btnSignUp.setAttribute('aria-selected', 'false');
+            btnSignUp.setAttribute('tabindex', '-1');
+            
+            card.classList.remove('state-signup');
+            card.classList.add('state-signin');
+            
             signUpView.classList.add('d-none');
             signInView.classList.remove('d-none');
+            btnSignIn.focus();
+            speakWithNarrator("Sign In view. Press Down button to navigate to the email input field.", true);
         } else {
             btnSignUp.classList.add('active');
+            btnSignUp.setAttribute('aria-selected', 'true');
+            btnSignUp.setAttribute('tabindex', '0');
+            
             btnSignIn.classList.remove('active');
-            card.classList.replace('state-signin', 'state-signup');
+            btnSignIn.setAttribute('aria-selected', 'false');
+            btnSignIn.setAttribute('tabindex', '-1');
+            
+            card.classList.remove('state-signin');
+            card.classList.add('state-signup');
             
             signInView.classList.add('d-none');
             signUpView.classList.remove('d-none');
+            btnSignUp.focus();
+            speakWithNarrator("Sign Up view. Press Down button to choose your accessibility profile.", true);
         }
     }
 
+    // Attach Click Event Listeners to Top Tabs
+    if (btnSignIn) {
+        btnSignIn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setViewState(true);
+        });
+    }
+
+    if (btnSignUp) {
+        btnSignUp.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setViewState(false);
+        });
+    }
+
+    // ── Guided Speech Narrator System ──
+    let isWelcomeSpeaking = false;
+    window._activeUtterance = null;
+
+    function safeSpeak(text, onComplete = null) {
+        if (!window.speechSynthesis) return;
+        try {
+            window.speechSynthesis.cancel();
+            if (window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+            }
+
+            let processedText = text;
+            if (processedText) {
+                processedText = processedText.replace(/\b(arrow)(s?)\b/gi, (match, p1, p2) => {
+                    const isCapital = p1[0] === 'A';
+                    return (isCapital ? 'Ar-row' : 'ar-row') + p2;
+                });
+            }
+
+            const utterance = new SpeechSynthesisUtterance(processedText);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.92; // Slightly calibrated pace for accessibility clarity
+            utterance.volume = 1.0;
+            utterance.pitch = 1.0;
+
+            const voices = window.speechSynthesis.getVoices();
+            if (voices && voices.length > 0) {
+                const preferred = voices.find(v => v.name.includes('Zira') || (v.lang === 'en-US' && !v.name.includes('David'))) 
+                               || voices.find(v => v.lang.startsWith('en-US')) 
+                               || voices.find(v => v.lang.startsWith('en')) 
+                               || voices[0];
+                if (preferred) utterance.voice = preferred;
+            }
+
+            utterance.onend = () => {
+                window._activeUtterance = null;
+                if (onComplete) onComplete();
+            };
+            utterance.onerror = (e) => {
+                window._activeUtterance = null;
+                if (onComplete) onComplete();
+            };
+
+            window._activeUtterance = utterance;
+            window.speechSynthesis.speak(utterance);
+        } catch (err) {
+            console.warn('Speech error:', err);
+            if (onComplete) onComplete();
+        }
+    }
+
+    let currentAudio = null;
+    function speakWithNarrator(text, audioKey = null, forceInterrupt = false) {
+        if (!text && !audioKey) return;
+
+        // Reset welcome speaking flag when active user interaction begins
+        isWelcomeSpeaking = false;
+
+        // Cancel any currently playing pre-rendered audio
+        if (currentAudio) {
+            try {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+            } catch(e) {}
+            currentAudio = null;
+        }
+
+        // Cancel previous speech synthesis
+        if (window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+        }
+
+        // If an audioKey is provided, attempt instant playback of the pre-rendered ElevenLabs audio clip
+        if (audioKey) {
+            const audio = new Audio(`/static/audio/narrator/${audioKey}.mp3`);
+            currentAudio = audio;
+            audio.play().catch(() => {
+                // If MP3 is missing or not yet generated, fall back seamlessly to Web Speech API
+                if (text) safeSpeak(text);
+            });
+        } else if (text) {
+            safeSpeak(text);
+        }
+    }
+
+    function setupNarratorListeners() {
+        const narratorGuides = {
+            'toggleSignUpBtn': { text: "Sign Up tab. Press right button to switch to Sign In, or press down button to choose an accessibility profile.", key: "tab_signup" },
+            'toggleSignInBtn': { text: "Sign In tab. Press left button to switch to Sign Up, or press down button to enter your email.", key: "tab_signin" },
+            'signInEmail': { text: "Email address input field. Type your email or press down button to go to password.", key: "input_signin_email" },
+            'signInPassword': { text: "Password input field. Type your password or press down button to go to forgot password.", key: "input_signin_password" },
+            'btnForgotPassword': { text: "Forgot password button. Press Enter to reset your password.", key: "btn_forgot_password" },
+            'signInSubmitBtn': { text: "Sign In button. Press Enter to submit your credentials.", key: "btn_signin_submit" },
+            'signUpEmail': { text: "Email address input field. Type your email address or press down button to select gender.", key: "input_signup_email" },
+            'signUpGender': { text: "Gender dropdown. Press Space to show options, choose your gender, then press Right button to enter birthdate.", key: "select_gender" },
+            'signUpBirthdate': { text: "Birthdate input field. ... In: day, ... month, ... and year format. Enter your date of birth, then press Down button to enter password.", key: "input_birthdate" },
+            'signUpPassword': { text: "Password input field. Type a secure password of at least 8 characters.", key: "input_signup_password" },
+            'signUpRePassword': { text: "Re-enter password. Type your password again to confirm.", key: "input_signup_repassword" },
+            'signUpBackBtn': { text: "Back button. Press Enter to return to step 1 accessibility profiles.", key: "btn_back" },
+            'signUpSubmitBtn': { text: "Sign up button. Press Enter to register your account.", key: "btn_signup_submit" },
+            'signUpNextBtn': { text: "Next: Account details button. Press Enter to proceed to account details.", key: "btn_next" },
+            'signUpGoogleBtn': { text: "Sign up with Google button. Press Enter to authenticate with Google.", key: "btn_signup_google" },
+            
+            'forgotEmail': { text: "Email address input field. Type your registered email address, then press Down button to send reset link.", key: "input_forgot_email" },
+            'forgotSubmitBtn': { text: "Send reset link button. Press Enter to send password reset email.", key: "btn_send_reset" },
+            'forgotBackBtn': { text: "Back to Sign In button. Press Enter to return to login.", key: "btn_back_signin" },
+            
+            'completeGender': { text: "Gender dropdown. Press Space to show options, choose your gender, then press Right button to enter birthdate.", key: "select_gender" },
+            'completeBirthdate': { text: "Birthdate input field. ... In: day, ... month, ... and year format. Enter your date of birth, then press Down button to save profile.", key: "input_birthdate" },
+            'completeBackBtn': { text: "Back button. Press Enter to return to step 1 accessibility profiles.", key: "btn_back" },
+            'completeProfileSubmitBtn': { text: "Save profile button. Press Enter to complete your profile.", key: "btn_signup_submit" },
+            'completeNextBtn': { text: "Next: Account details button. Press Enter to proceed to account details.", key: "btn_next" }
+        };
+
+        const cardAudioKeys = {
+            'None': 'card_standard',
+            'Low-Vision': 'card_low_vision',
+            'Dyslexia': 'card_dyslexia',
+            'Complete Blindness': 'card_screen_reader',
+            'Color Blindness': 'card_color_blindness'
+        };
+
+        const isMobileDevice = window.matchMedia("(max-width: 768px)").matches || ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        let activeGuides = { ...narratorGuides };
+        
+        if (isMobileDevice) {
+            // Replace keyboard commands with touch commands for mobile
+            activeGuides = {
+                'toggleSignUpBtn': { text: "Sign Up tab. Tap to select, or select Sign In.", key: "tab_signup_mobile" },
+                'toggleSignInBtn': { text: "Sign In tab. Tap to select, or select Sign Up.", key: "tab_signin_mobile" },
+                'signInEmail': { text: "Email address input field. Tap to type your email.", key: "input_signin_email_mobile" },
+                'signInPassword': { text: "Password input field. Tap to type your password.", key: "input_signin_password_mobile" },
+                'btnForgotPassword': { text: "Forgot password button. Tap to reset your password.", key: "btn_forgot_password_mobile" },
+                'signInSubmitBtn': { text: "Sign In button. Tap to submit your credentials.", key: "btn_signin_submit_mobile" },
+                'signUpEmail': { text: "Email address input field. Tap to type your email.", key: "input_signup_email_mobile" },
+                'signUpGender': { text: "Gender dropdown. Tap to select your gender.", key: "select_gender_mobile" },
+                'signUpBirthdate': { text: "Birthdate input field. Tap to select your date of birth.", key: "input_birthdate_mobile" },
+                'signUpPassword': { text: "Password input field. Tap to type a secure password.", key: "input_signup_password_mobile" },
+                'signUpRePassword': { text: "Re-enter password. Tap to confirm.", key: "input_signup_repassword_mobile" },
+                'signUpBackBtn': { text: "Back button. Tap to return to step 1 accessibility profiles.", key: "btn_back_mobile" },
+                'signUpSubmitBtn': { text: "Sign up button. Tap to register your account.", key: "btn_signup_submit_mobile" },
+                'signUpNextBtn': { text: "Next: Account details button. Tap to proceed to account details.", key: "btn_next_mobile" },
+                'signUpGoogleBtn': { text: "Sign up with Google button. Tap to authenticate with Google.", key: "btn_signup_google_mobile" },
+                'forgotEmail': { text: "Email address input field. Tap to type your registered email address.", key: "input_forgot_email_mobile" },
+                'forgotSubmitBtn': { text: "Send reset link button. Tap to send password reset email.", key: "btn_send_reset_mobile" },
+                'forgotBackBtn': { text: "Back to Sign In button. Tap to return to login.", key: "btn_back_signin_mobile" },
+                'completeGender': { text: "Gender dropdown. Tap to select your gender.", key: "select_gender_mobile" },
+                'completeBirthdate': { text: "Birthdate input field. Tap to select your date of birth.", key: "input_birthdate_mobile" },
+                'completeBackBtn': { text: "Back button. Tap to return to step 1 accessibility profiles.", key: "btn_back_mobile" },
+                'completeProfileSubmitBtn': { text: "Save profile button. Tap to complete your profile.", key: "btn_signup_submit_mobile" },
+                'completeNextBtn': { text: "Next: Account details button. Tap to proceed to account details.", key: "btn_next_mobile" }
+            };
+        }
+
+        for (const [id, config] of Object.entries(activeGuides)) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('focus', () => {
+                    if (id === 'signUpNextBtn' && el.disabled) {
+                        speakWithNarrator("Next: Account details button, disabled. Choose an accessibility profile first.", "btn_next_disabled");
+                    } else if (id === 'completeNextBtn' && el.disabled) {
+                        speakWithNarrator("Next: Account details button, disabled. Choose an accessibility profile first.", "btn_next_disabled");
+                    } else if (el.tagName === 'SELECT') {
+                        const currentOpt = el.options[el.selectedIndex];
+                        const currentVal = currentOpt && !currentOpt.disabled && currentOpt.value ? currentOpt.text : '';
+                        if (currentVal) {
+                            if (isMobileDevice) {
+                                speakWithNarrator(`Gender dropdown, currently set to ${currentVal}. Tap to change your selection.`);
+                            } else {
+                                speakWithNarrator(`Gender dropdown, currently set to ${currentVal}. Press Space to show options, use arrow keys to browse, or press Right button to enter birthdate.`);
+                            }
+                        } else {
+                            speakWithNarrator(config.text, config.key);
+                        }
+                    } else {
+                        speakWithNarrator(config.text, config.key);
+                    }
+                });
+
+                // Spoken feedback when browsing or changing options in the dropdown list
+                if (el.tagName === 'SELECT') {
+                    const announceOption = () => {
+                        const validOptions = Array.from(el.options).filter(o => !o.disabled && o.value);
+                        const selectedOpt = el.options[el.selectedIndex];
+                        const optText = selectedOpt?.text || el.value;
+                        const optIndex = validOptions.indexOf(selectedOpt) + 1;
+                        const total = validOptions.length;
+                        if (optIndex > 0) {
+                            if (isMobileDevice) {
+                                speakWithNarrator(`${optText}, option ${optIndex} of ${total}. Tap to select.`);
+                            } else {
+                                speakWithNarrator(`${optText}, option ${optIndex} of ${total}. Press Enter or Tab to confirm, or press Right button to enter birthdate.`);
+                            }
+                        } else {
+                            speakWithNarrator(`${optText}.`);
+                        }
+                    };
+                    el.addEventListener('change', announceOption);
+                    el.addEventListener('input', announceOption);
+                }
+            }
+        }
+
+        // Attach to Google Auth buttons
+        document.querySelectorAll('.google-auth-btn').forEach(btn => {
+            btn.addEventListener('focus', () => {
+                if (isMobileDevice) {
+                    speakWithNarrator("Sign up with Google button. Tap to authenticate.", "btn_signup_google_mobile");
+                } else {
+                    speakWithNarrator("Sign up with Google button. Press Enter to authenticate with Google.", "btn_signup_google");
+                }
+            });
+        });
+
+        // Attach to Step 1 accessibility profile cards
+        document.querySelectorAll('.disability-option-card').forEach(card => {
+            card.addEventListener('focus', () => {
+                const val = card.getAttribute('data-value') || '';
+                const key = isMobileDevice ? null : (cardAudioKeys[val] || null);
+                const title = card.querySelector('.card-title')?.innerText || card.querySelector('h6')?.innerText || "";
+                const desc = card.querySelector('.card-desc')?.innerText || card.querySelector('p')?.innerText || "";
+                const isSelected = card.classList.contains('selected');
+                const selectedInfo = isSelected ? "Selected. " : "";
+                if (isMobileDevice) {
+                    speakWithNarrator(`${title}, option card. ${selectedInfo}${desc}. Tap to select.`, key);
+                } else {
+                    speakWithNarrator(`${title}, option card. ${selectedInfo}${desc}. Press Enter or Space to select.`, key);
+                }
+            });
+        });
+    }
+
+    // Call once to attach listeners to all elements
+    setupNarratorListeners();
+
+    // ── Welcome Greeting & Autoplay Policy Safe Announcer ──
+    let hasWelcomed = false;
+    const playWelcomePrompt = () => {
+        if (hasWelcomed) return;
+        hasWelcomed = true;
+        isWelcomeSpeaking = true;
+
+        const isMobileDevice = window.matchMedia("(max-width: 768px)").matches || ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        let welcomeMsg = "";
+        if (isMobileDevice) {
+            welcomeMsg = "Welcome to ALALAY-AI. To enable the built-in screen reader guided signup at any time, double-tap anywhere on the screen. Swipe left or right, or tap to choose your accessibility profile.";
+        } else {
+            welcomeMsg = "Welcome to ALALAY-AI. To enable the built-in screen reader guided signup at any time, press Shift plus S, or double-tap anywhere on the screen. Use the arrow keys or Tab to choose your accessibility profile.";
+        }
+        
+        safeSpeak(welcomeMsg, () => {
+            isWelcomeSpeaking = false;
+        });
+
+        // Remove trigger listeners once welcome prompt has fired
+        window.removeEventListener('pointerdown', playWelcomePrompt);
+        window.removeEventListener('keydown', playWelcomePrompt);
+        window.removeEventListener('touchstart', playWelcomePrompt);
+        window.removeEventListener('focusin', playWelcomePrompt);
+        window.removeEventListener('click', playWelcomePrompt);
+    };
+
+    // Auto-trigger on page readiness
+    const initWelcome = () => {
+        if (window.speechSynthesis) {
+            window.speechSynthesis.getVoices();
+            if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                window.speechSynthesis.onvoiceschanged = () => {
+                    if (!hasWelcomed) playWelcomePrompt();
+                };
+            }
+        }
+        setTimeout(playWelcomePrompt, 100);
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initWelcome);
+    } else {
+        initWelcome();
+    }
+
+    // 2. Fulfill browser user-gesture autoplay requirements if initial load was blocked
+    window.addEventListener('pointerdown', playWelcomePrompt, { once: true });
+    window.addEventListener('keydown', playWelcomePrompt, { once: true });
+    window.addEventListener('touchstart', playWelcomePrompt, { once: true });
+    window.addEventListener('focusin', playWelcomePrompt, { once: true });
+    window.addEventListener('click', playWelcomePrompt, { once: true });
+
+    // ── Shortcut and Touch Gesture listeners ──
+    function activateGuidedSetup() {
+        const isSignUpActive = !signUpView.classList.contains('d-none');
+        const isCompleteActive = !document.getElementById('completeProfileView').classList.contains('d-none');
+        
+        if (isSignUpActive) {
+            const blindnessCard = document.querySelector('#signUpStep1 .disability-option-card[data-value="Complete Blindness"]');
+            if (blindnessCard) {
+                blindnessCard.click();
+                signUpNextBtn.click();
+            }
+        } else if (isCompleteActive) {
+            const blindnessCard = document.querySelector('#completeStep1 .disability-option-card[data-value="Complete Blindness"]');
+            if (blindnessCard) {
+                blindnessCard.click();
+                completeNextBtn.click();
+            }
+        }
+    }
+
+    // Shift + S keyboard shortcut
+    window.addEventListener('keydown', (e) => {
+        if (e.shiftKey && e.key.toUpperCase() === 'S') {
+            e.preventDefault();
+            activateGuidedSetup();
+        }
+    });
+
+    // Mobile double tap gesture
+    let lastTapTime = 0;
+    window.addEventListener('touchstart', (e) => {
+        const currentTime = new Date().getTime();
+        const tapDelay = currentTime - lastTapTime;
+        if (tapDelay < 300 && tapDelay > 0) {
+            e.preventDefault();
+            activateGuidedSetup();
+        }
+        lastTapTime = currentTime;
+    });
+
+    // ── Immediate Accessibility Application ──
+    function applyAccessibilitySettings(disability) {
+        const userId = document.body.getAttribute('data-user-id') || '';
+        const getStorageKey = (key) => userId ? `${userId}_${key}` : key;
+
+        // Reset baseline settings
+        document.body.setAttribute('data-text-size', 'medium');
+        document.body.setAttribute('data-contrast-theme', 'none');
+        document.body.setAttribute('data-dyslexia-font', 'off');
+        document.body.setAttribute('data-font-style', 'default');
+        document.body.setAttribute('data-line-focus', 'off');
+        document.body.setAttribute('data-color-filter', 'none');
+        document.body.setAttribute('data-letter-spacing', 'normal');
+        document.body.setAttribute('data-line-spacing', 'normal');
+        
+        document.body.classList.remove(
+            'bigger-ui-mode', 'bigger-ui-mode-xl', 
+            'dyslexia-mode', 
+            'letter-spacing-wide', 'letter-spacing-xl', 
+            'line-spacing-wide', 'line-spacing-xl',
+            'contrast-theme-light', 'contrast-theme-dark'
+        );
+        document.body.style.filter = '';
+
+        // Reset local storage preferences
+        localStorage.setItem(getStorageKey('textSize'), 'medium');
+        localStorage.setItem(getStorageKey('contrastTheme'), 'none');
+        localStorage.setItem(getStorageKey('dyslexiaFont'), 'off');
+        localStorage.setItem(getStorageKey('fontStyle'), 'default');
+        localStorage.setItem(getStorageKey('lineFocus'), 'off');
+        localStorage.setItem(getStorageKey('daltonizeFilter'), 'none');
+        localStorage.setItem(getStorageKey('letterSpacing'), 'normal');
+        localStorage.setItem(getStorageKey('lineSpacing'), 'normal');
+        localStorage.setItem(getStorageKey('screenReader'), 'off');
+
+        if (disability === 'Low-Vision') {
+            document.body.setAttribute('data-text-size', 'large');
+            document.body.setAttribute('data-contrast-theme', 'light');
+            document.body.classList.add('bigger-ui-mode', 'contrast-theme-light');
+            
+            localStorage.setItem(getStorageKey('textSize'), 'large');
+            localStorage.setItem(getStorageKey('contrastTheme'), 'light');
+        } else if (disability === 'Dyslexia') {
+            document.body.setAttribute('data-dyslexia-font', 'on');
+            document.body.setAttribute('data-font-style', 'opendyslexic');
+            document.body.setAttribute('data-line-focus', 'on');
+            document.body.setAttribute('data-letter-spacing', 'wide');
+            document.body.setAttribute('data-line-spacing', 'wide');
+            document.body.classList.add('dyslexia-mode', 'letter-spacing-wide', 'line-spacing-wide');
+            
+            localStorage.setItem(getStorageKey('dyslexiaFont'), 'on');
+            localStorage.setItem(getStorageKey('fontStyle'), 'opendyslexic');
+            localStorage.setItem(getStorageKey('lineFocus'), 'on');
+            localStorage.setItem(getStorageKey('letterSpacing'), 'wide');
+            localStorage.setItem(getStorageKey('lineSpacing'), 'wide');
+        } else if (disability === 'Complete Blindness') {
+            localStorage.setItem(getStorageKey('screenReader'), 'on');
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance("Screen reader support activated. Let's proceed to account details.");
+                window.speechSynthesis.speak(utterance);
+            }
+        } else if (disability === 'Color Blindness') {
+            document.body.setAttribute('data-color-filter', 'deuteranopia');
+            document.body.style.filter = "url('#daltonize-deuteranopia')";
+            localStorage.setItem(getStorageKey('daltonizeFilter'), 'deuteranopia');
+        }
+    }
+
+    // ── Setup Step 1 Card Selection for Sign Up ──
+    const signUpCards = document.querySelectorAll('#signUpStep1 .disability-option-card');
+    const signUpDisabilityInput = document.getElementById('signUpDisability');
+    const signUpNextBtn = document.getElementById('signUpNextBtn');
+
+    signUpCards.forEach(cardEl => {
+        const selectCard = () => {
+            const val = cardEl.getAttribute('data-value');
+            signUpDisabilityInput.value = val;
+            
+            signUpCards.forEach(c => {
+                c.classList.remove('selected');
+                c.setAttribute('aria-checked', 'false');
+            });
+            cardEl.classList.add('selected');
+            cardEl.setAttribute('aria-checked', 'true');
+            
+            applyAccessibilitySettings(val);
+            signUpNextBtn.disabled = false;
+
+            const title = cardEl.querySelector('.card-title')?.innerText || val;
+            speakWithNarrator(`${title} profile selected. Press Down button to navigate to the Next button.`);
+        };
+
+        cardEl.addEventListener('click', selectCard);
+        cardEl.addEventListener('keydown', (e) => {
+            if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                selectCard();
+            }
+        });
+    });
+
+    // Sign Up step transitions
+    const signUpStep1 = document.getElementById('signUpStep1');
+    const signUpStep2 = document.getElementById('signUpStep2');
+    const signUpBackBtn = document.getElementById('signUpBackBtn');
+    const signUpDivider = document.getElementById('signUpDivider');
+    const signUpGoogleBtn = document.getElementById('signUpGoogleBtn');
+
+    signUpNextBtn.addEventListener('click', () => {
+        signUpStep1.classList.add('d-none');
+        signUpStep2.classList.remove('d-none');
+        if (signUpDivider) signUpDivider.classList.add('d-none');
+        if (signUpGoogleBtn) signUpGoogleBtn.classList.add('d-none');
+        document.getElementById('signUpEmail').focus();
+        speakWithNarrator("Step 2: Enter your account details. Email address input field.", true);
+    });
+
+    signUpBackBtn.addEventListener('click', () => {
+        signUpStep2.classList.add('d-none');
+        signUpStep1.classList.remove('d-none');
+        if (signUpDivider) signUpDivider.classList.remove('d-none');
+        if (signUpGoogleBtn) signUpGoogleBtn.classList.remove('d-none');
+        speakWithNarrator("Step 1: Choose your accessibility profile.", true);
+    });
+
+    // ── Setup Step 1 Card Selection for Complete Profile ──
+    const completeCards = document.querySelectorAll('#completeStep1 .disability-option-card');
+    const completeDisabilityInput = document.getElementById('completeDisability');
+    const completeNextBtn = document.getElementById('completeNextBtn');
+
+    completeCards.forEach(cardEl => {
+        const selectCard = () => {
+            const val = cardEl.getAttribute('data-value');
+            completeDisabilityInput.value = val;
+            
+            completeCards.forEach(c => {
+                c.classList.remove('selected');
+                c.setAttribute('aria-checked', 'false');
+            });
+            cardEl.classList.add('selected');
+            cardEl.setAttribute('aria-checked', 'true');
+            
+            applyAccessibilitySettings(val);
+            completeNextBtn.disabled = false;
+
+            const title = cardEl.querySelector('.card-title')?.innerText || val;
+            speakWithNarrator(`${title} profile selected. Press Down button to navigate to the Next button.`);
+        };
+
+        cardEl.addEventListener('click', selectCard);
+        cardEl.addEventListener('keydown', (e) => {
+            if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                selectCard();
+            }
+        });
+    });
+
+    // Complete Profile step transitions
+    const completeStep1 = document.getElementById('completeStep1');
+    const completeStep2 = document.getElementById('completeStep2');
+    const completeBackBtn = document.getElementById('completeBackBtn');
+
+    completeNextBtn.addEventListener('click', () => {
+        completeStep1.classList.add('d-none');
+        completeStep2.classList.remove('d-none');
+        document.getElementById('completeGender').focus();
+    });
+
+    completeBackBtn.addEventListener('click', () => {
+        completeStep2.classList.add('d-none');
+        completeStep1.classList.remove('d-none');
+    });
+
+
     btnSignIn.addEventListener('click', () => setViewState(true));
     btnSignUp.addEventListener('click', () => setViewState(false));
+
+    // ── Setup Comprehensive Arrow and Keyboard Navigation Controller ──
+    function setupAuthArrowNavigation() {
+        const signInEmail = document.getElementById('signInEmail');
+        const signInPassword = document.getElementById('signInPassword');
+        const signInSubmitBtn = document.getElementById('signInSubmitBtn');
+        const signInGoogleBtn = document.querySelector('#signInView .google-auth-btn');
+
+        const signUpStep1Cards = Array.from(document.querySelectorAll('#signUpStep1 .disability-option-card'));
+        const signUpNextBtn = document.getElementById('signUpNextBtn');
+        const signUpGoogleBtn = document.getElementById('signUpGoogleBtn');
+
+        const signUpEmail = document.getElementById('signUpEmail');
+        const signUpGender = document.getElementById('signUpGender');
+        const signUpBirthdate = document.getElementById('signUpBirthdate');
+        const signUpPassword = document.getElementById('signUpPassword');
+        const signUpRePassword = document.getElementById('signUpRePassword');
+        const signUpBackBtn = document.getElementById('signUpBackBtn');
+        const signUpSubmitBtn = document.getElementById('signUpSubmitBtn');
+
+        const btnForgotPassword = document.getElementById('btnForgotPassword');
+        const forgotEmail = document.getElementById('forgotEmail');
+        const forgotSubmitBtn = document.getElementById('forgotSubmitBtn');
+        const forgotBackBtn = document.getElementById('forgotBackBtn');
+
+        const completeStep1Cards = Array.from(document.querySelectorAll('#completeStep1 .disability-option-card'));
+        const completeNextBtn = document.getElementById('completeNextBtn');
+        const completeGender = document.getElementById('completeGender');
+        const completeBirthdate = document.getElementById('completeBirthdate');
+        const completeBackBtn = document.getElementById('completeBackBtn');
+        const completeProfileSubmitBtn = document.getElementById('completeProfileSubmitBtn');
+
+        const moveTo = (targetEl) => {
+            if (!targetEl) return;
+            targetEl.focus();
+            if (targetEl.scrollIntoView) {
+                targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        };
+
+        // 1. Top Toggle Tabs (Sign Up / Sign In)
+        btnSignUp.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                e.stopPropagation();
+                setViewState(true);
+            } else if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                setViewState(false);
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                e.stopPropagation();
+                const isStep1 = !document.getElementById('signUpStep1').classList.contains('d-none');
+                if (isStep1) {
+                    const selected = document.querySelector('#signUpStep1 .disability-option-card.selected') || signUpStep1Cards[0];
+                    moveTo(selected);
+                } else {
+                    moveTo(signUpEmail);
+                }
+            }
+        });
+
+        btnSignIn.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                e.stopPropagation();
+                setViewState(false);
+            } else if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                setViewState(true);
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                e.stopPropagation();
+                moveTo(signInEmail);
+            }
+        });
+
+        // 2. Sign In Form Arrow Navigation (Fixes getting stuck on email / password)
+        if (signInEmail) {
+            signInEmail.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(btnSignIn);
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signInPassword);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (signInPassword && !signInPassword.value) {
+                        moveTo(signInPassword);
+                    } else if (signInSubmitBtn) {
+                        signInSubmitBtn.click();
+                    }
+                }
+            });
+        }
+
+        if (signInPassword) {
+            signInPassword.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signInEmail);
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(btnForgotPassword || signInSubmitBtn);
+                }
+            });
+        }
+
+        if (btnForgotPassword) {
+            btnForgotPassword.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signInPassword);
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signInSubmitBtn);
+                }
+            });
+        }
+
+        if (signInSubmitBtn) {
+            signInSubmitBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(btnForgotPassword || signInPassword);
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signInGoogleBtn);
+                }
+            });
+        }
+
+        if (signInGoogleBtn) {
+            signInGoogleBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signInSubmitBtn);
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(btnSignIn);
+                }
+            });
+        }
+
+        // Forgot Password Navigation
+        if (forgotEmail) {
+            forgotEmail.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(btnSignIn);
+                } else if (e.key === 'ArrowDown' || e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(forgotSubmitBtn);
+                }
+            });
+        }
+
+        if (forgotSubmitBtn) {
+            forgotSubmitBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(forgotEmail);
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(forgotBackBtn);
+                }
+            });
+        }
+
+        if (forgotBackBtn) {
+            forgotBackBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(forgotSubmitBtn);
+                }
+            });
+        }
+
+        // 3. Sign Up Step 1 (Disability Profile Cards)
+        signUpStep1Cards.forEach((cardEl, idx) => {
+            cardEl.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (idx < signUpStep1Cards.length - 1) {
+                        moveTo(signUpStep1Cards[idx + 1]);
+                    } else {
+                        moveTo(signUpNextBtn);
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (idx > 0) {
+                        moveTo(signUpStep1Cards[idx - 1]);
+                    } else {
+                        moveTo(btnSignUp);
+                    }
+                }
+            });
+        });
+
+        if (signUpNextBtn) {
+            signUpNextBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const selected = document.querySelector('#signUpStep1 .disability-option-card.selected') || signUpStep1Cards[signUpStep1Cards.length - 1];
+                    moveTo(selected);
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpGoogleBtn);
+                }
+            });
+        }
+
+        if (signUpGoogleBtn) {
+            signUpGoogleBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpNextBtn);
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(btnSignUp);
+                }
+            });
+        }
+
+        // 4. Sign Up Step 2 (Account Details)
+        if (signUpEmail) {
+            signUpEmail.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(btnSignUp);
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpGender);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpGender);
+                }
+            });
+        }
+
+        if (signUpGender) {
+            signUpGender.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpEmail);
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpPassword);
+                } else if (e.key === 'ArrowRight' || e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpBirthdate);
+                }
+            });
+        }
+
+        if (signUpBirthdate) {
+            signUpBirthdate.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpGender);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpEmail);
+                } else if (e.key === 'ArrowDown' || e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpPassword);
+                }
+            });
+        }
+
+        if (signUpPassword) {
+            signUpPassword.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpGender);
+                } else if (e.key === 'ArrowDown' || (e.key === 'Enter' && signUpPassword.value.length >= 6)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpRePassword);
+                }
+            });
+        }
+
+        if (signUpRePassword) {
+            signUpRePassword.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpPassword);
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpSubmitBtn);
+                }
+            });
+        }
+
+        if (signUpBackBtn) {
+            signUpBackBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpRePassword);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpSubmitBtn);
+                }
+            });
+        }
+
+        if (signUpSubmitBtn) {
+            signUpSubmitBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpRePassword);
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpBackBtn);
+                }
+            });
+        }
+
+        // 5. Complete Profile Step 1 (Cards)
+        completeStep1Cards.forEach((cardEl, idx) => {
+            cardEl.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (idx < completeStep1Cards.length - 1) {
+                        moveTo(completeStep1Cards[idx + 1]);
+                    } else {
+                        moveTo(completeNextBtn);
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (idx > 0) {
+                        moveTo(completeStep1Cards[idx - 1]);
+                    }
+                }
+            });
+        });
+
+        if (completeNextBtn) {
+            completeNextBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const selected = document.querySelector('#completeStep1 .disability-option-card.selected') || completeStep1Cards[completeStep1Cards.length - 1];
+                    moveTo(selected);
+                }
+            });
+        }
+
+        // 6. Complete Profile Step 2
+        if (completeGender) {
+            completeGender.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight' || e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(completeBirthdate);
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(completeProfileSubmitBtn);
+                }
+            });
+        }
+
+        if (completeBirthdate) {
+            completeBirthdate.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(completeGender);
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(completeProfileSubmitBtn);
+                }
+            });
+        }
+
+        if (completeBackBtn) {
+            completeBackBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(completeGender);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(completeProfileSubmitBtn);
+                }
+            });
+        }
+
+        if (completeProfileSubmitBtn) {
+            completeProfileSubmitBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(completeBirthdate);
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(completeBackBtn);
+                }
+            });
+        }
+
+        // 7. Global Document Fallback Navigation (When nothing is focused yet)
+        if (authAlert) {
+            authAlert.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowDown' || e.key === 'Tab' || e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const isSignIn = !signInView.classList.contains('d-none');
+                    moveTo(isSignIn ? btnSignIn : btnSignUp);
+                }
+            });
+        }
+
+        document.addEventListener('keydown', (e) => {
+            const activeEl = document.activeElement;
+            const isUnfocused = !activeEl || activeEl === document.body || activeEl === document.documentElement || activeEl.id === 'authCard' || activeEl.id === 'authAlert';
+
+            if (isUnfocused && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const isSignIn = !signInView.classList.contains('d-none');
+                const isComplete = !document.getElementById('completeProfileView').classList.contains('d-none');
+
+                if (isComplete) {
+                    const firstCard = document.querySelector('#completeStep1 .disability-option-card');
+                    moveTo(firstCard);
+                } else if (isSignIn) {
+                    moveTo(btnSignIn);
+                } else {
+                    moveTo(btnSignUp);
+                }
+            }
+        });
+    }
+
+    // Initialize keyboard arrow navigation
+    setupAuthArrowNavigation();
+
+    // Native Datepicker styling trick to show placeholder "Birthdate" on non-focused states
+    const dateInput = document.getElementById('signUpBirthdate');
+    dateInput.addEventListener('focus', () => {
+        dateInput.type = 'date';
+    });
+    // If empty, return to text type to display 'Birthdate' text styling
+    dateInput.type = 'text';
+    dateInput.placeholder = 'Birthdate';
+    dateInput.addEventListener('blur', () => {
+        if (!dateInput.value) {
+            dateInput.type = 'text';
+            dateInput.placeholder = 'Birthdate';
+        }
+    });
+
+    // -------------------------------------------------------------
+    // SIGN UP ACTION HANDLER
+    // -------------------------------------------------------------
+    document.getElementById('signUpForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        hideAlert();
+
+        const email = document.getElementById('signUpEmail').value.trim();
+        const disability = document.getElementById('signUpDisability').value;
+        const gender = document.getElementById('signUpGender').value;
+        const birthdate = document.getElementById('signUpBirthdate').value;
+        const password = document.getElementById('signUpPassword').value;
+        const rePassword = document.getElementById('signUpRePassword').value;
+
+        // Validation checks
+        if (!email || !birthdate || !password || !rePassword) {
+            showAlert("Please fill in all required fields.");
+            return;
+        }
+
+        if (password.length < 6) {
+            showAlert("Password must be at least 6 characters long for Firebase.");
+            document.getElementById('signUpPassword').focus();
+            return;
+        }
+
+        if (password !== rePassword) {
+            showAlert("Passwords do not match. Please recheck password entry.");
+            document.getElementById('signUpRePassword').setAttribute('aria-invalid', 'true');
+            document.getElementById('signUpRePassword').focus();
+            return;
+        }
+        document.getElementById('signUpRePassword').removeAttribute('aria-invalid');
+
+        if (!firebaseAuth) {
+            showAlert("Firebase client is not configured yet. Redirecting to home...", false);
+            setTimeout(() => {
+                window.location.href = '/home';
+            }, 1000);
+            return;
+        }
+
+        const submitBtn = document.getElementById('signUpSubmitBtn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Creating Account...';
+
+        try {
+            // Sign up user using Firebase Auth
+            const userCredential = await firebaseAuth.createUserWithEmailAndPassword(email, password);
+            const user = userCredential.user;
+
+            // Generate initial default recommendations depending on disability_type
+            let initialRecs = {
+                text_size: 'medium',
+                auto_scroll: 'off',
+                screen_reader: 'off',
+                line_focus: 'off',
+                content_level: 'Medium',
+                dyslexia_font: 'off',
+                font_style: 'default',
+                letter_spacing: 'normal',
+                line_spacing: 'normal',
+                contrast_theme: 'none',
+                color_filter: 'none',
+                tts_voice: 'en-US-AvaNeural',
+                tts_engine: 'azure',
+                last_updated: new Date().toISOString()
+            };
+
+            if (disability === 'Low-Vision') {
+                initialRecs.text_size = 'large';
+                initialRecs.contrast_theme = 'light';
+            } else if (disability === 'Dyslexia') {
+                initialRecs.line_focus = 'on';
+                initialRecs.dyslexia_font = 'on';
+                initialRecs.font_style = 'opendyslexic';
+                initialRecs.letter_spacing = 'wide';
+                initialRecs.line_spacing = 'wide';
+            } else if (disability === 'Complete Blindness') {
+                initialRecs.screen_reader = 'on';
+            } else if (disability === 'Color Blindness') {
+                initialRecs.color_filter = 'deuteranopia';
+            }
+
+            // Save profile metadata directly in Firestore
+            await firebaseDb.collection("profiles").doc(user.uid).set({
+                email: email,
+                disability_type: disability || 'None',
+                gender: gender || 'Not Specified',
+                birthdate: birthdate,
+                recommended_settings: initialRecs,
+                created_at: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Get user token to sync backend session
+            const idToken = await user.getIdToken();
+            const syncRes = await fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user: {
+                        id: user.uid,
+                        email: user.email
+                    },
+                    idToken: idToken
+                })
+            });
+
+            const syncData = await syncRes.json();
+            if (syncData.success) {
+                showAlert("Registration successful! Redirecting...", false);
+                document.getElementById('signUpForm').reset();
+                if (dateInput) {
+                    dateInput.type = 'text';
+                    dateInput.placeholder = 'Birthdate';
+                }
+                setTimeout(() => {
+                    if (disability === 'Color Blindness') {
+                        window.location.href = '/ishihara-prompt';
+                    } else {
+                        window.location.href = '/home';
+                    }
+                }, 1000);
+            } else {
+                showAlert("Profile saved, but session sync failed: " + syncData.error);
+            }
+
+        } catch (err) {
+            showAlert("An error occurred during signup: " + err.message);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Sign Up';
+        }
+    });
+
+    // -------------------------------------------------------------
+    // SIGN IN ACTION HANDLER
+    // -------------------------------------------------------------
+    document.getElementById('signInForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        hideAlert();
+
+        const email = document.getElementById('signInEmail').value.trim();
+        const password = document.getElementById('signInPassword').value;
+
+        if (!email || !password) {
+            showAlert("Please enter your email and password.");
+            return;
+        }
+
+        if (!firebaseAuth) {
+            showAlert("Firebase client is not configured yet. Redirecting to home...", false);
+            setTimeout(() => {
+                window.location.href = '/home';
+            }, 1000);
+            return;
+        }
+
+        const submitBtn = document.getElementById('signInSubmitBtn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Signing In...';
+
+        try {
+            const userCredential = await firebaseAuth.signInWithEmailAndPassword(email, password);
+            const user = userCredential.user;
+
+            // Get user token to sync backend session
+            const idToken = await user.getIdToken();
+            const syncRes = await fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user: {
+                        id: user.uid,
+                        email: user.email
+                    },
+                    idToken: idToken
+                })
+            });
+
+            const syncData = await syncRes.json();
+            if (syncData.success) {
+                showAlert("Login successful! Redirecting...", false);
+                setTimeout(() => {
+                    window.location.href = '/home';
+                }, 1000);
+            } else {
+                showAlert("Login succeeded, but session sync failed: " + syncData.error);
+            }
+
+        } catch (err) {
+            showAlert("An error occurred during login: " + err.message);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Sign In';
+        }
+    });
+
+    // -------------------------------------------------------------
+    // FORGOT PASSWORD ACTION HANDLERS
+    // -------------------------------------------------------------
+    const forgotPasswordView = document.getElementById('forgotPasswordView');
+    const btnForgotPassword = document.getElementById('btnForgotPassword');
+    const forgotBackBtn = document.getElementById('forgotBackBtn');
+    const forgotEmail = document.getElementById('forgotEmail');
+
+    if (btnForgotPassword) {
+        btnForgotPassword.addEventListener('click', () => {
+            hideAlert();
+            signInView.classList.add('d-none');
+            forgotPasswordView.classList.remove('d-none');
+            const currentEmail = document.getElementById('signInEmail').value.trim();
+            if (currentEmail && forgotEmail) {
+                forgotEmail.value = currentEmail;
+            }
+            if (forgotEmail) forgotEmail.focus();
+            speakWithNarrator("Reset password view. Enter your registered email address, then press Down arrow to send the reset link.");
+        });
+    }
+
+    if (forgotBackBtn) {
+        forgotBackBtn.addEventListener('click', () => {
+            hideAlert();
+            forgotPasswordView.classList.add('d-none');
+            signInView.classList.remove('d-none');
+            const currentEmail = forgotEmail ? forgotEmail.value.trim() : '';
+            if (currentEmail) {
+                document.getElementById('signInEmail').value = currentEmail;
+            }
+            document.getElementById('signInEmail').focus();
+            speakWithNarrator("Sign In view. Email address input field.");
+        });
+    }
+
+    const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+    if (forgotPasswordForm) {
+        forgotPasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideAlert();
+            const email = forgotEmail.value.trim();
+            if (!email) {
+                showAlert("Please enter your registered email address.");
+                return;
+            }
+
+            if (!firebaseAuth) {
+                showAlert("Firebase authentication is not configured yet.", false);
+                return;
+            }
+
+            const submitBtn = document.getElementById('forgotSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending Link...';
+
+            try {
+                await firebaseAuth.sendPasswordResetEmail(email);
+                showAlert("Password reset link sent! Please check your email inbox to change your password.", false);
+                speakWithNarrator("Password reset link sent. Please check your email inbox to change your password.");
+                setTimeout(() => {
+                    forgotPasswordView.classList.add('d-none');
+                    signInView.classList.remove('d-none');
+                    document.getElementById('signInEmail').value = email;
+                    document.getElementById('signInPassword').focus();
+                }, 3500);
+            } catch (err) {
+                showAlert("Error sending reset email: " + err.message);
+                speakWithNarrator("Error sending reset email: " + err.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send Reset Link';
+            }
+        });
+    }
+
+    // -------------------------------------------------------------
+    // GOOGLE OAUTH HANDLER
+    // -------------------------------------------------------------
+    document.querySelectorAll('.google-auth-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            hideAlert();
+
+            if (!firebaseAuth) {
+                showAlert("Firebase credentials not configured. Google Sign-In simulated!", false);
+                setTimeout(() => {
+                    window.location.href = '/home';
+                }, 1000);
+                return;
+            }
+
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                const result = await firebaseAuth.signInWithPopup(provider);
+                const user = result.user;
+
+                // Check if profile exists and is complete
+                const docRef = firebaseDb.collection("profiles").doc(user.uid);
+                const docSnap = await docRef.get();
+                let isComplete = false;
+                if (docSnap.exists) {
+                    const data = docSnap.data();
+                    if (data && data.disability_type && data.gender && data.birthdate) {
+                        isComplete = true;
+                    }
+                }
+
+                if (!isComplete) {
+                    // Hide Mode Toggle tablist
+                    document.querySelector('.toggle-container').classList.add('d-none');
+                    // Hide current auth forms
+                    signUpView.classList.add('d-none');
+                    signInView.classList.add('d-none');
+                    // Show Complete Profile View
+                    document.getElementById('completeProfileView').classList.remove('d-none');
+                    
+                    // Save user object in global window namespace to access on form submit
+                    window.pendingGoogleUser = user;
+                    return;
+                }
+
+                // Get ID token to sync session
+                const idToken = await user.getIdToken();
+                const syncRes = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user: {
+                            id: user.uid,
+                            email: user.email
+                        },
+                        idToken: idToken
+                    })
+                });
+
+                const syncData = await syncRes.json();
+                if (syncData.success) {
+                    showAlert("Login successful! Redirecting...", false);
+                    setTimeout(() => {
+                        window.location.href = '/home';
+                    }, 1000);
+                } else {
+                    showAlert("Google OAuth succeeded, but session sync failed: " + syncData.error);
+                }
+
+            } catch (err) {
+                showAlert("Google OAuth failed: " + err.message);
+            }
+        });
+    });
+
+    // -------------------------------------------------------------
+    // COMPLETE PROFILE ACTION HANDLER
+    // -------------------------------------------------------------
+    const completeDateInput = document.getElementById('completeBirthdate');
+    if (completeDateInput) {
+        completeDateInput.addEventListener('focus', () => {
+            completeDateInput.type = 'date';
+        });
+        completeDateInput.type = 'text';
+        completeDateInput.placeholder = 'Birthdate';
+        completeDateInput.addEventListener('blur', () => {
+            if (!completeDateInput.value) {
+                completeDateInput.type = 'text';
+                completeDateInput.placeholder = 'Birthdate';
+            }
+        });
+    }
+
+    document.getElementById('completeProfileForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        hideAlert();
+
+        const disability = document.getElementById('completeDisability').value;
+        const gender = document.getElementById('completeGender').value;
+        const birthdate = document.getElementById('completeBirthdate').value;
+
+        if (!disability || !gender || !birthdate) {
+            showAlert("Please fill in all profile fields.");
+            return;
+        }
+
+        const user = window.pendingGoogleUser;
+        if (!user) {
+            showAlert("No pending Google login session found.");
+            return;
+        }
+
+        const submitBtn = document.getElementById('completeProfileSubmitBtn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving Profile...';
+
+        try {
+            // Generate initial default recommendations depending on disability_type
+            let initialRecs = {
+                text_size: 'medium',
+                auto_scroll: 'off',
+                screen_reader: 'off',
+                line_focus: 'off',
+                content_level: 'Medium',
+                dyslexia_font: 'off',
+                font_style: 'default',
+                letter_spacing: 'normal',
+                line_spacing: 'normal',
+                contrast_theme: 'none',
+                color_filter: 'none',
+                tts_voice: 'en-US-AvaNeural',
+                tts_engine: 'azure',
+                last_updated: new Date().toISOString()
+            };
+
+            if (disability === 'Low-Vision') {
+                initialRecs.text_size = 'large';
+                initialRecs.contrast_theme = 'light';
+            } else if (disability === 'Dyslexia') {
+                initialRecs.line_focus = 'on';
+                initialRecs.dyslexia_font = 'on';
+                initialRecs.font_style = 'opendyslexic';
+                initialRecs.letter_spacing = 'wide';
+                initialRecs.line_spacing = 'wide';
+            } else if (disability === 'Complete Blindness') {
+                initialRecs.screen_reader = 'on';
+            } else if (disability === 'Color Blindness') {
+                initialRecs.color_filter = 'deuteranopia';
+            }
+
+            // Save profile metadata directly in Firestore
+            await firebaseDb.collection("profiles").doc(user.uid).set({
+                email: user.email,
+                disability_type: disability,
+                gender: gender,
+                birthdate: birthdate,
+                recommended_settings: initialRecs,
+                created_at: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Get user token to sync backend session
+            const idToken = await user.getIdToken();
+            const syncRes = await fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user: {
+                        id: user.uid,
+                        email: user.email
+                    },
+                    idToken: idToken
+                })
+            });
+
+            const syncData = await syncRes.json();
+            if (syncData.success) {
+                showAlert("Profile completed! Redirecting...", false);
+                document.getElementById('completeProfileForm').reset();
+                if (completeDateInput) {
+                    completeDateInput.type = 'text';
+                    completeDateInput.placeholder = 'Birthdate';
+                }
+                setTimeout(() => {
+                    if (disability === 'Color Blindness') {
+                        window.location.href = '/ishihara-prompt';
+                    } else {
+                        window.location.href = '/home';
+                    }
+                }, 1000);
+            } else {
+                showAlert("Profile saved, but session sync failed: " + syncData.error);
+            }
+
+        } catch (err) {
+            showAlert("An error occurred while saving profile: " + err.message);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Save Profile';
+        }
+    });
 </script>
 {% endblock %}

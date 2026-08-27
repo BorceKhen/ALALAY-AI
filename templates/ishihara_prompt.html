@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}ALALAY-AI | Color Blindness Guide{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center min-vh-100 px-3" 
+     style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
+    
+    <!-- Prompt Card (Using fluid borders and padding in rem) -->
+    <div class="card border-0 shadow-lg rounded-5 p-4 p-md-5 text-center" 
+         style="max-width: 36.25rem; width: 100%; backdrop-filter: blur(1.125rem); background-color: rgba(255, 255, 255, 0.85); border: 1px solid rgba(255, 255, 255, 0.4) !important;">
+        
+        <!-- Animated Circle Logo/Icon (Hidden from screen readers since it is decorative) -->
+        <div class="mx-auto mb-4 rounded-circle d-flex align-items-center justify-content-center ishihara-pulse-icon"
+             style="width: 5rem; height: 5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-size: 2.2rem; box-shadow: 0 0.625rem 1.25rem rgba(118, 75, 162, 0.3);"
+             aria-hidden="true">
+            👁️
+        </div>
+
+        <h2 class="fw-bold mb-3 text-dark" style="font-family: 'Josefin Sans', sans-serif;">Color Blindness Onboarding</h2>
+        
+        <p class="text-muted mb-4 px-md-3" style="font-family: 'Open Sans', sans-serif; font-size: 1.05rem; line-height: 1.6;">
+            We noticed you selected <strong>Color Blindness</strong> as your profile accessibility preference. 
+            Do you know your specific color blindness type, or would you like to discover it?
+        </p>
+
+        <!-- Informative alert with ARIA role -->
+        <div class="alert alert-light border rounded-4 text-start mb-4 p-3 small" 
+             style="background-color: rgba(255, 255, 255, 0.5); font-family: 'Open Sans', sans-serif; color: #334155;"
+             role="status">
+            <i class="bi bi-info-circle-fill text-primary me-2" aria-hidden="true"></i>
+            Taking the 15-plate Ishihara test will automatically apply the matching <strong>Daltonization color filter</strong> (Protanopia, Deuteranopia, or Tritanopia) to enhance contrast across all learning modules.
+        </div>
+
+        <!-- Buttons Container (Using Tab order naturally) -->
+        <div class="d-flex flex-column gap-3">
+            <a href="/ishihara-test" 
+               class="btn btn-lg rounded-pill text-white fw-semibold py-3 px-4 shadow-sm ishihara-btn-glow" 
+               style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; font-family: 'Josefin Sans', sans-serif;">
+                Take the Ishihara Test (15 Plates)
+            </a>
+            
+            <a href="/home" 
+               class="btn btn-lg rounded-pill btn-outline-secondary py-3 px-4 fw-semibold text-decoration-none" 
+               style="font-family: 'Josefin Sans', sans-serif; border-color: #94a3b8; color: #1e293b;">
+                Skip & Choose Manually Later
+            </a>
+        </div>
+
+        <div class="mt-4 text-muted small" style="font-family: 'Open Sans', sans-serif;">
+            You can modify your color vision settings at any time in the <strong>Accessibility Settings</strong> panel.
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Premium focus-visible state for keyboard navigation */
+    .btn:focus-visible {
+        outline: 3px solid #764ba2 !important;
+        outline-offset: 2px !important;
+        box-shadow: none !important;
+    }
+    
+    .ishihara-pulse-icon {
+        animation: pulseGlow 3s infinite alternate;
+    }
+    
+    .ishihara-btn-glow {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .ishihara-btn-glow:hover {
+        transform: translateY(-0.125rem);
+        box-shadow: 0 0.625rem 1.56rem rgba(118, 75, 162, 0.4) !important;
+    }
+    
+    @keyframes pulseGlow {
+        0% {
+            transform: scale(1);
+            box-shadow: 0 0.625rem 1.25rem rgba(118, 75, 162, 0.3);
+        }
+        100% {
+            transform: scale(1.05);
+            box-shadow: 0 0.625rem 1.875rem rgba(118, 75, 162, 0.6);
+        }
+    }
+</style>
+{% endblock %}

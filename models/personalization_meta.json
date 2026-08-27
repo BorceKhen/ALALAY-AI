@@ -1,0 +1,26 @@
+{
+    "features": [
+        "encoded_disability",
+        "encoded_device",
+        "fds_screen_reader",
+        "fds_line_focus",
+        "fds_auto_scroll",
+        "cognitive_load_index",
+        "navigation_friction_index",
+        "difficulty_index"
+    ],
+    "disability_map": {
+        "None": 0,
+        "Dyslexia": 1,
+        "Low-Vision": 2,
+        "Low Vision": 2,
+        "Color Blindness": 3,
+        "Complete Blindness": 4,
+        "Complete Blindess": 4
+    },
+    "device_map": {
+        "Desktop": 0,
+        "Mobile": 1,
+        "Tablet": 2
+    }
+}

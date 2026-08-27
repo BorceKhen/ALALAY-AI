@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,16 +8,26 @@
     <title>{% block title %}ALALAY-AI{% endblock %}</title>
 
     <!-- Website Icon -->
-    <link rel="icon" href="{{ url_for('static', filename='assets/ALALAY-AI_Logo.png') }}" type="image" alt="ALALAY-AI Logo">
+    <link rel="icon" href="{{ url_for('static', filename='assets/ALALAY-AI_Logo.png') }}" type="image"
+        alt="ALALAY-AI Logo">
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    <!-- GLOBAL CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/variables.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/style.css') }}">
+    <!-- Readable typography options for low vision and dyslexia -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&family=Lexend:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet"
+        href="{{ url_for('static', filename='assets/css/variables.css') }}?v={{ range(1000, 9999) | random }}">
+    <link rel="stylesheet"
+        href="{{ url_for('static', filename='assets/css/style.css') }}?v={{ range(1000, 9999) | random }}">
+    <link rel="stylesheet"
+        href="{{ url_for('static', filename='assets/css/mobile.css') }}?v={{ range(1000, 9999) | random }}">
+
 
     <!-- PAGE CSS -->
     {% block styles %}{% endblock %}
@@ -25,15 +36,206 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-    <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100..700&family=Open+Sans:wght@300..800&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100..700&family=Open+Sans:wght@300..800&display=swap"
+        rel="stylesheet">
 </head>
 
-<body>
+<body
+    data-page="{% if request.endpoint %}{{ request.endpoint }}{% else %}unknown{% endif %}"
+    class="{% if request.endpoint != 'auth' and user_recommended_settings %}{% if user_recommended_settings.text_size == 'large' %}bigger-ui-mode{% elif user_recommended_settings.text_size == 'xl' %}bigger-ui-mode-xl{% endif %}{% endif %}"
+    data-user-id="{% if request.endpoint != 'auth' %}{{ session.get('user', {}).get('id', '') }}{% endif %}"
+    data-screen-reader="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.screen_reader }}{% else %}off{% endif %}"
+    data-tts="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.tts }}{% else %}off{% endif %}"
+    data-tts-rate="{% if request.endpoint != 'auth' and user_profile %}{{ user_profile.tts_playback_rate }}{% else %}1.0{% endif %}"
+    data-tts-engine="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.tts_engine | default('azure') }}{% else %}azure{% endif %}"
+    data-tts-voice="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.tts_voice }}{% else %}en-US-AvaNeural{% endif %}"
+    data-text-size="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.text_size }}{% else %}medium{% endif %}"
+    data-line-focus="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.line_focus }}{% else %}off{% endif %}"
+    data-auto-scroll="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.auto_scroll }}{% else %}off{% endif %}"
+    data-hotkeys="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.keyboard_shortcuts | default('on') }}{% else %}on{% endif %}"
+    data-hotkey-map="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.hotkey_map | default('{}') }}{% else %}{}{% endif %}"
+    data-color-filter="{% if request.endpoint != 'auth' and request.endpoint != 'ishihara_test' and request.endpoint != 'ishihara_prompt' and user_recommended_settings %}{{ user_recommended_settings.color_filter }}{% else %}none{% endif %}"
+    data-contrast-theme="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.contrast_theme }}{% else %}none{% endif %}"
+    data-dyslexia-font="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.dyslexia_font }}{% else %}off{% endif %}"
+    data-letter-spacing="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.letter_spacing }}{% else %}normal{% endif %}"
+    data-line-spacing="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.line_spacing }}{% else %}normal{% endif %}"
+    data-content-level="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.content_level }}{% else %}medium{% endif %}"
+    data-ruler-thickness="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.ruler_thickness }}{% else %}medium{% endif %}"
+    data-ruler-length="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.ruler_length }}{% else %}full{% endif %}"
+    data-magnetic-ruler="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.magnetic_ruler }}{% else %}off{% endif %}"
+    data-font-style="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.font_style | default('default') }}{% else %}default{% endif %}">
 
     {% block content %}{% endblock %}
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
+    <!-- App JS (frontend ↔ backend bridge) -->
+    <script src="{{ url_for('static', filename='script.js') }}?v={{ range(1000, 9999) | random }}"></script>
+    <script src="{{ url_for('static', filename='telemetry.js') }}?v={{ range(1000, 9999) | random }}"></script>
+
+    <!-- SVG Color Blindness Daltonization Filters -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+        <defs>
+            <!-- Protanopia (Red Weakness) -->
+            <filter id="daltonize-protanopia">
+                <feColorMatrix type="matrix" values="
+                    0.622774 0.264275 0.216821 0 0
+                    0.702302 0.354143 -0.056445 0 0
+                    0.315611 -0.229158 0.913547 0 0
+                    0 0 0 1 0" />
+            </filter>
+
+            <!-- Deuteranopia (Green Weakness) -->
+            <filter id="daltonize-deuteranopia">
+                <feColorMatrix type="matrix" values="
+                    0.288299 0.528345 0.183356 0 0
+                    0.380312 0.490520 0.129168 0 0
+                    -0.016335 0.056156 0.960179 0 0
+                    0 0 0 1 0" />
+            </filter>
+
+            <!-- Tritanopia (Blue Weakness) -->
+            <filter id="daltonize-tritanopia">
+                <feColorMatrix type="matrix" values="
+                    1.017277 0.027029 -0.044306 0 0
+                    0.022066 0.812080 0.165854 0 0
+                    0.023645 0.234400 0.741955 0 0
+                    0 0 0 1 0" />
+            </filter>
+        </defs>        <!-- Agency Controller AI Recommendation Snackbar -->
+        {% if request.endpoint != 'auth' and user_profile and user_profile.pending_settings %}
+            {% set pending = user_profile.pending_settings %}
+            {% set current = user_recommended_settings or {} %}
+            {% set recs = [] %}
+            {% if pending.text_size != current.text_size %}{% set _ = recs.append("Text Size (" ~ pending.text_size | upper ~ ")") %}{% endif %}
+            {% if pending.line_focus != current.line_focus %}{% set _ = recs.append("Line Focus (" ~ pending.line_focus | upper ~ ")") %}{% endif %}
+            {% if pending.auto_scroll != current.auto_scroll %}{% set _ = recs.append("Auto Scroll (" ~ pending.auto_scroll | upper ~ ")") %}{% endif %}
+            {% if pending.tts != current.tts %}{% set _ = recs.append("Text-to-Speech (" ~ pending.tts | upper ~ ")") %}{% endif %}
+            {% if pending.content_level != current.content_level %}{% set _ = recs.append("Content Level (" ~ pending.content_level ~ ")") %}{% endif %}
+
+            {% if recs | length > 0 %}
+            <div id="agency-snackbar" class="agency-snackbar shadow-lg p-3 rounded-4" style="display: block;">
+                <div class="d-flex flex-column gap-2">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="badge bg-primary-subtle text-primary rounded-pill px-2 py-1 small">
+                            <i class="bi bi-robot me-1"></i> AI Recommendation
+                        </span>
+                        <button type="button" class="btn-close btn-close-white" id="btn-agency-close" aria-label="Close"
+                            style="font-size: 0.75rem;"></button>
+                    </div>
+                    <p class="mb-2 text-white small" style="line-height: 1.4;">
+                        Our AI model detected reading friction during your session. We recommend adapting:
+                        <span class="d-block mt-1 text-info fw-bold">
+                            {{ recs | join(" + ") }}
+                        </span>
+                    </p>
+                    <!-- Don't Show Again Option -->
+                    <div class="form-check mb-2 text-start">
+                        <input class="form-check-input" type="checkbox" id="chk-agency-dont-show" style="cursor: pointer;">
+                        <label class="form-check-label text-white-50 small" for="chk-agency-dont-show" style="font-size: 0.72rem; cursor: pointer; user-select: none;">
+                            Don't show this recommendation again during this session
+                        </label>
+                    </div>
+                    <div class="d-flex gap-2 justify-content-end">
+                        <button id="btn-agency-decline"
+                            class="btn btn-sm btn-outline-light rounded-pill px-3 py-1 text-uppercase fw-bold"
+                            style="font-size: 0.7rem;">Decline</button>
+                        <button id="btn-agency-accept"
+                            class="btn btn-sm btn-light rounded-pill px-3 py-1 text-uppercase fw-bold"
+                            style="font-size: 0.7rem;" data-pending-settings='{{ pending | tojson | safe }}'>Accept</button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        {% endif %}
+
+        <style>
+            .agency-snackbar {
+                position: fixed;
+                bottom: 24px;
+                right: 24px;
+                z-index: 1060;
+                width: 320px;
+                background: rgba(30, 41, 59, 0.9);
+                /* Deep slate with blur */
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                color: #fff;
+                animation: slideUpSnackbar 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+                transition: opacity 0.3s ease, transform 0.3s ease;
+            }
+
+            @keyframes slideUpSnackbar {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .agency-snackbar.fade-out {
+                opacity: 0;
+                transform: translateY(20px);
+                pointer-events: none;
+            }
+        </style>
+
+        {% block modals %}
+        {% endblock %}
+
+        <!-- Logout Confirmation Modal -->
+        <div class="modal fade" id="logoutConfirmModal" tabindex="-1" aria-labelledby="logoutConfirmModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content rounded-4 border-0 shadow-lg"
+                    style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.2);">
+                    <div class="modal-header border-0 pb-0 justify-content-center text-center">
+                        <h5 class="modal-title fw-bold text-dark mt-3" id="logoutConfirmModalLabel">Logout Confirmation
+                        </h5>
+                    </div>
+                    <div class="modal-body text-center py-3">
+                        <p class="text-secondary mb-0">Are you sure you want to sign out of your account?</p>
+                    </div>
+                    <div class="modal-footer border-0 pb-4 d-flex justify-content-center gap-3">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4"
+                            data-bs-dismiss="modal">Cancel</button>
+                        <a href="{{ url_for('logout') }}" id="btnConfirmLogout" class="btn btn-danger rounded-pill px-4">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reading Mask Overlay for Line Focus & Color Overlays -->
+        <div id="reading-mask" class="reading-mask"></div>
+
+        {% if request.endpoint != 'auth' and request.endpoint != 'ishihara_test' and request.endpoint != 'ishihara_prompt' and request.endpoint != 'flashcard' and request.endpoint != 'flashcard_deck' and request.endpoint != 'quiz' and request.endpoint != 'quiz_deck' and session.get('user') %}
+        <!-- Mobile Floating Bottom Navigation Bar -->
+        <nav class="mobile-floating-nav d-md-none" aria-label="Mobile Bottom Navigation">
+            <div class="mobile-nav-pill">
+                <a href="{{ url_for('home') }}" class="mobile-nav-item {% if request.endpoint == 'home' %}active{% endif %}" aria-label="Home" title="Home">
+                    <i class="bi bi-house-door"></i>
+                </a>
+                <a href="{{ url_for('my_decks') }}" class="mobile-nav-item {% if request.endpoint in ['my_decks', 'flashcard_deck', 'flashcard'] %}active{% endif %}" aria-label="My Decks" title="My Decks">
+                    <i class="bi bi-suit-spade"></i>
+                </a>
+                <a href="{{ url_for('accessibility') }}" class="mobile-nav-item {% if request.endpoint == 'accessibility' %}active{% endif %}" aria-label="Accessibility Settings" title="Accessibility">
+                    <i class="bi bi-universal-access"></i>
+                </a>
+                <a href="{{ url_for('profile') }}" class="mobile-nav-item {% if request.endpoint == 'profile' %}active{% endif %}" aria-label="User Profile" title="Profile">
+                    <i class="bi bi-person-circle"></i>
+                </a>
+            </div>
+        </nav>
+        {% endif %}
+
 </body>
+
 </html>

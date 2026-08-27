@@ -5,20 +5,20 @@ ALALAY-AI | Main Interface
 {% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/quiz.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/quiz.css') }}?v={{ range(1000, 9999) | random }}">
 {% endblock %}
 
 {% block content %}
 <div class="quiz-container min-vh-100 d-flex flex-column">
 
     <header class="quiz-header bg-white px-4 py-3 d-flex align-items-center justify-content-between">
-        <a href="{{ url_for('home') }}" class="btn btn-quiz-utility d-flex align-items-center justify-content-center" aria-label="Close Quiz">
+        <a href="{{ url_for('flashcard_deck', deck_name=deck_name) }}" class="btn btn-quiz-utility d-flex align-items-center justify-content-center" aria-label="Close Quiz" id="btn-exit-quiz" title="Exit Quiz">
             <i class="bi bi-x-lg"></i>
         </a>
 
         <div class="d-flex align-items-center gap-2">
-            <span class="quiz-subject-tag rounded-1" style="background-color: var(--pastel-peach);"></span>
-            <h1 class="quiz-subject-title mb-0">Simulation Experiments</h1>
+            <span class="quiz-subject-tag rounded-1 deck-color-badge" data-bg="{{ deck_color }}"></span>
+            <h1 class="quiz-subject-title mb-0">{{ deck_name }}</h1>
         </div>
 
         <button type="button" class="btn btn-quiz-utility d-flex align-items-center justify-content-center" aria-label="Quiz Settings">
@@ -28,48 +28,452 @@ ALALAY-AI | Main Interface
 
     <main class="quiz-workspace flex-grow-1 d-flex align-items-center py-5">
         <div class="container px-md-5">
+            {% if quiz_count > 0 %}
             <div class="row align-items-center justify-content-center position-relative">
                 
                 <div class="col-auto position-md-absolute start-0 text-end z-2">
-                    <button class="btn btn-quiz-nav d-flex align-items-center justify-content-center shadow-sm" aria-label="Previous Question">
+                    <button id="btn-prev" class="btn btn-quiz-nav d-flex align-items-center justify-content-center shadow-sm" aria-label="Previous Question" disabled>
                         <i class="bi bi-chevron-left"></i>
                     </button>
                 </div>
 
                 <div class="col-12 col-md-9 col-lg-7 quiz-content-stack">
+                    <div class="text-center mb-3 text-muted fw-bold" id="quiz-progress">
+                        Question 1 of {{ quiz_count }}
+                    </div>
                     
-                    <div class="quiz-question-card bg-white p-5 mb-4 shadow-sm text-center">
-                        <h2 class="quiz-question-text mb-0">
-                            What is the first core component of simulation experiment control?
+                    <div class="quiz-question-card bg-white p-5 mb-4 shadow-sm text-center position-relative">
+                        <button id="btn-quiz-tts" class="btn btn-sm btn-link text-secondary position-absolute top-0 end-0 m-3 p-0" aria-label="Read Question Aloud">
+                            <i class="bi bi-volume-up-fill" style="font-size: 1.4rem;"></i>
+                        </button>
+                        <h2 class="quiz-question-text mb-0" id="question-text">
+                            <!-- Populated by JS -->
                         </h2>
                     </div>
 
-                    <div class="quiz-options-group d-flex flex-column gap-3">
-                        <button type="button" class="btn btn-quiz-option shadow-sm text-center p-4">
-                            Planning and designing components
-                        </button>
-                        <button type="button" class="btn btn-quiz-option shadow-sm text-center p-4">
-                            Input parameter selection
-                        </button>
-                        <button type="button" class="btn btn-quiz-option shadow-sm text-center p-4">
-                            Validation and Verification
-                        </button>
-                        <button type="button" class="btn btn-quiz-option shadow-sm text-center p-4">
-                            Reporting results
-                        </button>
+                    <div class="quiz-options-group d-flex flex-column gap-3" id="options-container">
+                        <!-- Populated by JS -->
                     </div>
 
                 </div>
 
                 <div class="col-auto position-md-absolute end-0 text-start z-2">
-                    <button class="btn btn-quiz-nav d-flex align-items-center justify-content-center shadow-sm" aria-label="Next Question">
+                    <button id="btn-next" class="btn btn-quiz-nav d-flex align-items-center justify-content-center shadow-sm" aria-label="Next Question">
                         <i class="bi bi-chevron-right"></i>
                     </button>
                 </div>
 
             </div>
-        </div>
-    </main>
 
+            <!-- Quiz Results View (Initially Hidden) -->
+            <div id="quiz-results-card" class="bg-white p-5 shadow-sm rounded-4 text-center d-none" style="max-width: 600px; margin: 30px auto 0; border: 1px solid #e2e8f0;">
+                <div class="icon-circle bg-success-subtle text-success mx-auto mb-4" style="width: 80px; height: 80px; font-size: 2.5rem; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+                    <i class="bi bi-trophy-fill"></i>
+                </div>
+                <h2 class="fw-bold mb-3 text-dark">Quiz Completed!</h2>
+                <p class="text-muted mb-4 fs-5" id="quiz-results-score-text">You scored 0 out of 0 (0%)</p>
+                
+                <div class="d-flex flex-column gap-3 mx-auto" style="max-width: 280px;">
+                    <a href="{{ url_for('profile') }}" class="btn btn-primary rounded-pill btn-lg px-5 py-2">
+                        Go to Profile
+                    </a>
+                    <a href="{{ url_for('flashcard_deck', deck_name=deck_name) }}" class="btn btn-outline-secondary rounded-pill btn-lg px-5 py-2">
+                        Back to Deck
+                    </a>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center">
+                <h2 class="text-muted">Not enough data to generate a quiz.</h2>
+                <p>Add more flashcards or upload a document with more text to this deck.</p>
+                <a href="{{ url_for('flashcard_deck', deck_name=deck_name) }}" class="btn btn-primary mt-3">Back to Deck</a>
+            </div>
+            {% endif %}
+        </div>
 </div>
+
+<!-- Custom Styled Exit Quiz Confirmation Modal -->
+<div class="modal fade" id="exitQuizModal" tabindex="-1" aria-labelledby="exitQuizModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden" style="background: #ffffff;">
+            <div class="modal-body p-4 text-center">
+                <div class="icon-circle bg-warning-subtle text-warning mx-auto mb-3" style="width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.9rem;">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                </div>
+                <h4 class="fw-bold text-dark mb-2" id="exitQuizModalLabel">Exit Quiz Session?</h4>
+                <p class="text-muted mb-4 fs-6">
+                    Are you sure you want to exit? Your current quiz answers and score progress for this session will not be saved.
+                </p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button type="button" class="btn btn-light rounded-pill px-4 py-2 fw-semibold text-secondary flex-grow-1" data-bs-dismiss="modal" id="btn-cancel-exit">
+                        Continue Quiz
+                    </button>
+                    <a href="{{ url_for('flashcard_deck', deck_name=deck_name) }}" class="btn btn-danger rounded-pill px-4 py-2 fw-semibold flex-grow-1 shadow-sm" id="btn-confirm-exit">
+                        Exit Session
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if quiz_count > 0 %}
+<!-- Pass data safely to client-side JS -->
+<script id="quiz-data" type="application/json">
+    {{ quiz_items | tojson | safe }}
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const rawQuizData = JSON.parse(document.getElementById("quiz-data").textContent);
+    
+    // Normalize entire quizData structure right at the top
+    const quizData = (Array.isArray(rawQuizData) ? rawQuizData : []).map(item => {
+        if (!item || typeof item !== 'object') return { question: "", options: [], correct_answer: "" };
+        const correctAns = (item.correct_answer || "").trim().toLowerCase();
+        let rawOpts = item.options || item.choices || [];
+        if (!Array.isArray(rawOpts) && typeof rawOpts === 'object' && rawOpts !== null) {
+            rawOpts = Object.values(rawOpts);
+        }
+        let normOpts = (Array.isArray(rawOpts) ? rawOpts : []).map(opt => {
+            if (typeof opt === 'string') {
+                return {
+                    text: opt.trim(),
+                    is_correct: correctAns ? opt.trim().toLowerCase() === correctAns : false
+                };
+            } else if (typeof opt === 'object' && opt !== null) {
+                const optText = String(opt.text || opt.option || opt.choice || opt.value || "").trim();
+                return {
+                    text: optText,
+                    is_correct: opt.is_correct === true || opt.correct === true || (correctAns ? optText.toLowerCase() === correctAns : false)
+                };
+            }
+            return null;
+        }).filter(o => o && o.text);
+
+        if (!normOpts.some(o => o.is_correct) && item.correct_answer) {
+            normOpts.push({ text: String(item.correct_answer).trim(), is_correct: true });
+        }
+        return {
+            ...item,
+            options: normOpts
+        };
+    });
+
+    let currentIndex = 0;
+
+    function detectLanguage(text) {
+        const tagalogStopwords = new Set([
+            "ang", "mga", "ano", "paano", "bakit", "saan", "kailan", "kanino", 
+            "nito", "niyan", "noon", "nila", "natin", "ninyo", "lahat", "isang", 
+            "dahil", "kung", "kapag", "upang", "wika", "filipino", "pilipino", 
+            "ito", "sila", "tayo", "kami", "kayo", "siya", "aking", "iyong", 
+            "kanilang", "nating", "tungkol", "ay", "bawat", "maging", "naman", 
+            "lamang", "pangunahing", "sagot", "tanong", "talata", "pangungusap",
+            "sa", "ng", "na", "alin", "sino", "ilan", "ilang", "wala", "walang",
+            "mayroon", "meron", "din", "rin", "ni", "lang"
+        ]);
+
+        const englishStopwords = new Set([
+            "the", "is", "are", "was", "were", "what", "which", "where", "who", "whom",
+            "whose", "how", "why", "when", "in", "on", "of", "for", "with", "about",
+            "from", "by", "an", "this", "that", "these", "those", "have", "has", "had",
+            "can", "could", "will", "would", "should", "their", "there", "they", "its",
+            "country", "largest", "world", "size", "capital", "city", "process", "energy"
+        ]);
+
+        const tokens = (text || "").toLowerCase().match(/\b[a-z\u00C0-\u024F\u1E00-\u1EFF]+\b/g) || [];
+        let tlScore = 0;
+        let enScore = 0;
+        tokens.forEach(tok => {
+            if (tagalogStopwords.has(tok)) tlScore++;
+            if (englishStopwords.has(tok)) enScore++;
+        });
+
+        if (tlScore >= 2 && tlScore > enScore) return 'tl';
+        if (tlScore >= 1 && enScore === 0) return 'tl';
+        if (enScore >= 2 && enScore > tlScore) return 'en';
+        if (enScore >= 1 && tlScore === 0) return 'en';
+        return 'en';
+    }
+
+    // Initialize telemetry session logging
+    if (window.TelemetryTracker) {
+        const deckName = "{{ deck_name | safe }}";
+        window.TelemetryTracker.init(deckName, 'quiz');
+    }
+    
+    // UI Elements
+    const questionText = document.getElementById("question-text");
+    const optionsContainer = document.getElementById("options-container");
+    const progressText = document.getElementById("quiz-progress");
+    const btnPrev = document.getElementById("btn-prev");
+    const btnNext = document.getElementById("btn-next");
+    const btnTts = document.getElementById("btn-quiz-tts");
+
+    // Track answered state per question so it persists during navigation
+    const answeredState = new Array(quizData.length).fill(false);
+    const selectedOptions = new Array(quizData.length).fill(null);
+
+    function loadQuestion(index) {
+        const item = quizData[index];
+        if (!item) return;
+
+        questionText.textContent = item.question || "";
+        progressText.textContent = `Question ${index + 1} of ${quizData.length}`;
+        
+        // Clear old options
+        optionsContainer.innerHTML = "";
+
+        const isAnswered = answeredState[index];
+        const selectedText = selectedOptions[index];
+
+        const optionsList = Array.isArray(item.options) ? item.options : [];
+
+        // Render option buttons
+        optionsList.forEach((opt, i) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "btn btn-quiz-option shadow-sm text-center p-4";
+            btn.textContent = opt.text;
+            
+            // If already answered, show correct/incorrect state
+            if (isAnswered) {
+                btn.disabled = true;
+                btn.classList.add("disabled");
+                
+                if (opt.is_correct) {
+                    btn.classList.add("correct");
+                } else if (opt.text === selectedText && !opt.is_correct) {
+                    btn.classList.add("incorrect");
+                }
+            } else {
+                // Not answered yet
+                btn.addEventListener("click", () => handleAnswerClick(opt, btn, index));
+            }
+
+            optionsContainer.appendChild(btn);
+        });
+
+        // Update nav buttons
+        btnPrev.disabled = index === 0;
+        const isLastQuestion = index === quizData.length - 1;
+        if (isLastQuestion) {
+            btnNext.disabled = false;
+            btnNext.innerHTML = '<i class="bi bi-check2-circle"></i>';
+            btnNext.setAttribute('aria-label', 'Finish Quiz and View Results');
+            btnNext.title = 'Finish Quiz';
+        } else {
+            btnNext.disabled = false;
+            btnNext.innerHTML = '<i class="bi bi-chevron-right"></i>';
+            btnNext.setAttribute('aria-label', 'Next Question');
+            btnNext.title = 'Next Question';
+        }
+
+        // Construct full TTS text including question and options based on detected language and user device
+        const lang = detectLanguage(item.question || "");
+        let fullTtsText = item.question || "";
+        const isMobileDevice = window.matchMedia("(max-width: 768px)").matches || ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+        if (optionsList.length > 0) {
+            let optionsText = "";
+            if (lang === 'tl') {
+                const tagalogNumbers = ["isa", "dalawa", "tatlo", "apat", "lima", "anim", "pito", "walo", "siyam", "sampu"];
+                optionsText = optionsList.map((opt, i) => {
+                    const numWord = tagalogNumbers[i] || (i + 1).toString();
+                    if (isMobileDevice) {
+                        return `Piliin ang ${numWord}, ${opt.text}`;
+                    } else {
+                        return `Pindutin ang ${numWord}, ${opt.text}`;
+                    }
+                }).join(". ");
+            } else {
+                optionsText = optionsList.map((opt, i) => {
+                    if (isMobileDevice) {
+                        return `Option ${i + 1}, ${opt.text}`;
+                    } else {
+                        return `Click ${i + 1}, ${opt.text}`;
+                    }
+                }).join(". ");
+            }
+            fullTtsText += ". " + optionsText + ".";
+        }
+
+        // Update TTS text payload
+        if (btnTts) {
+            btnTts.setAttribute("data-tts-text", fullTtsText);
+            
+            // Revert button icon to default standard speaker state
+            const icon = btnTts.querySelector("i");
+            if (icon) {
+                icon.className = "bi bi-volume-up-fill";
+            }
+        }
+
+        // Auto-play TTS if screen reader adaptation is set to "on"
+        const screenReaderEnabled = document.body.getAttribute("data-screen-reader") === "on";
+        if (screenReaderEnabled && window.speakText) {
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
+            window.speakText(fullTtsText, btnTts, true);
+        }
+    }
+
+    function showQuizResults() {
+        const totalQuestions = quizData.length;
+        // Calculate score
+        let correctCount = 0;
+        quizData.forEach((item, qIdx) => {
+            const selectedText = selectedOptions[qIdx];
+            const correctOpt = (item.options || []).find(o => o && o.is_correct);
+            if (correctOpt && correctOpt.text === selectedText) {
+                correctCount++;
+            }
+        });
+        const scorePercentage = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+        
+        try {
+            if (window.TelemetryTracker && typeof window.TelemetryTracker.setQuizScore === 'function') {
+                window.TelemetryTracker.setQuizScore(scorePercentage);
+                window.TelemetryTracker.setLessonCompletion(100);
+                if (typeof window.TelemetryTracker.save === 'function') {
+                    window.TelemetryTracker.save();
+                }
+            }
+        } catch (err) {
+            console.error("[Quiz] Telemetry tracking error:", err);
+        }
+
+        const quizContentStack = document.querySelector(".quiz-content-stack");
+        const prevCol = btnPrev ? btnPrev.closest(".col-auto") : null;
+        const nextCol = btnNext ? btnNext.closest(".col-auto") : null;
+        
+        if (quizContentStack) quizContentStack.classList.add("d-none");
+        if (prevCol) prevCol.classList.add("d-none");
+        if (nextCol) nextCol.classList.add("d-none");
+
+        const scoreText = document.getElementById("quiz-results-score-text");
+        if (scoreText) {
+            scoreText.innerHTML = `You scored <strong class="text-primary fs-3 d-block my-2">${correctCount} / ${totalQuestions} (${scorePercentage}%)</strong>`;
+        }
+
+        const resultsCard = document.getElementById("quiz-results-card");
+        if (resultsCard) {
+            resultsCard.classList.remove("d-none");
+            resultsCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    function checkQuizCompletion() {
+        const totalQuestions = quizData.length;
+        const answeredCount = answeredState.filter(a => a === true).length;
+        
+        if (answeredCount === totalQuestions) {
+            setTimeout(() => {
+                showQuizResults();
+            }, 600);
+        }
+    }
+
+    function handleAnswerClick(selectedOpt, selectedBtn, qIndex) {
+        // Mark as answered
+        answeredState[qIndex] = true;
+        selectedOptions[qIndex] = selectedOpt.text;
+        
+        // Disable all buttons in container
+        const buttons = optionsContainer.querySelectorAll("button");
+        buttons.forEach(b => {
+            b.disabled = true;
+            b.classList.add("disabled");
+            
+            // Find which option this button corresponds to
+            const opt = (quizData[qIndex].options || []).find(o => o && o.text === b.textContent);
+            
+            if (opt && opt.is_correct) {
+                b.classList.add("correct"); // Always highlight correct answer
+            } else if (b === selectedBtn && (!opt || !opt.is_correct)) {
+                b.classList.add("incorrect"); // Highlight if they picked wrong
+            }
+        });
+
+        // Check telemetry completion status
+        checkQuizCompletion();
+
+        // Auto-forward to the next question after a brief delay (1.2s)
+        const totalQuestions = quizData.length;
+        const answeredCount = answeredState.filter(a => a === true).length;
+        if (answeredCount < totalQuestions && qIndex === currentIndex) {
+            setTimeout(() => {
+                // Ensure the user hasn't manually navigated away in the meantime
+                if (currentIndex === qIndex && currentIndex < totalQuestions - 1) {
+                    currentIndex++;
+                    loadQuestion(currentIndex);
+                }
+            }, 1200);
+        }
+    }
+
+    btnPrev.addEventListener("click", () => {
+        if (currentIndex > 0) {
+            currentIndex--;
+            loadQuestion(currentIndex);
+        }
+    });
+
+    btnNext.addEventListener("click", () => {
+        if (currentIndex < quizData.length - 1) {
+            currentIndex++;
+            loadQuestion(currentIndex);
+        } else {
+            showQuizResults();
+        }
+    });
+
+    if (btnTts) {
+        btnTts.addEventListener("click", () => {
+            const textToSpeak = btnTts.getAttribute("data-tts-text") || questionText.textContent;
+            if (window.speakText) {
+                window.speakText(textToSpeak, btnTts);
+            }
+        });
+    }
+
+    // Exit Quiz Confirmation Dialog (Custom Accessible Modal)
+    const exitBtn = document.getElementById("btn-exit-quiz");
+    const exitModalEl = document.getElementById("exitQuizModal");
+    let exitModalInstance = null;
+    if (exitModalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        exitModalInstance = new bootstrap.Modal(exitModalEl);
+    }
+
+    if (exitBtn) {
+        exitBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            if (exitModalInstance) {
+                exitModalInstance.show();
+            } else if (exitModalEl && typeof bootstrap !== 'undefined') {
+                const modal = new bootstrap.Modal(exitModalEl);
+                modal.show();
+            } else {
+                const proceed = window.confirm("Are you sure you want to exit the quiz? Your current progress will not be saved.");
+                if (proceed) {
+                    window.location.href = exitBtn.href;
+                }
+            }
+        });
+    }
+
+    // Init first question
+    loadQuestion(0);
+});
+
+// Apply deck color from data attribute to bypass CSS linter errors
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.deck-color-badge[data-bg]').forEach(function(el) {
+        el.style.backgroundColor = el.getAttribute('data-bg');
+    });
+});
+</script>
+{% endif %}
 {% endblock %}

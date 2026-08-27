@@ -61,4 +61,448 @@ body {
   min-height: 100vh;
   font-family: var(--secondary-font);
   color: var(--primary-text);
+  transition: filter 0.3s ease-in-out;
+}
+
+/*
+---------------------------------------------
+ROUI Model - UI Sizing Adaptation
+---------------------------------------------
+*/
+body.bigger-ui-mode,
+body.bigger-ui-mode p,
+body.bigger-ui-mode .btn,
+body.bigger-ui-mode h1,
+body.bigger-ui-mode h2,
+body.bigger-ui-mode h3,
+body.bigger-ui-mode h4,
+body.bigger-ui-mode h5,
+body.bigger-ui-mode h6,
+body.bigger-ui-mode .deck-card,
+body.bigger-ui-mode .nav-link,
+body.bigger-ui-mode .access-card {
+    font-size: 1.15em !important;
+}
+
+body.bigger-ui-mode .btn-lg,
+body.bigger-ui-mode .btn-study,
+body.bigger-ui-mode .btn-add {
+    padding: 0.85rem 2.2rem !important;
+    font-size: 1.25em !important;
+}
+
+/* Dyslexia-Friendly Font (OpenDyslexic) */
+@font-face {
+    font-family: 'OpenDyslexic';
+    src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/otf/OpenDyslexic-Regular.otf') format('opentype');
+}
+
+
+body.dyslexia-mode,
+body.dyslexia-mode *,
+body.dyslexia-mode p,
+body.dyslexia-mode h1,
+body.dyslexia-mode h2,
+body.dyslexia-mode h3,
+body.dyslexia-mode h4,
+body.dyslexia-mode h5,
+body.dyslexia-mode h6,
+body.dyslexia-mode span,
+body.dyslexia-mode a,
+body.dyslexia-mode .btn,
+body.dyslexia-mode .nav-link,
+body.dyslexia-mode .deck-card {
+    font-family: 'OpenDyslexic', 'Comic Sans MS', sans-serif !important;
+}
+
+/* Custom Font Style Selection Rules */
+body[data-font-style="opendyslexic"],
+body[data-font-style="opendyslexic"] *,
+body[data-font-style="opendyslexic"] p,
+body[data-font-style="opendyslexic"] h1,
+body[data-font-style="opendyslexic"] h2,
+body[data-font-style="opendyslexic"] h3,
+body[data-font-style="opendyslexic"] h4,
+body[data-font-style="opendyslexic"] h5,
+body[data-font-style="opendyslexic"] h6,
+body[data-font-style="opendyslexic"] span,
+body[data-font-style="opendyslexic"] a,
+body[data-font-style="opendyslexic"] .btn,
+body[data-font-style="opendyslexic"] .nav-link,
+body[data-font-style="opendyslexic"] .deck-card {
+    font-family: 'OpenDyslexic', 'Comic Sans MS', sans-serif !important;
+}
+
+body[data-font-style="lexend"],
+body[data-font-style="lexend"] *,
+body[data-font-style="lexend"] p,
+body[data-font-style="lexend"] h1,
+body[data-font-style="lexend"] h2,
+body[data-font-style="lexend"] h3,
+body[data-font-style="lexend"] h4,
+body[data-font-style="lexend"] h5,
+body[data-font-style="lexend"] h6,
+body[data-font-style="lexend"] span,
+body[data-font-style="lexend"] a,
+body[data-font-style="lexend"] .btn,
+body[data-font-style="lexend"] .nav-link,
+body[data-font-style="lexend"] .deck-card {
+    font-family: 'Lexend', sans-serif !important;
+}
+
+body[data-font-style="comicneue"],
+body[data-font-style="comicneue"] *,
+body[data-font-style="comicneue"] p,
+body[data-font-style="comicneue"] h1,
+body[data-font-style="comicneue"] h2,
+body[data-font-style="comicneue"] h3,
+body[data-font-style="comicneue"] h4,
+body[data-font-style="comicneue"] h5,
+body[data-font-style="comicneue"] h6,
+body[data-font-style="comicneue"] span,
+body[data-font-style="comicneue"] a,
+body[data-font-style="comicneue"] .btn,
+body[data-font-style="comicneue"] .nav-link,
+body[data-font-style="comicneue"] .deck-card {
+    font-family: 'Comic Neue', 'Comic Sans MS', sans-serif !important;
+}
+
+body[data-font-style="arial"],
+body[data-font-style="arial"] *,
+body[data-font-style="arial"] p,
+body[data-font-style="arial"] h1,
+body[data-font-style="arial"] h2,
+body[data-font-style="arial"] h3,
+body[data-font-style="arial"] h4,
+body[data-font-style="arial"] h5,
+body[data-font-style="arial"] h6,
+body[data-font-style="arial"] span,
+body[data-font-style="arial"] a,
+body[data-font-style="arial"] .btn,
+body[data-font-style="arial"] .nav-link,
+body[data-font-style="arial"] .deck-card {
+    font-family: 'Arial', sans-serif !important;
+}
+
+body[data-font-style="georgia"],
+body[data-font-style="georgia"] *,
+body[data-font-style="georgia"] p,
+body[data-font-style="georgia"] h1,
+body[data-font-style="georgia"] h2,
+body[data-font-style="georgia"] h3,
+body[data-font-style="georgia"] h4,
+body[data-font-style="georgia"] h5,
+body[data-font-style="georgia"] h6,
+body[data-font-style="georgia"] span,
+body[data-font-style="georgia"] a,
+body[data-font-style="georgia"] .btn,
+body[data-font-style="georgia"] .nav-link,
+body[data-font-style="georgia"] .deck-card {
+    font-family: 'Georgia', serif !important;
+}
+
+
+/* Text Sizing Options */
+
+
+body.text-size-large,
+body.text-size-large p,
+body.text-size-large span,
+body.text-size-large a,
+body.text-size-large h1,
+body.text-size-large h2,
+body.text-size-large h3,
+body.text-size-large h4,
+body.text-size-large h5,
+body.text-size-large h6,
+body.text-size-large .nav-link,
+body.text-size-large .btn,
+body.text-size-large .deck-card,
+body.text-size-large .access-card {
+    font-size: 1.15em !important;
+}
+
+body.text-size-xl,
+body.text-size-xl p,
+body.text-size-xl span,
+body.text-size-xl a,
+body.text-size-xl h1,
+body.text-size-xl h2,
+body.text-size-xl h3,
+body.text-size-xl h4,
+body.text-size-xl h5,
+body.text-size-xl h6,
+body.text-size-xl .nav-link,
+body.text-size-xl .btn,
+body.text-size-xl .deck-card,
+body.text-size-xl .access-card {
+    font-size: 1.3em !important;
+}
+
+
+/* Letter Spacing Options */
+
+
+body.letter-spacing-wide,
+body.letter-spacing-wide p,
+body.letter-spacing-wide span,
+body.letter-spacing-wide a,
+body.letter-spacing-wide h1,
+body.letter-spacing-wide h2,
+body.letter-spacing-wide h3,
+body.letter-spacing-wide h4,
+body.letter-spacing-wide h5,
+body.letter-spacing-wide h6 {
+    letter-spacing: 0.12em !important;
+}
+
+body.letter-spacing-xl,
+body.letter-spacing-xl p,
+body.letter-spacing-xl span,
+body.letter-spacing-xl a,
+body.letter-spacing-xl h1,
+body.letter-spacing-xl h2,
+body.letter-spacing-xl h3,
+body.letter-spacing-xl h4,
+body.letter-spacing-xl h5,
+body.letter-spacing-xl h6 {
+    letter-spacing: 0.22em !important;
+}
+
+
+/* Line Spacing Options */
+
+
+body.line-spacing-wide,
+body.line-spacing-wide p {
+    line-height: 2em !important;
+}
+
+body.line-spacing-xl,
+body.line-spacing-xl p {
+    line-height: 2.5em !important;
+}
+
+/*
+---------------------------------------------
+Global WCAG 2.1 AA Focus & Active Border Indicator
+---------------------------------------------
+*/
+a:focus,
+a:focus-visible,
+a:active,
+button:focus,
+button:focus-visible,
+button:active,
+.btn:focus,
+.btn:focus-visible,
+.btn:active,
+input:focus,
+input:focus-visible,
+select:focus,
+select:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+[role="button"]:focus,
+[role="button"]:focus-visible,
+[role="button"]:active,
+[role="checkbox"]:focus,
+[role="checkbox"]:focus-visible,
+[role="radio"]:focus,
+[role="radio"]:focus-visible,
+[role="switch"]:focus,
+[role="switch"]:focus-visible,
+.access-card:focus,
+.access-card:focus-visible,
+.access-card:active,
+.access-card-wrapper:focus-within,
+.nav-link:focus,
+.nav-link:focus-visible,
+.nav-link:active,
+.disability-option-card:focus,
+.disability-option-card:focus-visible,
+.disability-option-card:active,
+.btn-quiz-option:focus,
+.btn-quiz-option:focus-visible,
+.btn-quiz-option:active,
+.form-check-input:focus,
+.form-check-input:focus-visible,
+.ticker-slide:focus,
+.ticker-slide:focus-visible,
+.ticker-slide:active,
+.deck-card:focus,
+.deck-card:focus-visible,
+.deck-card:active,
+.progress-deck-card:focus,
+.progress-deck-card:focus-visible,
+.progress-deck-card:active,
+[tabindex]:focus,
+[tabindex]:focus-visible,
+[tabindex]:active {
+    outline: 3px solid #000000 !important;
+    outline-offset: 2px !important;
+    box-shadow: none !important;
+}
+
+/* High Contrast Dark Mode Override (Yellow-on-Black) */
+body.contrast-theme-dark a:focus,
+body.contrast-theme-dark a:focus-visible,
+body.contrast-theme-dark a:active,
+body.contrast-theme-dark button:focus,
+body.contrast-theme-dark button:focus-visible,
+body.contrast-theme-dark button:active,
+body.contrast-theme-dark .btn:focus,
+body.contrast-theme-dark .btn:focus-visible,
+body.contrast-theme-dark input:focus,
+body.contrast-theme-dark input:focus-visible,
+body.contrast-theme-dark select:focus,
+body.contrast-theme-dark select:focus-visible,
+body.contrast-theme-dark textarea:focus,
+body.contrast-theme-dark textarea:focus-visible,
+body.contrast-theme-dark [role="button"]:focus,
+body.contrast-theme-dark [role="button"]:focus-visible,
+body.contrast-theme-dark [role="checkbox"]:focus,
+body.contrast-theme-dark [role="checkbox"]:focus-visible,
+body.contrast-theme-dark [role="radio"]:focus,
+body.contrast-theme-dark [role="radio"]:focus-visible,
+body.contrast-theme-dark [role="switch"]:focus,
+body.contrast-theme-dark [role="switch"]:focus-visible,
+body.contrast-theme-dark .access-card:focus,
+body.contrast-theme-dark .access-card:focus-visible,
+body.contrast-theme-dark .nav-link:focus,
+body.contrast-theme-dark .nav-link:focus-visible {
+    outline: 3px solid #ffff00 !important;
+    outline-offset: 2px !important;
+}
+
+/* High Contrast Light Mode Override (Black-on-White) */
+body.contrast-theme-light a:focus,
+body.contrast-theme-light a:focus-visible,
+body.contrast-theme-light a:active,
+body.contrast-theme-light button:focus,
+body.contrast-theme-light button:focus-visible,
+body.contrast-theme-light button:active,
+body.contrast-theme-light .btn:focus,
+body.contrast-theme-light .btn:focus-visible,
+body.contrast-theme-light input:focus,
+body.contrast-theme-light input:focus-visible,
+body.contrast-theme-light select:focus,
+body.contrast-theme-light select:focus-visible,
+body.contrast-theme-light textarea:focus,
+body.contrast-theme-light textarea:focus-visible,
+body.contrast-theme-light [role="button"]:focus,
+body.contrast-theme-light [role="button"]:focus-visible,
+body.contrast-theme-light [role="checkbox"]:focus,
+body.contrast-theme-light [role="checkbox"]:focus-visible,
+body.contrast-theme-light [role="radio"]:focus,
+body.contrast-theme-light [role="radio"]:focus-visible,
+body.contrast-theme-light [role="switch"]:focus,
+body.contrast-theme-light [role="switch"]:focus-visible,
+body.contrast-theme-light .access-card:focus,
+body.contrast-theme-light .access-card:focus-visible,
+body.contrast-theme-light .nav-link:focus,
+body.contrast-theme-light .nav-link:focus-visible {
+    outline: 3px solid #000000 !important;
+    outline-offset: 2px !important;
+}
+
+/* Hide manual TTS volume triggers if Text-to-Speech accessibility option is OFF */
+body[data-tts="off"] .tts-trigger,
+body[data-tts="off"] #btn-quiz-tts {
+    display: none !important;
+}
+
+/* Real-time Phonetic Highlighting */
+.tts-word {
+    transition: background-color 0.08s ease, color 0.08s ease;
+    border-radius: 4px;
+    padding: 0 2px;
+}
+/* Default / Normal Vision Highlight (Premium Purple) */
+.tts-word.tts-highlight {
+    background-color: #764ba2 !important;
+    color: #ffffff !important;
+}
+
+/* Protanopia High-Contrast Highlight (Cobalt Blue) */
+body[data-color-filter="protanopia"] .tts-word.tts-highlight {
+    background-color: #1e40af !important;
+    color: #ffffff !important;
+}
+
+/* Deuteranopia High-Contrast Highlight (Indigo) */
+body[data-color-filter="deuteranopia"] .tts-word.tts-highlight {
+    background-color: #3730a3 !important;
+    color: #ffffff !important;
+}
+
+/* Tritanopia High-Contrast Highlight (Rose/Crimson) */
+body[data-color-filter="tritanopia"] .tts-word.tts-highlight {
+    background-color: #be123c !important;
+    color: #ffffff !important;
+}
+
+/* Floating Autoplay TTS Button */
+#btn-autoplay-tts-floating {
+    transition: opacity 0.3s ease, transform 0.2s ease, background-color 0.2s ease;
+    box-shadow: 0 4px 12px rgba(86, 113, 201, 0.25) !important;
+}
+#btn-autoplay-tts-floating:hover {
+    transform: scale(1.05);
+}
+#btn-autoplay-tts-floating.btn-danger {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3) !important;
+}
+
+/* Line Focus & Color Overlays Overlay Styling */
+.reading-mask {
+    display: none;
+    position: fixed;
+    left: var(--focus-left, 50%);
+    top: var(--focus-y, 50vh);
+    transform: translate(-50%, -50%);
+    width: var(--focus-width, 100vw);
+    height: var(--focus-height, 90px);
+    z-index: 10000;
+    pointer-events: none; /* Clicks pass straight through */
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
+    border: 2px dashed rgba(255, 255, 255, 0.35);
+    border-radius: 8px;
+    background-color: transparent;
+    transition: left 0.25s cubic-bezier(0.25, 0.8, 0.25, 1), top 0.12s cubic-bezier(0.25, 0.8, 0.25, 1), height 0.25s cubic-bezier(0.25, 0.8, 0.25, 1), width 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+body[data-line-focus="on"][data-page="flashcard"] .reading-mask,
+body[data-line-focus="on"][data-page="flashcard_deck"] .reading-mask,
+body[data-line-focus="on"][data-page="quiz_deck"] .reading-mask {
+    display: block;
+}
+
+/* Subtle cream colored tint overlay for the whole page when Line Focus is ON to reduce glare */
+body[data-line-focus="on"][data-page="flashcard"]::after,
+body[data-line-focus="on"][data-page="flashcard_deck"]::after,
+body[data-line-focus="on"][data-page="quiz_deck"]::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(253, 244, 219, 0.12); /* Soft warm cream tint */
+    z-index: 9998;
+    pointer-events: none;
+}
+
+/* Color Blindness Daltonization Filters application */
+body[data-color-filter="protanopia"] {
+    filter: url('#daltonize-protanopia') !important;
+}
+body[data-color-filter="deuteranopia"] {
+    filter: url('#daltonize-deuteranopia') !important;
+}
+body[data-color-filter="tritanopia"] {
+    filter: url('#daltonize-tritanopia') !important;
 }

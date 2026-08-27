@@ -2,6 +2,55 @@
 
 {% block title %}ALALAY-AI | My Decks{% endblock %}
 
+{% block styles %}
+{{ super() }}
+<style>
+    /* Custom Circular Checkbox for Selection */
+    .deck-select-checkbox {
+        width: 24px;
+        height: 24px;
+        border-radius: 50% !important;
+        border: 2px solid var(--primary-blue) !important;
+        cursor: pointer;
+        background-color: #fff;
+        appearance: none;
+        -webkit-appearance: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        margin: 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .deck-select-checkbox:checked {
+        background-color: var(--primary-blue) !important;
+        border-color: var(--primary-blue) !important;
+    }
+    .deck-select-checkbox:checked::after {
+        content: "✓";
+        color: #fff;
+        font-size: 14px;
+        font-weight: bold;
+    }
+    /* Visual border toggle on selected deck cards */
+    .deck-card.selected-for-delete {
+        border-color: #dc3545 !important; /* Red border */
+        box-shadow: 0 8px 24px rgba(220, 53, 69, 0.15) !important;
+        background-color: #fffdfd !important; /* Light red tint */
+    }
+    .select-indicator {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        z-index: 10;
+    }
+    /* Modal styles adjustments */
+    .modal-content {
+        border: none !important;
+    }
+</style>
+{% endblock %}
+
 {% block homepage_content %}
 <div class="row align-items-center mb-5">
     <!-- TITLE COLUMN -->
@@ -12,88 +61,240 @@
     <!-- BUTTONS COLUMN -->
     <div class="col-auto">
         <div class="d-flex gap-2">
-            <button class="btn-study btn btn-primary btn-lg rounded-pill px-4">Add deck</button>
-            <button class="btn-add btn btn-outline-primary btn-lg rounded-pill px-4">
-                Study
-            </button>
+            <button id="btnSelect" class="btn-study btn btn-lg rounded-pill px-4">Select</button>
+            <button id="btnStudy" class="btn-add btn btn-lg rounded-pill px-4">Study</button>
         </div>
     </div>
 </div>
 
 <!-- DECKS LIST -->
-<div class="row row-cols-1 row-cols-md-3 g-4">
-    <div class="col">
-        <a href="{{ url_for('flashcard') }}" class="deck-card-link text-decoration-none">
-            <div class="deck-card border p-4 shadow-sm rounded-4 text-left h-80 overflow-hidden">
-                <!-- DECK COLOR -->
-                <div class="deck-color"></div>
+<div class="row row-cols-1 row-cols-md-3 g-4" id="decks-container">
 
-                <!-- DECK DETAILS-->
-                <h5 class="fw-semibold">Social Sciences</h5>
-                <p class="text-muted mb-0">53 cards</p>
+    <!-- Dynamically generated decks from flashcard generation -->
+    {% for deck in decks %}
+    <div class="col deck-col-item" data-deck-name="{{ deck.name }}" data-is-static="false">
+        <a href="{{ url_for('flashcard_deck', deck_name=deck.name) }}" class="deck-card-link text-decoration-none">
+            <div class="deck-card border p-4 shadow-sm rounded-4 text-left h-80 overflow-hidden position-relative">
+                <div class="select-indicator d-none">
+                    <input class="form-check-input deck-select-checkbox" type="checkbox" data-deck-name="{{ deck.name }}">
+                </div>
+                <!-- DECK COLOR -->
+                <div class="deck-color" data-bg="{{ deck.color }}"></div>
+
+                <!-- DECK DETAILS -->
+                <h5 class="fw-semibold" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+                    title="{{ deck.original_filename }}">{{ deck.name }}</h5>
+                <p class="text-muted mb-0">{{ deck.card_count }} cards</p>
             </div>
         </a>
     </div>
-    <div class="col">
-        <a href="{{ url_for('flashcard') }}" class="deck-card-link text-decoration-none">
-            <div class="deck-card border p-4 shadow-sm rounded-4 text-left h-80 overflow-hidden">
-                <!-- DECK COLOR -->
-                <div class="deck-color"></div>
+    {% endfor %}
 
-                <!-- DECK DETAILS-->
-                <h5 class="fw-semibold">Linguistics</h5>
-                <p class="text-muted mb-0">129 cards</p>
-            </div>
-        </a>
-    </div>
-    <div class="col">
-        <a href="{{ url_for('flashcard') }}" class="deck-card-link text-decoration-none">
-            <div class="deck-card border p-4 shadow-sm rounded-4 text-left h-80 overflow-hidden">
-                <!-- DECK COLOR -->
-                <div class="deck-color"></div>
+</div>
 
-                <!-- DECK DETAILS-->
-                <h5 class="fw-semibold">Computer Science</h5>
-                <p class="text-muted mb-0">24 cards</p>
-            </div>
-        </a>
-    </div>
-    <div class="col">
-        <a href="{{ url_for('flashcard') }}" class="deck-card-link text-decoration-none">
-            <div class="deck-card border p-4 shadow-sm rounded-4 text-left h-80 overflow-hidden">
-                <!-- DECK COLOR -->
-                <div class="deck-color"></div>
+<!-- Mobile Floating Action Button (+) -->
+<a href="{{ url_for('home') }}" class="mobile-fab-btn d-md-none" aria-label="Create / Import Deck" title="Add Deck">
+    <i class="bi bi-plus"></i>
+</a>
 
-                <!-- DECK DETAILS-->
-                <h5 class="fw-semibold">MMW</h5>
-                <p class="text-muted mb-0">24 cards</p>
+<!-- Deletion Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content rounded-4 border-0 shadow-lg" style="background: #f8f9fc;">
+            <div class="modal-body text-center p-4">
+                <h5 class="fw-bold mb-3" style="color: #3b49a1;">Are you sure?</h5>
+                <p class="text-muted small mb-4">Do you want to delete the selected decks? This action cannot be undone.</p>
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" id="btnConfirmDeleteNo" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">No</button>
+                    <button type="button" id="btnConfirmDeleteYes" class="btn btn-danger rounded-pill px-4">Yes</button>
+                </div>
             </div>
-        </a>
-    </div>
-    <div class="col">
-        <a href="{{ url_for('flashcard') }}" class="deck-card-link text-decoration-none">
-            <div class="deck-card border p-4 shadow-sm rounded-4 text-left h-80 overflow-hidden">
-                <!-- DECK COLOR -->
-                <div class="deck-color"></div>
-
-                <!-- DECK DETAILS-->
-                <h5 class="fw-semibold">Software Engineering</h5>
-                <p class="text-muted mb-0">24 cards</p>
-            </div>
-        </a>
-    </div>
-    <div class="col">
-        <a href="{{ url_for('flashcard') }}" class="deck-card-link text-decoration-none">
-            <div class="deck-card border p-4 shadow-sm rounded-4 text-left h-80 overflow-hidden">
-                <!-- DECK COLOR -->
-                <div class="deck-color"></div>
-
-                <!-- DECK DETAILS-->
-                <h5 class="fw-semibold">OS Simulation</h5>
-                <p class="text-muted mb-0">24 cards</p>
-            </div>
-        </a>
+        </div>
     </div>
 </div>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set up background colors for decks
+        document.querySelectorAll('.deck-color[data-bg]').forEach(function(el) {
+            el.style.backgroundColor = el.getAttribute('data-bg');
+        });
+
+        // Selection & Telemetry variables
+        let isSelectionMode = false;
+        const btnSelect = document.getElementById('btnSelect');
+        const btnStudy = document.getElementById('btnStudy');
+        const selectIndicators = document.querySelectorAll('.select-indicator');
+        const checkboxes = document.querySelectorAll('.deck-select-checkbox');
+        const deckLinks = document.querySelectorAll('.deck-card-link');
+        const deckCards = document.querySelectorAll('.deck-card');
+
+        // Confirm modal initialization
+        const modalEl = document.getElementById('deleteConfirmModal');
+        let deleteModal = null;
+        if (modalEl) {
+            document.body.appendChild(modalEl); // prevent z-index/backdrop nesting issues
+            deleteModal = new bootstrap.Modal(modalEl);
+        }
+
+        // Toggle Selection mode
+        btnSelect.addEventListener('click', function() {
+            isSelectionMode = !isSelectionMode;
+
+            if (isSelectionMode) {
+                // Change UI to selection active
+                btnSelect.textContent = 'Cancel';
+                btnSelect.className = 'btn-add btn btn-lg rounded-pill px-4';
+                
+                btnStudy.textContent = 'Delete';
+                btnStudy.className = 'btn btn-danger btn-lg rounded-pill px-4';
+
+                selectIndicators.forEach(el => el.classList.remove('d-none'));
+            } else {
+                // Restore normal UI
+                btnSelect.textContent = 'Select';
+                btnSelect.className = 'btn-study btn btn-lg rounded-pill px-4';
+
+                btnStudy.textContent = 'Study';
+                btnStudy.className = 'btn-add btn btn-lg rounded-pill px-4';
+
+                selectIndicators.forEach(el => el.classList.add('d-none'));
+                
+                // Clear selection states
+                checkboxes.forEach(cb => cb.checked = false);
+                deckCards.forEach(card => card.classList.remove('selected-for-delete'));
+            }
+        });
+
+        // Intercept deck card clicks
+        deckLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                if (isSelectionMode) {
+                    e.preventDefault(); // stop navigation
+
+                    const checkbox = link.querySelector('.deck-select-checkbox');
+                    const card = link.querySelector('.deck-card');
+
+                    if (checkbox && card) {
+                        checkbox.checked = !checkbox.checked;
+                        if (checkbox.checked) {
+                            card.classList.add('selected-for-delete');
+                        } else {
+                            card.classList.remove('selected-for-delete');
+                        }
+                    }
+                }
+            });
+        });
+
+        // Prevent click bubble bugs when clicking direct checkbox
+        checkboxes.forEach(cb => {
+            cb.addEventListener('click', function(e) {
+                e.stopPropagation(); // stop triggering parent card click twice
+                const card = cb.closest('.deck-card');
+                if (card) {
+                    if (cb.checked) {
+                        card.classList.add('selected-for-delete');
+                    } else {
+                        card.classList.remove('selected-for-delete');
+                    }
+                }
+            });
+        });
+
+        // Handle Study/Delete Click
+        btnStudy.addEventListener('click', function() {
+            if (isSelectionMode) {
+                // Gather selected decks
+                const selectedDecks = [];
+                checkboxes.forEach(cb => {
+                    if (cb.checked) {
+                        selectedDecks.push(cb.getAttribute('data-deck-name'));
+                    }
+                });
+
+                if (selectedDecks.length === 0) {
+                    alert('Please select at least one deck to delete.');
+                    return;
+                }
+
+                // Show modal
+                if (deleteModal) {
+                    deleteModal.show();
+                }
+            } else {
+                console.log('Study clicked');
+            }
+        });
+
+        // Modal Action: No (Confirm Cancel Deletion & Return to normal)
+        const btnConfirmDeleteNo = document.getElementById('btnConfirmDeleteNo');
+        if (btnConfirmDeleteNo) {
+            btnConfirmDeleteNo.addEventListener('click', function() {
+                if (isSelectionMode) {
+                    btnSelect.click(); // Trigger cancel programmatically to restore normal state
+                }
+            });
+        }
+
+        // Modal Action: Yes (Confirm Delete)
+        const btnConfirmDeleteYes = document.getElementById('btnConfirmDeleteYes');
+        if (btnConfirmDeleteYes) {
+            btnConfirmDeleteYes.addEventListener('click', async function() {
+                const selectedDecks = [];
+                const checkedBoxes = [];
+
+                checkboxes.forEach(cb => {
+                    if (cb.checked) {
+                        selectedDecks.push(cb.getAttribute('data-deck-name'));
+                        checkedBoxes.push(cb);
+                    }
+                });
+
+                // Hide modal first
+                if (deleteModal) {
+                    deleteModal.hide();
+                }
+
+                // Show page loading indicator or disable button
+                btnStudy.disabled = true;
+                btnStudy.textContent = 'Deleting...';
+
+                try {
+                    const response = await fetch('/decks/delete', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ deck_names: selectedDecks })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        // Success: dynamically remove from DOM
+                        checkedBoxes.forEach(cb => {
+                            const colItem = cb.closest('.deck-col-item');
+                            if (colItem) {
+                                // Add fade-out animation and remove
+                                colItem.style.transition = 'all 0.5s ease';
+                                colItem.style.opacity = '0';
+                                colItem.style.transform = 'scale(0.8)';
+                                setTimeout(() => colItem.remove(), 500);
+                            }
+                        });
+                    } else {
+                        alert('Error deleting decks: ' + result.error);
+                    }
+                } catch (err) {
+                    alert('Network error: ' + err.message);
+                } finally {
+                    // Reset to normal state
+                    btnStudy.disabled = false;
+                    btnSelect.click(); // Programmatically exit selection mode (resets buttons)
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}
+

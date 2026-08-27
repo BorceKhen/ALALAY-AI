@@ -4,61 +4,139 @@
 
 
 {% block homepage_content %}
-<!-- TEXT -->
-<div class="text-center mb-5">
-    <h1 class="display-6 fw-bold">What shall we study?</h1>
+<!-- Mobile Header Bar -->
+<div class="mobile-top-bar d-flex d-md-none justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold mb-0" style="font-size: 1.5rem; color: #1a237e;">Home</h2>
+    <a href="{{ url_for('my_decks') }}" class="btn btn-link p-0 text-dark" style="font-size: 1.4rem;">
+        <i class="bi bi-clock-history"></i>
+    </a>
+</div>
+
+<!-- TEXT / LOGO HEADER -->
+<div class="text-center mb-4">
+    <!-- Show logo on mobile instead of text, matching 2nd photo -->
+    <div class="mobile-logo-header d-flex d-md-none justify-content-center mb-2">
+        <img src="{{ url_for('static', filename='assets/ALALAY-AI_Logo.png') }}" alt="ALALAY-AI" class="mobile-logo" style="max-height: 80px; max-width: 180px; object-fit: contain;">
+    </div>
+    
+    <h1 class="home-title d-none d-md-block display-6 fw-bold">What shall we study?</h1>
     <p class="text-uppercase text-secondary mb-2 small">Import & Learn</p>
 </div>
 
-<div class="row row-cols-1 row-cols-md-3 g-4">
-    <div class="col">
-        <div class="card border shadow-sm rounded-4 p-4 text-center h-100">
-            <div class="mx-auto mb-4 rounded-circle d-flex align-items-center justify-content-center" style="width:64px;height:64px;background:#eef2ff; color:#3b49a1; font-weight:700;">
-                DOC
-            </div>
-            <h5 class="fw-semibold">Word Document</h5>
-            <p class="text-muted mb-0">Docx File</p>
+<!-- Hidden file input (PDF, DOCX, PPTX only) -->
+<input type="file" id="fileImportInput" accept=".pdf,.docx,.pptx" style="display:none;">
+
+<!-- Single Import Button -->
+<div class="d-flex justify-content-center">
+    <div id="importCard" class="card border shadow-sm rounded-4 p-4 text-center import-card"
+         style="cursor:pointer; max-width:320px; width:100%; transition: transform 0.2s ease, box-shadow 0.2s ease;">
+        <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center"
+             style="width:64px;height:64px;background:#eef2ff; color:#3b49a1; font-weight:700; font-size:1.5rem;">
+            <i class="bi bi-file-earmark-text" style="font-size: 1.6rem;"></i>
         </div>
+        
+        <!-- Desktop wording -->
+        <h5 class="fw-semibold mb-1 d-none d-md-block">Import a File</h5>
+        <p class="text-muted mb-0 small d-none d-md-block">Supports PDF, DOCX, PPTX</p>
+        
+        <!-- Mobile wording, matching 2nd photo -->
+        <h5 class="fw-semibold mb-1 d-block d-md-none" style="font-size: 1.25rem;">Docx/PPTs/PDFs</h5>
+        <p class="text-muted mb-0 small d-block d-md-none">Upload File</p>
+        
+        <p id="selectedFileName" class="text-primary mt-2 mb-0 small fw-semibold"></p>
     </div>
-    <div class="col">
-        <div class="card border shadow-sm rounded-4 p-4 text-center h-100">
-            <div class="mx-auto mb-4 rounded-circle d-flex align-items-center justify-content-center" style="width:64px;height:64px;background:#eef2ff; color:#3b49a1; font-weight:700;">
-                PDF
+</div>
+
+<!-- Extraction Progress Bar (hidden by default) -->
+<div id="extractionProgressContainer" class="mx-auto mt-4" style="max-width: 320px; display: none; transition: opacity 0.3s ease;">
+    <div class="d-flex justify-content-between mb-1">
+        <span id="progressStatusText" class="text-secondary small fw-semibold">Preparing extraction...</span>
+        <span id="progressPercentageText" class="text-primary small fw-bold">0%</span>
+    </div>
+    <div class="progress rounded-pill" style="height: 10px; background-color: #f0f2f5;">
+        <div id="extractionProgressBar" class="progress-bar progress-bar-striped progress-bar-animated rounded-pill" 
+             role="progressbar" style="width: 0%; background-color: #3b49a1; transition: width 0.3s ease;"></div>
+    </div>
+</div>
+
+<!-- Extraction Results (populated by script.js after UHTEM processing) -->
+<div id="extractionResults" class="mt-4" style="display:none;">
+    <div class="card border shadow-sm rounded-4 p-4">
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <h5 class="fw-semibold mb-0">
+                <span style="color:#3b49a1;">&#9989;</span> Extraction Complete
+            </h5>
+            <div class="d-flex align-items-center gap-2">
+                <span id="simplificationBadge" class="badge rounded-pill bg-success-subtle text-success border border-success-subtle d-none px-3 py-2" style="font-size: 0.8rem;">
+                    <i class="bi bi-magic me-1"></i> Adaptive Simplification Active
+                </span>
+                <span id="resultBadge" class="badge rounded-pill px-3 py-2" style="background:#3b49a1; font-size: 0.8rem;"></span>
             </div>
-            <h5 class="fw-semibold">PDFs</h5>
-            <p class="text-muted mb-0">PDF File</p>
         </div>
-    </div>
-    <div class="col">
-        <div class="card border shadow-sm rounded-4 p-4 text-center h-100">
-            <div class="mx-auto mb-4 rounded-circle d-flex align-items-center justify-content-center" style="width:64px;height:64px;background:#eef2ff; color:#3b49a1; font-weight:700;">
-                PPT
+        <div class="mb-3">
+            <small class="text-muted">File:</small>
+            <span id="resultFilename" class="fw-semibold ms-1"></span>
+        </div>
+        <div class="mb-3">
+            <small class="text-muted">Method:</small>
+            <span id="resultMethod" class="ms-1"></span>
+            <small class="text-muted ms-3">Pages:</small>
+            <span id="resultPages" class="ms-1"></span>
+            <small class="text-muted ms-3">Words:</small>
+            <span id="resultWordCount" class="ms-1"></span>
+        </div>
+        <div>
+            <small class="text-muted d-block mb-1">Extracted Text Preview:</small>
+            <div id="resultTextPreview" class="p-3 rounded-3 small"
+                 style="background:#f8f9fa; max-height:200px; overflow-y:auto; white-space:pre-wrap; font-family:monospace;">
             </div>
-            <h5 class="fw-semibold">PPTs</h5>
-            <p class="text-muted mb-0">PPT File</p>
         </div>
     </div>
 </div>
 
-<h2 class="h5 fw-bold mb-4 mt-5">Jump back in</h2>
-<div class="list-group list-group-flush">
-    <div class="list-group-item rounded-4 mb-3 border shadow-sm p-3">
-        <div class="d-flex align-items-center gap-3">
-            <div class="rounded-circle" style="width:48px;height:48px;background:#eef2ff;"></div>
-            <div>
-                <h6 class="mb-1">Social Sciences</h6>
-                <p class="mb-0 text-muted">Quiz</p>
-            </div>
-        </div>
+<!-- Divider + Generate Flashcard (shown after extraction) -->
+<div id="generateSection" class="mt-4" style="display:none;">
+    <hr style="border-color:#d0d5e8;">
+    <div class="d-flex justify-content-center mt-4">
+        <button id="generateFlashcardBtn" class="btn btn-lg rounded-pill px-5 py-3 fw-semibold d-flex align-items-center gap-2"
+                style="background:#3b49a1; color:#fff; border:none; transition: transform 0.2s ease, box-shadow 0.2s ease;">
+            <span style="font-size:1.3rem;">&#9889;</span>
+            Generate Flashcard
+        </button>
     </div>
-    <div class="list-group-item rounded-4 border shadow-sm p-3">
-        <div class="d-flex align-items-center gap-3">
-            <div class="rounded-circle" style="width:48px;height:48px;background:#eef2ff;"></div>
-            <div>
-                <h6 class="mb-1">Social Sciences</h6>
-                <p class="mb-0 text-muted">Quiz</p>
+    <p id="generateStatus" class="text-center mt-2 small fw-semibold" style="display:none;"></p>
+</div>
+
+<!-- Jump back in section -->
+{% if sidebar_decks %}
+<div class="jump-back-in-section mt-4 pt-2">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0" style="font-size: 1.15rem; color: #1a237e; font-family: 'Lexend', sans-serif;">Jump back in</h5>
+        <a href="{{ url_for('my_decks') }}" class="btn btn-link p-0 text-muted" style="font-size: 1.1rem; text-decoration: none;">
+            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width:32px; height:32px;">
+                <i class="bi bi-chevron-right text-dark" style="font-size: 0.95rem;"></i>
             </div>
-        </div>
+        </a>
+    </div>
+    
+    <div class="d-flex flex-column gap-3">
+        {% for deck in sidebar_decks %}
+        <a href="{{ url_for('flashcard_deck', deck_name=deck.get('name')) }}" class="deck-item-link text-decoration-none text-dark">
+            <div class="d-flex align-items-center justify-content-between p-3 border rounded-4 bg-white shadow-sm" style="transition: transform 0.2s; border-radius: 1.25rem !important;">
+                <div class="d-flex align-items-center gap-3">
+                    <!-- Left colored strip -->
+                    <div style="width: 12px; height: 48px; border-radius: 6px; background-color: {{ deck.get('color', '#FF8A80') }};"></div>
+                    <div>
+                        <h6 class="fw-semibold mb-1" style="font-size: 0.98rem; font-family: 'Lexend', sans-serif;">{{ deck.get('name') }}</h6>
+                        <p class="text-muted mb-0 small">{{ deck.get('card_count', 0) }} Cards</p>
+                    </div>
+                </div>
+                <i class="bi bi-chevron-right text-muted small me-1"></i>
+            </div>
+        </a>
+        {% endfor %}
     </div>
 </div>
+{% endif %}
+
 {% endblock %}

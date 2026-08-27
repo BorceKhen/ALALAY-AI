@@ -1,0 +1,675 @@
+import os
+import json
+import threading
+from datetime import datetime, timezone
+import numpy as np
+import torch
+import torch.nn as nn
+from auth_helper import get_db
+
+# Paths for models
+MODEL_DIR = os.path.dirname(os.path.abspath(__file__))
+WEIGHTS_PATH = os.path.join(MODEL_DIR, "personalization_model.pth")
+META_PATH = os.path.join(MODEL_DIR, "personalization_meta.json")
+
+# Global thread lock to prevent weight file write race conditions
+MODEL_LOCK = threading.Lock()
+
+# Empirical boundaries matching generator.py
+DEVICE_UX_BASELINES = {
+    "Desktop": {"max_dead_clicks": 15.0, "max_magnification": 6.0, "max_velocity_variance": 40.0},
+    "Mobile": {"max_dead_clicks": 30.0, "max_magnification": 15.0, "max_velocity_variance": 75.0},
+    "Tablet": {"max_dead_clicks": 20.0, "max_magnification": 10.0, "max_velocity_variance": 55.0}
+}
+CLI_BASELINES = {"max_regressions": 15.0, "max_replays": 8.0, "max_pauses": 12.0, "max_idle": 120.0, "max_duration": 400.0}
+DI_BASELINES = {"max_revisits": 10.0}
+
+
+# --- Define PyTorch Multi-Head MLP Network (matching train script) ---
+class PersonalizationMLP(nn.Module):
+    def __init__(self):
+        super(PersonalizationMLP, self).__init__()
+        self.shared = nn.Sequential(
+            nn.Linear(8, 64),
+            nn.ReLU(),
+            nn.Linear(64, 32),
+            nn.ReLU()
+        )
+        self.head_text_size = nn.Linear(32, 3)
+        self.head_auto_scroll = nn.Linear(32, 2)
+        self.head_screen_reader = nn.Linear(32, 2)
+        self.head_line_focus = nn.Linear(32, 2)
+        self.head_content_level = nn.Linear(32, 3)
+
+    def forward(self, x):
+        features = self.shared(x)
+        return (
+            self.head_text_size(features),
+            self.head_auto_scroll(features),
+            self.head_screen_reader(features),
+            self.head_line_focus(features),
+            self.head_content_level(features)
+        )
+
+
+def _normalize(value, max_val, min_val=0.0):
+    if max_val == min_val:
+        return 0.0
+    norm = (value - min_val) / (max_val - min_val)
+    return max(0.0, min(1.0, norm))
+
+
+def update_user_personalization(user_id, latest_log_id=None, latest_log_data=None):
+    """
+    1. Fetches all historical logs for user_id from Firestore.
+    2. Computes the user state indices (CLI, NFI, DI) and Feature Dependency Scores (FDS).
+    3. Feeds these variables into the PyTorch Neural Network.
+    4. Saves the predicted settings (text_size, auto_scroll, etc.) to the user's Firestore profile.
+    """
+    db = get_db()
+    if not db:
+        print("[Engine] Database connection failed. Aborting personalization.")
+        return None
+
+    try:
+        # A. Fetch all historical logs of this user
+        logs_ref = db.collection("behavioral_logs").where("user_id", "==", user_id)
+        logs = []
+        for doc in logs_ref.stream():
+            log_data = doc.to_dict()
+            log_data["_doc_id"] = doc.id
+            logs.append(log_data)
+            
+        # Append the latest log data directly if it is not yet returned in the stream
+        if latest_log_id and latest_log_data:
+            if not any(l.get("_doc_id") == latest_log_id for l in logs):
+                import copy
+                log_copy = copy.deepcopy(latest_log_data)
+                log_copy["_doc_id"] = latest_log_id
+                logs.append(log_copy)
+        
+        if not logs:
+            print(f"[Engine] No interaction history found for user {user_id}. Skipping adaptation.")
+            return None
+
+        # Sort logs in memory by timestamp to avoid requiring composite indexes in Firestore
+        logs.sort(key=lambda x: x.get("timestamp", ""))
+
+        # Filter out short page-peeks/transitions to prevent corrupting state scores
+        valid_logs = [
+            log for log in logs 
+            if float(log.get("reading_duration_seconds") or 0) >= 5 
+            or log.get("quiz_score_percentage") is not None
+        ]
+        if not valid_logs:
+            valid_logs = logs
+
+        total_sessions = len(valid_logs)
+        latest_log = valid_logs[-1] # use latest valid session for dynamic states
+        
+        # B. Load profile traits
+        profile_ref = db.collection("profiles").document(user_id)
+        profile_doc = profile_ref.get()
+        disability_type = "None"
+        if profile_doc.exists:
+            disability_type = profile_doc.to_dict().get("disability_type", "None")
+
+        # C. Calculate Feature Dependency Scores (FDS)
+        sessions_active_reader = sum(1 for log in valid_logs if int((log.get("accessibility_feature_usage") or {}).get("screen_reader") or 0) > 0)
+        sessions_active_focus = sum(1 for log in valid_logs if int((log.get("accessibility_feature_usage") or {}).get("line_focus") or 0) > 0)
+        sessions_active_scroll = sum(1 for log in valid_logs if int((log.get("accessibility_feature_usage") or {}).get("auto_scroll") or 0) > 0)
+
+        fds_reader = sessions_active_reader / total_sessions
+        fds_focus = sessions_active_focus / total_sessions
+        fds_scroll = sessions_active_scroll / total_sessions
+
+        # D. Calculate Cognitive Load Index (CLI)
+        reg = float(latest_log.get("regression_scroll_count") or 0)
+        rep = float(latest_log.get("tts_replay_count") or 0)
+        pause = float(latest_log.get("tts_pause_frequency") or 0)
+        idle = float(latest_log.get("idle_time_seconds") or 0)
+        dur = float(latest_log.get("reading_duration_seconds") or 0)
+
+        n_reg = _normalize(reg, CLI_BASELINES["max_regressions"])
+        n_rep = _normalize(rep, CLI_BASELINES["max_replays"])
+        n_pau = _normalize(pause, CLI_BASELINES["max_pauses"])
+        n_idl = _normalize(idle, CLI_BASELINES["max_idle"])
+        n_dur = _normalize(dur, CLI_BASELINES["max_duration"])
+        cli = (0.50 * n_dur) + (0.30 * n_reg) + (0.20 * n_rep) + (0.20 * n_pau) + (0.20 * n_idl)
+
+        # E. Calculate Navigation Friction Index (NFI)
+        device = latest_log.get("active_device_type", "Desktop")
+        if device not in DEVICE_UX_BASELINES:
+            device = "Desktop"
+        baselines = DEVICE_UX_BASELINES[device]
+        
+        clicks = float(latest_log.get("dead_clicks") or 0)
+        mag = float(latest_log.get("screen_magnification_frequency") or 0)
+        vel = float(latest_log.get("scroll_velocity_px_sec") or 0) # treat scroll velocity as variance mapping
+
+        n_clicks = _normalize(clicks, baselines["max_dead_clicks"])
+        n_mag = _normalize(mag, baselines["max_magnification"])
+        n_vel = _normalize(vel, baselines["max_velocity_variance"])
+        nfi = (0.50 * n_vel) + (0.30 * n_clicks) + (0.20 * n_mag)
+
+        # F. Calculate Difficulty Index (DI)
+        score = latest_log.get("quiz_score_percentage")
+        if score is None:
+            # If current log has no quiz, scan historical logs for latest quiz score
+            quiz_scores = [log.get("quiz_score_percentage") for log in logs if log.get("quiz_score_percentage") is not None]
+            score = quiz_scores[-1] if quiz_scores else 75.0  # default baseline fallback
+            
+        comp = float(latest_log.get("lesson_completion_rate") or 0)
+        rev = float(latest_log.get("revisit_frequency") or 1)
+
+        n_quiz = _normalize(score, 100.0)
+        n_comp = _normalize(comp, 100.0)
+        n_rev = _normalize(rev, DI_BASELINES["max_revisits"])
+        di = (0.50 * (1.0 - n_quiz)) + (0.30 * n_rev) + (0.20 * (1.0 - n_comp))
+
+        # F2. Calculate Behavioral Fatigue state
+        # A user is classified as Struggling if any overall index is high, OR if any single indicator represents extreme struggle.
+        if (cli > 0.45 or nfi > 0.45 or di > 0.55 or 
+            n_clicks >= 0.8 or n_mag >= 0.8 or n_reg >= 0.8 or (1.0 - n_quiz) >= 0.8):
+            user_state = "Struggling"
+        elif cli < 0.25 and nfi < 0.25 and di < 0.35:
+            user_state = "Efficient"
+        else:
+            user_state = "Normal"
+
+        # G. Save these calculated indices back to the latest log document in Firestore to keep database synced
+        latest_doc_id = latest_log.get("_doc_id")
+        if latest_doc_id:
+            db.collection("behavioral_logs").document(latest_doc_id).update({
+                "fds_screen_reader": round(fds_reader, 4),
+                "fds_line_focus": round(fds_focus, 4),
+                "fds_auto_scroll": round(fds_scroll, 4),
+                "cognitive_load_index": round(cli, 4),
+                "navigation_friction_index": round(nfi, 4),
+                "difficulty_index": round(di, 4),
+                "user_state": user_state
+            })
+            print(f"[Engine] Successfully updated indices on Firestore log document: {latest_doc_id}")
+
+            # Also save user state and latest scores in the root profiles/{user_id} document for fast UI rendering
+            db.collection("profiles").document(user_id).set({
+                "current_behavioral_state": user_state,
+                "latest_cli_score": round(cli, 4),
+                "latest_nfi_score": round(nfi, 4),
+                "latest_di_score": round(di, 4),
+                "last_updated": datetime.now(timezone.utc).isoformat()
+            }, merge=True)
+
+        # Define triggers for next_state
+        cli_flagged = (cli > 0.45 or n_reg >= 0.8)
+        nfi_flagged = (nfi > 0.45 or n_clicks >= 0.8 or n_mag >= 0.8)
+        di_flagged = (di > 0.55 or (1.0 - n_quiz) >= 0.8)
+
+        # --- MDP LOGIC ---
+        try:
+            cli_prev = None
+            nfi_prev = None
+            di_prev = None
+            
+            if total_sessions > 1:
+                prev_log = logs[-2]
+                cli_prev = prev_log.get("cognitive_load_index")
+                nfi_prev = prev_log.get("navigation_friction_index")
+                di_prev = prev_log.get("difficulty_index")
+            
+            # Fetch active recommendations (action) from profile doc
+            active_action = {}
+            if profile_doc.exists:
+                active_action = profile_doc.to_dict().get("recommended_settings") or {}
+            
+            # Calculate reward: R = 0.4*d_cli + 0.4*d_nfi + 0.2*d_di
+            reward = 0.0
+            if cli_prev is not None and nfi_prev is not None and di_prev is not None:
+                delta_cli = cli_prev - cli
+                delta_nfi = nfi_prev - nfi
+                delta_di = di_prev - di
+                reward = (0.4 * delta_cli) + (0.4 * delta_nfi) + (0.2 * delta_di)
+            
+            # Formulate MDP transition tuple with gated variables if flagged
+            state = {}
+            if total_sessions > 1:
+                prev_log = logs[-2]
+                cli_prev_val = prev_log.get("cognitive_load_index") or 0.0
+                nfi_prev_val = prev_log.get("navigation_friction_index") or 0.0
+                di_prev_val = prev_log.get("difficulty_index") or 0.0
+                
+                # Fetch raw variables for previous log
+                reg_prev = float(prev_log.get("regression_scroll_count") or 0)
+                rep_prev = float(prev_log.get("tts_replay_count") or 0)
+                pause_prev = float(prev_log.get("tts_pause_frequency") or 0)
+                idle_prev = float(prev_log.get("idle_time_seconds") or 0)
+                dur_prev = float(prev_log.get("reading_duration_seconds") or 0)
+
+                clicks_prev = float(prev_log.get("dead_clicks") or 0)
+                mag_prev = float(prev_log.get("screen_magnification_frequency") or 0)
+                vel_prev = float(prev_log.get("scroll_velocity_px_sec") or 0)
+
+                score_prev = prev_log.get("quiz_score_percentage")
+                comp_prev = float(prev_log.get("lesson_completion_rate") or 0)
+                rev_prev = float(prev_log.get("revisit_frequency") or 1)
+
+                dev_prev = prev_log.get("active_device_type", "Desktop")
+                if dev_prev not in DEVICE_UX_BASELINES:
+                    dev_prev = "Desktop"
+                baselines_prev = DEVICE_UX_BASELINES[dev_prev]
+
+                cli_prev_flagged = (cli_prev_val > 0.45 or _normalize(reg_prev, CLI_BASELINES["max_regressions"]) >= 0.8)
+                nfi_prev_flagged = (nfi_prev_val > 0.45 or 
+                                    _normalize(clicks_prev, baselines_prev["max_dead_clicks"]) >= 0.8 or 
+                                    _normalize(mag_prev, baselines_prev["max_magnification"]) >= 0.8)
+                di_prev_flagged = (di_prev_val > 0.55 or (1.0 - _normalize(score_prev or 75.0, 100.0)) >= 0.8)
+
+                if cli_prev_flagged:
+                    state.update({
+                        "reading_duration_seconds": round(dur_prev, 2),
+                        "regression_scroll_count": round(reg_prev, 2),
+                        "tts_replay_count": round(rep_prev, 2),
+                        "tts_pause_frequency": round(pause_prev, 2),
+                        "idle_time_seconds": round(idle_prev, 2)
+                    })
+                else:
+                    state.update({
+                        "reading_duration_seconds": 0.0,
+                        "regression_scroll_count": 0.0,
+                        "tts_replay_count": 0.0,
+                        "tts_pause_frequency": 0.0,
+                        "idle_time_seconds": 0.0
+                    })
+
+                if nfi_prev_flagged:
+                    state.update({
+                        "scroll_velocity_px_sec": round(vel_prev, 2),
+                        "dead_clicks": round(clicks_prev, 2),
+                        "screen_magnification_frequency": round(mag_prev, 2)
+                    })
+                else:
+                    state.update({
+                        "scroll_velocity_px_sec": 0.0,
+                        "dead_clicks": 0.0,
+                        "screen_magnification_frequency": 0.0
+                    })
+
+                if di_prev_flagged:
+                    state.update({
+                        "quiz_score_percentage": round(score_prev, 2) if score_prev is not None else 0.0,
+                        "revisit_frequency": round(rev_prev, 2),
+                        "lesson_completion_rate": round(comp_prev, 2)
+                    })
+                else:
+                    state.update({
+                        "quiz_score_percentage": 0.0,
+                        "revisit_frequency": 0.0,
+                        "lesson_completion_rate": 0.0
+                    })
+            else:
+                state = {
+                    "reading_duration_seconds": 0.0,
+                    "regression_scroll_count": 0.0,
+                    "tts_replay_count": 0.0,
+                    "tts_pause_frequency": 0.0,
+                    "idle_time_seconds": 0.0,
+                    "scroll_velocity_px_sec": 0.0,
+                    "dead_clicks": 0.0,
+                    "screen_magnification_frequency": 0.0,
+                    "quiz_score_percentage": 0.0,
+                    "revisit_frequency": 0.0,
+                    "lesson_completion_rate": 0.0
+                }
+
+            next_state = {}
+            if cli_flagged:
+                next_state.update({
+                    "reading_duration_seconds": round(dur, 2),
+                    "regression_scroll_count": round(reg, 2),
+                    "tts_replay_count": round(rep, 2),
+                    "tts_pause_frequency": round(pause, 2),
+                    "idle_time_seconds": round(idle, 2)
+                })
+            else:
+                next_state.update({
+                    "reading_duration_seconds": 0.0,
+                    "regression_scroll_count": 0.0,
+                    "tts_replay_count": 0.0,
+                    "tts_pause_frequency": 0.0,
+                    "idle_time_seconds": 0.0
+                })
+
+            if nfi_flagged:
+                next_state.update({
+                    "scroll_velocity_px_sec": round(vel, 2),
+                    "dead_clicks": round(clicks, 2),
+                    "screen_magnification_frequency": round(mag, 2)
+                })
+            else:
+                next_state.update({
+                    "scroll_velocity_px_sec": 0.0,
+                    "dead_clicks": 0.0,
+                    "screen_magnification_frequency": 0.0
+                })
+
+            if di_flagged:
+                next_state.update({
+                    "quiz_score_percentage": round(score, 2) if score is not None else 0.0,
+                    "revisit_frequency": round(rev, 2),
+                    "lesson_completion_rate": round(comp, 2)
+                })
+            else:
+                next_state.update({
+                    "quiz_score_percentage": 0.0,
+                    "revisit_frequency": 0.0,
+                    "lesson_completion_rate": 0.0
+                })
+
+            mdp_doc = {
+                "user_id": user_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "state": state,
+                "action": active_action,
+                "next_state": next_state,
+                "reward": round(reward, 4),
+                "user_state_transition": f"{prev_log.get('user_state') if total_sessions > 1 else 'None'} -> {user_state}"
+            }
+            
+            # Log transition to Firestore
+            db.collection("mdp_transitions").add(mdp_doc)
+            print(f"[Engine-MDP] Logged MDP transition for user {user_id} with reward: {round(reward, 4)}")
+            
+        except Exception as mdp_err:
+            print(f"[Engine-MDP] Warning: Failed to compute or log MDP transition: {mdp_err}")
+
+        # H. Prepare Input State Vector for Neural Network
+        disability_map = {"None": 0, "Dyslexia": 1, "Low-Vision": 2, "Low Vision": 2, "Color Blindness": 3, "Complete Blindness": 4, "Complete Blindess": 4}
+        device_map = {"Desktop": 0, "Mobile": 1, "Tablet": 2}
+        
+        enc_dis = disability_map.get(disability_type, 0)
+        enc_dev = device_map.get(device, 0)
+
+        # Gate CLI, NFI, and DI input values based on flags (engineered attributes as triggers only)
+        cli_input = float(cli) if cli_flagged else 0.0
+        nfi_input = float(nfi) if nfi_flagged else 0.0
+        di_input = float(di) if di_flagged else 0.0
+
+        state_vector = torch.FloatTensor([
+            float(enc_dis),
+            float(enc_dev),
+            float(fds_reader),
+            float(fds_focus),
+            float(fds_scroll),
+            cli_input,
+            nfi_input,
+            di_input
+        ])
+
+        # I. Run Standalone PyTorch Inference
+        if not os.path.exists(WEIGHTS_PATH):
+            print(f"[Engine] Standalone model weight file not found at {WEIGHTS_PATH}. Aborting prediction.")
+            return None
+
+        model = PersonalizationMLP()
+        with MODEL_LOCK:
+            model.load_state_dict(torch.load(WEIGHTS_PATH, map_location=torch.device('cpu')))
+        model.eval()
+
+        with torch.no_grad():
+            out_ts, out_as, out_sr, out_lf, out_ct = model(state_vector.unsqueeze(0))
+            
+            # Predict targets by taking argmax
+            ts_idx = out_ts.argmax(dim=1).item()
+            pred_ts = "xl" if ts_idx == 2 else "large" if ts_idx == 1 else "medium"
+            pred_as = "on" if out_as.argmax(dim=1).item() == 1 else "off"
+            pred_sr = "on" if out_sr.argmax(dim=1).item() == 1 else "off"
+            pred_lf = "on" if out_lf.argmax(dim=1).item() == 1 else "off"
+            
+            ct_idx = out_ct.argmax(dim=1).item()
+            pred_ct = "Easy" if ct_idx == 0 else "Hard" if ct_idx == 2 else "Medium"
+            
+            # Heuristic safety override: If the calculated user state is "Struggling",
+            # we MUST recommend "Easy" content level regardless of raw ML model noise.
+            if user_state == "Struggling":
+                print("[Engine] Heuristic safety override: User is struggling (DI/CLI is high). Forcing recommendation to 'Easy'.")
+                pred_ct = "Easy"
+
+        # J. Save predictions to Firestore user profile settings as "pending" first (Agency Controller)
+        recommended_settings = {
+            "text_size": pred_ts,
+            "auto_scroll": pred_as,
+            "screen_reader": pred_sr,
+            "line_focus": pred_lf,
+            "content_level": pred_ct,
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        }
+
+        profile_ref = db.collection("profiles").document(user_id)
+        profile_doc = profile_ref.get()
+        active_settings = {}
+        if profile_doc.exists:
+            active_settings = profile_doc.to_dict().get("recommended_settings") or {}
+        
+        # UX Guard: Respect manual user selections. 
+        # If the user has manually enabled an accessibility feature (TTS, Auto-Scroll, Line-Focus) 
+        # or enlarged their text size, the AI must NOT recommend turning it OFF or downsizing it.
+        if active_settings.get("screen_reader") == "on":
+            recommended_settings["screen_reader"] = "on"
+        if active_settings.get("auto_scroll") == "on":
+            recommended_settings["auto_scroll"] = "on"
+        if active_settings.get("line_focus") == "on":
+            recommended_settings["line_focus"] = "on"
+            
+        # Protect manual text size selection (do not recommend downsizing)
+        size_ranks = {"medium": 1, "large": 2, "xl": 3}
+        active_size = active_settings.get("text_size", "medium")
+        pred_size = recommended_settings.get("text_size", "medium")
+        if size_ranks.get(active_size, 1) > size_ranks.get(pred_size, 1):
+            recommended_settings["text_size"] = active_size
+
+        has_changes = False
+        for key in ["text_size", "auto_scroll", "screen_reader", "line_focus", "content_level"]:
+            if recommended_settings.get(key) != active_settings.get(key):
+                has_changes = True
+                break
+        
+        from firebase_admin import firestore
+        update_data = {}
+        if has_changes:
+            update_data["pending_settings"] = recommended_settings
+            print(f"[Engine] Dynamic recommendations staged as pending for user {user_id}: {recommended_settings}")
+        else:
+            update_data["pending_settings"] = firestore.DELETE_FIELD
+            print(f"[Engine] Recommendations match active settings. Cleared pending_settings.")
+            
+        profile_ref.update(update_data)
+        return recommended_settings
+
+    except Exception as e:
+        import traceback
+        with open("personalization_debug.log", "a") as f:
+            f.write(f"Error in personalization engine: {e}\n")
+            traceback.print_exc(file=f)
+        print(f"[Engine] Error during personalization execution: {e}")
+        return None
+
+
+def optimize_personalization_model(user_id, target_actions):
+    """
+    Performs online backpropagation to update the personalization model's weights 
+    using gradient-based optimization (Adam) and Cross-Entropy loss (Maximum Likelihood).
+    
+    Arguments:
+    - user_id: User's unique document ID.
+    - target_actions: Dictionary containing user accepted/preferred classes.
+      Example: {"text_size": "large", "line_focus": "on", "auto_scroll": "off", "screen_reader": "off", "content_level": "Medium"}
+    """
+    db = get_db()
+    if not db:
+        print("[Engine-Optimizer] Database connection failed. Aborting optimization.")
+        return False
+
+    try:
+        # A. Fetch all historical logs of this user to reconstruct current input state vector
+        logs_ref = db.collection("behavioral_logs").where("user_id", "==", user_id)
+        logs = []
+        for doc in logs_ref.stream():
+            log_data = doc.to_dict()
+            log_data["_doc_id"] = doc.id
+            logs.append(log_data)
+        
+        if not logs:
+            print(f"[Engine-Optimizer] No logs found for user {user_id}. Cannot optimize.")
+            return False
+
+        logs.sort(key=lambda x: x.get("timestamp", ""))
+        total_sessions = len(logs)
+        latest_log = logs[-1]
+
+        # Fetch profile details for features
+        profile_ref = db.collection("profiles").document(user_id)
+        profile_doc = profile_ref.get()
+        disability_type = "None"
+        if profile_doc.exists:
+            disability_type = profile_doc.to_dict().get("disability_type", "None")
+
+        # Feature compilation (same mapping as updates)
+        sessions_active_reader = sum(1 for log in logs if int((log.get("accessibility_feature_usage") or {}).get("screen_reader") or 0) > 0)
+        sessions_active_focus = sum(1 for log in logs if int((log.get("accessibility_feature_usage") or {}).get("line_focus") or 0) > 0)
+        sessions_active_scroll = sum(1 for log in logs if int((log.get("accessibility_feature_usage") or {}).get("auto_scroll") or 0) > 0)
+
+        fds_reader = sessions_active_reader / total_sessions
+        fds_focus = sessions_active_focus / total_sessions
+        fds_scroll = sessions_active_scroll / total_sessions
+
+        reg = float(latest_log.get("regression_scroll_count") or 0)
+        rep = float(latest_log.get("tts_replay_count") or 0)
+        pause = float(latest_log.get("tts_pause_frequency") or 0)
+        idle = float(latest_log.get("idle_time_seconds") or 0)
+        dur = float(latest_log.get("reading_duration_seconds") or 0)
+
+        n_reg = _normalize(reg, CLI_BASELINES["max_regressions"])
+        n_rep = _normalize(rep, CLI_BASELINES["max_replays"])
+        n_pau = _normalize(pause, CLI_BASELINES["max_pauses"])
+        n_idl = _normalize(idle, CLI_BASELINES["max_idle"])
+        n_dur = _normalize(dur, CLI_BASELINES["max_duration"])
+        cli = (0.50 * n_dur) + (0.30 * n_reg) + (0.20 * n_rep) + (0.20 * n_pau) + (0.20 * n_idl)
+
+        device = latest_log.get("active_device_type", "Desktop")
+        if device not in DEVICE_UX_BASELINES:
+            device = "Desktop"
+        baselines = DEVICE_UX_BASELINES[device]
+
+        clicks = float(latest_log.get("dead_clicks") or 0)
+        mag = float(latest_log.get("screen_magnification_frequency") or 0)
+        vel = float(latest_log.get("scroll_velocity_px_sec") or 0)
+
+        n_clicks = _normalize(clicks, baselines["max_dead_clicks"])
+        n_mag = _normalize(mag, baselines["max_magnification"])
+        n_vel = _normalize(vel, baselines["max_velocity_variance"])
+        nfi = (0.50 * n_vel) + (0.30 * n_clicks) + (0.20 * n_mag)
+
+        score = latest_log.get("quiz_score_percentage")
+        if score is None:
+            quiz_scores = [log.get("quiz_score_percentage") for log in logs if log.get("quiz_score_percentage") is not None]
+            score = quiz_scores[-1] if quiz_scores else 75.0
+            
+        comp = float(latest_log.get("lesson_completion_rate") or 0)
+        rev = float(latest_log.get("revisit_frequency") or 1)
+
+        n_quiz = _normalize(score, 100.0)
+        n_comp = _normalize(comp, 100.0)
+        n_rev = _normalize(rev, DI_BASELINES["max_revisits"])
+        di = (0.50 * (1.0 - n_quiz)) + (0.30 * n_rev) + (0.20 * (1.0 - n_comp))
+
+        disability_map = {"None": 0, "Dyslexia": 1, "Low-Vision": 2, "Low Vision": 2, "Color Blindness": 3, "Complete Blindness": 4, "Complete Blindess": 4}
+        device_map = {"Desktop": 0, "Mobile": 1, "Tablet": 2}
+        
+        enc_dis = disability_map.get(disability_type, 0)
+        enc_dev = device_map.get(device, 0)
+
+        # Gate CLI, NFI, and DI input values based on flags (engineered attributes as triggers only)
+        cli_flagged = (cli > 0.45 or n_reg >= 0.8)
+        nfi_flagged = (nfi > 0.45 or n_clicks >= 0.8 or n_mag >= 0.8)
+        di_flagged = (di > 0.55 or (1.0 - n_quiz) >= 0.8)
+
+        cli_input = float(cli) if cli_flagged else 0.0
+        nfi_input = float(nfi) if nfi_flagged else 0.0
+        di_input = float(di) if di_flagged else 0.0
+
+        state_vector = torch.FloatTensor([
+            float(enc_dis),
+            float(enc_dev),
+            float(fds_reader),
+            float(fds_focus),
+            float(fds_scroll),
+            cli_input,
+            nfi_input,
+            di_input
+        ])
+
+        # B. Load Model state
+        model = PersonalizationMLP()
+        if os.path.exists(WEIGHTS_PATH):
+            with MODEL_LOCK:
+                model.load_state_dict(torch.load(WEIGHTS_PATH, map_location=torch.device('cpu')))
+        
+        model.train() # Set training mode (activates dropout/batchnorm updates if present)
+        
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+        criterion = nn.CrossEntropyLoss()
+
+        # Maps for targets to match outputs
+        ts_map = {"medium": 0, "large": 1, "xl": 2}
+        as_map = {"off": 0, "on": 1}
+        sr_map = {"off": 0, "on": 1}
+        lf_map = {"off": 0, "on": 1}
+        ct_map = {"Easy": 0, "Medium": 1, "Hard": 2}
+
+        # C. Predict forward outputs
+        out_ts, out_as, out_sr, out_lf, out_ct = model(state_vector.unsqueeze(0))
+
+        loss = 0.0
+        
+        # Accumulate cross entropy loss across heads where target action is specified
+        if "text_size" in target_actions:
+            val = target_actions["text_size"]
+            if val in ts_map:
+                loss += criterion(out_ts, torch.LongTensor([ts_map[val]]))
+        if "auto_scroll" in target_actions:
+            val = target_actions["auto_scroll"]
+            if val in as_map:
+                loss += criterion(out_as, torch.LongTensor([as_map[val]]))
+        if "screen_reader" in target_actions:
+            val = target_actions["screen_reader"]
+            if val in sr_map:
+                loss += criterion(out_sr, torch.LongTensor([out_sr[val]]))
+        if "line_focus" in target_actions:
+            val = target_actions["line_focus"]
+            if val in lf_map:
+                loss += criterion(out_lf, torch.LongTensor([lf_map[val]]))
+        if "content_level" in target_actions:
+            val = target_actions["content_level"]
+            if val in ct_map:
+                loss += criterion(out_ct, torch.LongTensor([ct_map[val]]))
+
+        if isinstance(loss, torch.Tensor):
+            print(f"[Engine-Optimizer] Starting gradient step for user {user_id}. Initial Loss: {round(loss.item(), 5)}")
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            
+            # Save updated weights securely within global lock
+            with MODEL_LOCK:
+                torch.save(model.state_dict(), WEIGHTS_PATH)
+            print(f"[Engine-Optimizer] Backpropagation complete. Weights updated successfully.")
+            return True
+        else:
+            print("[Engine-Optimizer] No valid target actions provided for optimization.")
+            return False
+
+    except Exception as e:
+        import traceback
+        print(f"[Engine-Optimizer Error] Failed to optimize weights: {e}")
+        traceback.print_exc()
+        return False

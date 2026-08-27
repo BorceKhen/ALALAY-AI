@@ -3,3 +3,10 @@ __pycache__/
 venv/
 .env
 .vscode/
+uploads/
+models/uhtem_temp_cache/
+decks.json
+firebase-credentials.json
+test_temp/
+temp_crop.png
+*.log

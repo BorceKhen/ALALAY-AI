@@ -2,79 +2,720 @@
 
 {% block title %}ALALAY-AI | Profile{% endblock %}
 
+{% block styles %}
+{{ super() }}
+<style>
+    .profile-avatar-container {
+        width: 100px;
+        height: 100px;
+        position: relative;
+    }
+
+    .profile-img {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+    }
+
+    .modal-avatar-container {
+        width: 80px;
+        height: 80px;
+        position: relative;
+        cursor: pointer;
+    }
+
+    .modal-avatar-img {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+    }
+
+    .modal-avatar-hover-overlay {
+        transition: opacity 0.2s ease-in-out;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .modal-avatar-container:hover .modal-avatar-hover-overlay {
+        opacity: 1;
+    }
+
+    /* Sliding timer progress bar animation on confirm delete account button */
+    #confirmDeleteAccountBtn {
+        position: relative;
+        overflow: hidden;
+    }
+
+    #confirmDeleteAccountBtn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 0%;
+        background-color: rgba(0, 0, 0, 0.15);
+        /* Dark sliding color overlay */
+        z-index: 1;
+    }
+
+    #confirmDeleteAccountBtn.animating::before {
+        width: 100%;
+        transition: width 3s linear;
+    }
+
+    #confirmDeleteAccountBtn .delete-btn-text {
+        position: relative;
+        z-index: 2;
+    }
+</style>
+{% endblock %}
+
 {% block homepage_content %}
-<div class="d-flex align-items-center justify-content-between mb-4">
+<!-- Mobile Profile Header Bar -->
+<div class="mobile-top-bar d-flex d-md-none justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold mb-0" style="font-size: 1.5rem; color: #1a237e;">Profile</h2>
+    <button class="btn btn-link p-0 text-danger" style="font-size: 1.5rem;" data-bs-toggle="modal" data-bs-target="#logoutConfirmModal">
+        <i class="bi bi-box-arrow-right"></i>
+    </button>
+</div>
+
+<div class="profile-header-container d-flex align-items-start justify-content-between mb-4 flex-wrap gap-3">
     <!-- PROFILE-DETAILS -->
-    <div class="d-flex align-items-center gap-4">
+    <div class="d-flex align-items-center gap-4 flex-wrap flex-sm-nowrap" style="min-width: 0; flex: 1;">
         <!-- USER PROFILE IMAGE -->
-        <div class="profile-avatar-container">
-            <img src="{{ url_for('static', filename='assets/avatar.jpg') }}" 
-                 alt="Username" 
-                 class="rounded-circle shadow-sm profile-img">
+        <div class="profile-avatar-container flex-shrink-0">
+            <img src="{{ profile.get('avatar_url') or url_for('static', filename='assets/avatar.jpg') }}"
+                alt="Profile Picture" class="rounded-circle shadow-sm profile-img" id="profileAvatarImage">
         </div>
 
         <!-- USER INFO -->
-        <div>
-            <h1 class="display-6 fw-bold mb-0">Username</h1>
-            <p class="text-muted mb-0">Age | Gender | Birthdate</p>
+        <div style="min-width: 0; flex: 1;">
+            <h1 class="display-6 fw-bold mb-0 text-break">{{ profile.get('email', 'User Email') }}</h1>
+            <p class="text-muted mb-2">Disability: {{ profile.get('disability_type', 'None') }} | Gender: {{
+                profile.get('gender', 'Not Specified') }} | Birthdate: {{ profile.get('birthdate', 'N/A') }}</p>
+
+            {% if profile.get('recommended_settings') %}
+            <div class="d-flex flex-wrap gap-2 mt-2 align-items-center" id="ai-recommendations-list">
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace"
+                    style="font-size: 0.85rem;">
+                    Text Size: <strong class="text-primary">{{ profile.recommended_settings.get('text_size', 'medium') |
+                        capitalize }}</strong>
+                </span>
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace"
+                    style="font-size: 0.85rem;">
+                    Content Level: <strong class="text-primary">{{ profile.recommended_settings.get('content_level',
+                        'Medium') }}</strong>
+                </span>
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace"
+                    style="font-size: 0.85rem;">
+                    Screen Reader: <strong class="text-primary">{{ profile.recommended_settings.get('screen_reader',
+                        'off') | upper }}</strong>
+                </span>
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace"
+                    style="font-size: 0.85rem;">
+                    Line Focus: <strong class="text-primary">{{ profile.recommended_settings.get('line_focus', 'off') |
+                        upper }}</strong>
+                </span>
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace"
+                    style="font-size: 0.85rem;">
+                    Auto Scroll: <strong class="text-primary">{{ profile.recommended_settings.get('auto_scroll', 'off')
+                        | upper }}</strong>
+                </span>
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace"
+                    style="font-size: 0.85rem;">
+                    Dyslexia Font: <strong class="text-primary">{{ profile.recommended_settings.get('dyslexia_font',
+                        'off') | upper }}</strong>
+                </span>
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace"
+                    style="font-size: 0.85rem;">
+                    Letter Spacing: <strong class="text-primary">{{ profile.recommended_settings.get('letter_spacing',
+                        'normal') | capitalize }}</strong>
+                </span>
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace"
+                    style="font-size: 0.85rem;">
+                    Line Spacing: <strong class="text-primary">{{ profile.recommended_settings.get('line_spacing',
+                        'normal') | capitalize }}</strong>
+                </span>
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace"
+                    style="font-size: 0.85rem;">
+                    Color Filter: <strong class="text-primary">{{ profile.recommended_settings.get('color_filter',
+                        'none') | capitalize }}</strong>
+                </span>
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace"
+                    style="font-size: 0.85rem;">
+                    Contrast Theme: <strong class="text-primary">{{ profile.recommended_settings.get('contrast_theme',
+                        'none') | capitalize }}</strong>
+                </span>
+            </div>
+            {% else %}
+            <div class="text-muted small mt-2">
+                AI Personalization: <em>No study history logs captured yet. Recommended settings will generate after
+                    your first session.</em>
+            </div>
+            {% endif %}
         </div>
     </div>
 
-    <!-- EDIT BUTTON -->
-    <button class="btn-edit-icon shadow-sm" title="Edit Profile">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-person-fill-gear" viewBox="0 0 16 16">
-            <path d="M11 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0m-9 8c0 1 1 1 1 1h5.256A4.5 4.5 0 0 1 8 12.5a4.5 4.5 0 0 1 1.544-3.393Q8.844 9.002 8 9c-5 0-6 3-6 4"/>
-            <path d="M16 12.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0m-3.5-2a.5.5 0 0 0-.5.5v1.5a.5.5 0 0 0 .5.5H14a.5.5 0 0 0 0-1h-1v-1a.5.5 0 0 0-.5-.5"/>
+    <!-- EDIT BUTTON (Triggers Bootstrap Modal natively) -->
+    <button class="btn-edit-icon shadow-sm" title="Edit Profile" data-bs-toggle="modal"
+        data-bs-target="#editProfileModal">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+            class="bi bi-person-fill-gear" viewBox="0 0 16 16">
+            <path
+                d="M11 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0m-9 8c0 1 1 1 1 1h5.256A4.5 4.5 0 0 1 8 12.5a4.5 4.5 0 0 1 1.544-3.393Q8.844 9.002 8 9c-5 0-6 3-6 4" />
+            <path
+                d="M16 12.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0m-3.5-2a.5.5 0 0 0-.5.5v1.5a.5.5 0 0 0 .5.5H14a.5.5 0 0 0 0-1h-1v-1a.5.5 0 0 0-.5-.5" />
         </svg>
     </button>
 </div>
 <hr class="divider-line">
 
+<!-- BEHAVIORAL ANALYTICS & FATIGUE PANEL -->
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card border shadow-sm rounded-4 p-4 bg-white text-dark">
+            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <h2 class="h5 fw-bold mb-0">Behavioral Fatigue Analytics</h2>
+                    <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip"
+                        title="Analyzes interaction telemetry (dead clicks, reading velocity, regression scrolls) to adapt the environment."></i>
+                </div>
+                <div>
+                    {% set state = profile.get('current_behavioral_state', 'Normal') %}
+                    {% if state == 'Struggling' %}
+                    <span
+                        class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill font-monospace"
+                        style="font-size: 0.85rem;">
+                        🔴 Current State: <strong>STRUGGLING</strong>
+                    </span>
+                    {% elif state == 'Efficient' %}
+                    <span
+                        class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill font-monospace"
+                        style="font-size: 0.85rem;">
+                        🟢 Current State: <strong>EFFICIENT</strong>
+                    </span>
+                    {% else %}
+                    <span
+                        class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-2 rounded-pill font-monospace"
+                        style="font-size: 0.85rem;">
+                        🟡 Current State: <strong>NORMAL</strong>
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if profile.get('current_behavioral_state') %}
+            <div class="row g-4 mt-1">
+                <!-- CLI Progress -->
+                <div class="col-md-4">
+                    <div class="d-flex justify-content-between mb-1 small text-muted">
+                        <span>Cognitive Load Index (CLI)</span>
+                        <strong>{{ (profile.get('latest_cli_score', 0) * 100) | round(0) }}%</strong>
+                    </div>
+                    <div class="progress rounded-pill" style="height: 10px;">
+                        {% set cli_pct = (profile.get('latest_cli_score', 0) * 100) | round(0) %}
+                        {% set cli_bar_color = 'bg-success' if cli_pct < 30 else ('bg-warning' if cli_pct < 60
+                            else 'bg-danger' ) %} <div class="progress-bar {{ cli_bar_color }} rounded-pill"
+                            role="progressbar" data-width="{{ cli_pct }}" aria-valuenow="{{ cli_pct }}"
+                            aria-valuemin="0" aria-valuemax="100">
+                    </div>
+                </div>
+                <small class="text-secondary d-block mt-1" style="font-size: 0.85rem; line-height: 1.45;">Calculates mental strain from reading
+                    time, scroll regressions, audio replays, audio pauses, and idle time.</small>
+            </div>
+
+            <!-- NFI Progress -->
+            <div class="col-md-4">
+                <div class="d-flex justify-content-between mb-1 small text-muted">
+                    <span>Navigation Friction Index (NFI)</span>
+                    <strong>{{ (profile.get('latest_nfi_score', 0) * 100) | round(0) }}%</strong>
+                </div>
+                <div class="progress rounded-pill" style="height: 10px;">
+                    {% set nfi_pct = (profile.get('latest_nfi_score', 0) * 100) | round(0) %}
+                    {% set nfi_bar_color = 'bg-success' if nfi_pct < 30 else ('bg-warning' if nfi_pct < 60
+                        else 'bg-danger' ) %} <div class="progress-bar {{ nfi_bar_color }} rounded-pill"
+                        role="progressbar" data-width="{{ nfi_pct }}" aria-valuenow="{{ nfi_pct }}" aria-valuemin="0"
+                        aria-valuemax="100">
+                </div>
+            </div>
+            <small class="text-secondary d-block mt-1" style="font-size: 0.85rem; line-height: 1.45;">Measures physical frustration from dead
+                clicks, magnification frequency, and scroll velocity.</small>
+        </div>
+
+        <!-- DI Progress -->
+        <div class="col-md-4">
+            <div class="d-flex justify-content-between mb-1 small text-muted">
+                <span>Difficulty Index (DI)</span>
+                <strong>{{ (profile.get('latest_di_score', 0) * 100) | round(0) }}%</strong>
+            </div>
+            <div class="progress rounded-pill" style="height: 10px;">
+                {% set di_pct = (profile.get('latest_di_score', 0) * 100) | round(0) %}
+                {% set di_bar_color = 'bg-success' if di_pct < 30 else ('bg-warning' if di_pct < 70 else 'bg-danger' )
+                    %} <div class="progress-bar {{ di_bar_color }} rounded-pill" role="progressbar"
+                    data-width="{{ di_pct }}" aria-valuenow="{{ di_pct }}" aria-valuemin="0" aria-valuemax="100">
+            </div>
+        </div>
+        <small class="text-secondary d-block mt-1" style="font-size: 0.85rem; line-height: 1.45;">Calculates comprehension difficulty based on
+            quiz scores, lesson completion rates, and deck revisit frequency.</small>
+    </div>
+</div>
+
+<!-- Personalized Recommendation Tips -->
+<div class="mt-4 p-3 bg-light rounded-3 border-start border-primary border-3">
+    <h6 class="fw-bold mb-1" style="font-size: 1rem;">
+        Smart Accessibility Recommendations:
+    </h6>
+    <p class="mb-0 text-secondary" style="font-size: 0.95rem; line-height: 1.5;">
+        {% if state == 'Struggling' %}
+        Our engine detected navigation friction or high cognitive strain. We recommend trying out the Dyslexia Font,
+        enabling Line Focus to reduce distraction, or slowing down the Text-to-Speech playback speed.
+        {% elif state == 'Efficient' %}
+        Your interaction indicators are optimal! Keep learning at your current pace. If desired, you can try enabling
+        Auto Scroll to speed up card pacing.
+        {% else %}
+        Your learn flow is steady. Consider updating font preferences, letter-spacing, or contrast options in the
+        Accessibility options menu if needed.
+        {% endif %}
+    </p>
+</div>
+{% else %}
+<div class="text-muted small mt-2">
+    <em>No study session telemetry logged yet. Your behavioral indices and fatigue flags will appear here once you
+        complete your first study session.</em>
+</div>
+{% endif %}
+</div>
+</div>
+</div>
+
 <!-- DECK PROGRESS -->
 <h2 class="h5 fw-bold mb-4 mt-5">Deck Progress</h2>
 <div class="row row-cols-1 row-cols-md-3 g-4">
+    {% if decks %}
+    {% for deck in decks %}
+    {% set completion_rate = (deck.get('lesson_completion_rate') or 0) | round | int %}
+    {% set completed_cards = ((deck.card_count * completion_rate) / 100) | round | int %}
     <div class="col">
-        <div class="progress-deck-card bg-white py-3 border p-4 shadow-sm rounded-4 text-left d-flex alignt-items-center h-80 overflow-hidden">
+        <div class="progress-deck-card bg-white py-3 border p-4 shadow-sm rounded-4 text-left d-flex align-items-center h-80 overflow-hidden"
+            style="gap: 15px;">
             <!-- PROGRESS CIRCLE -->
-            <div class="progress-circle d-flex align-items-center justify-content-center rounded-circle">
-                <span class="fw-semibold small text-success">0%</span>
+            <div class="progress-circle d-flex align-items-center justify-content-center rounded-circle"
+                 style="--completion-rate: {{ completion_rate }}%; background: radial-gradient(closest-side, white 79%, transparent 80% 100%), conic-gradient(var(--primary-green) var(--completion-rate), #e9ecef 0); border: none;">
+                <span class="fw-semibold small text-success">{{ completion_rate }}%</span>
             </div>
-            
+
             <!-- DECK DETAILS -->
             <div>
-                <h6 class="fw-semibold mb-1">Social Sciences</h6>
-                <p class="text-muted small mb-0">0 of 53 cards</p>
+                <h6 class="fw-semibold mb-1"
+                    style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width: 140px;"
+                    title="{{ deck.name }}">{{ deck.name }}</h6>
+                <p class="text-muted small mb-0">{{ completed_cards }} of {{ deck.card_count }} cards</p>
             </div>
         </div>
     </div>
-    <div class="col">
-        <div class="progress-deck-card bg-white py-3 border p-4 shadow-sm rounded-4 text-left d-flex alignt-items-center h-80 overflow-hidden">
-            <!-- PROGRESS CIRCLE -->
-            <div class="progress-circle d-flex align-items-center justify-content-center rounded-circle">
-                <span class="fw-semibold small text-success">0%</span>
-            </div>
-            
-            <!-- DECK DETAILS -->
-            <div>
-                <h6 class="fw-semibold mb-1">Social Sciences</h6>
-                <p class="text-muted small mb-0">0 of 53 cards</p>
-            </div>
-        </div>
+    {% endfor %}
+    {% else %}
+    <div class="col-12">
+        <div class="text-muted small">No decks generated yet.</div>
     </div>
-    <div class="col">
-        <div class="progress-deck-card bg-white py-3 border p-4 shadow-sm rounded-4 text-left d-flex align-items-center h-80 overflow-hidden">
-            <!-- PROGRESS CIRCLE -->
-            <div class="progress-circle d-flex align-items-center justify-content-center rounded-circle">
-                <span class="fw-semibold small text-success">0%</span>
+    {% endif %}
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg" style="background: #f8f9fc;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="editProfileModalLabel" style="color: #3b49a1;">Edit Profile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            
-            <!-- DECK DETAILS -->
-            <div>
-                <h6 class="fw-semibold mb-1">Social Sciences</h6>
-                <p class="text-muted small mb-0">0 of 53 cards</p>
+            <div class="modal-body py-4">
+                <!-- Alert Box inside Modal -->
+                <div id="modalAlert" class="alert d-none mb-3" role="alert"></div>
+
+                <form id="editProfileForm" novalidate>
+                    <!-- Current Avatar Preview & File Input inside Modal -->
+                    <div class="text-center mb-4">
+                        <div class="modal-avatar-container mx-auto position-relative" id="modalAvatarContainer"
+                            title="Change Profile Picture">
+                            <img src="{{ profile.get('avatar_url') or url_for('static', filename='assets/avatar.jpg') }}"
+                                alt="Profile Picture" class="rounded-circle shadow-sm modal-avatar-img"
+                                id="modalAvatarPreview">
+                            <div
+                                class="modal-avatar-hover-overlay d-flex align-items-center justify-content-center rounded-circle position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+                                    class="bi bi-camera-fill" viewBox="0 0 16 16">
+                                    <path d="M10.5 8.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0" />
+                                    <path
+                                        d="M2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4zm.5 2a.5.5 0 1 1 0-1 .5.5 0 0 1 0 1m9 2.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0" />
+                                </svg>
+                            </div>
+                            <!-- Hidden input file element -->
+                            <input type="file" id="modalAvatarFileInput" accept="image/*" class="d-none">
+                        </div>
+                        <small class="text-muted d-block mt-2">Click your photo to upload a new profile picture</small>
+                    </div>
+
+                    <!-- Disability Input (Read-only) -->
+                    <div class="mb-3">
+                        <label for="editDisability" class="form-label fw-semibold text-secondary small">Disability Type</label>
+                        <input type="text" id="editDisability" class="form-control auth-input" 
+                               value="{{ profile.get('disability_type', 'None') }}" readonly
+                               style="border-radius: 12px; height: 50px; background-color: #f8f9fa; cursor: not-allowed;"
+                               aria-readonly="true">
+                    </div>
+
+                    <!-- Gender Select -->
+                    <div class="mb-3">
+                        <label for="editGender" class="form-label fw-semibold text-secondary small">Gender</label>
+                        <select id="editGender" class="form-select auth-input" required
+                            style="border-radius: 12px; height: 50px;">
+                            <option value="Male" {% if profile.get('gender')=='Male' %}selected{% endif %}>Male</option>
+                            <option value="Female" {% if profile.get('gender')=='Female' %}selected{% endif %}>Female
+                            </option>
+                            <option value="Non-binary" {% if profile.get('gender')=='Non-binary' %}selected{% endif %}>
+                                Non-binary</option>
+                            <option value="Prefer not to say" {% if profile.get('gender')=='Prefer not to say'
+                                %}selected{% endif %}>Prefer not to say</option>
+                            <option value="Other" {% if profile.get('gender')=='Other' %}selected{% endif %}>Other
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- Birthdate Date Input -->
+                    <div class="mb-4">
+                        <label for="editBirthdate" class="form-label fw-semibold text-secondary small">Birthdate</label>
+                        <input type="date" id="editBirthdate" class="form-control auth-input"
+                            value="{{ profile.get('birthdate', '') }}" required
+                            style="border-radius: 12px; height: 50px;">
+                    </div>
+
+                    <button type="submit" id="saveProfileBtn" class="btn btn-primary w-100 rounded-pill btn-lg"
+                        style="background: #3b49a1; border: none; height: 50px; font-weight: 600;">Save Changes</button>
+                    <div class="text-center mt-3">
+                        <button type="button" id="deleteAccountTriggerBtn"
+                            class="btn btn-link text-danger text-decoration-none fw-semibold small">Delete
+                            Account</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Delete Account Confirmation Modal -->
+<div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-labelledby="deleteAccountModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg" style="background: #ffffff; padding: 1rem;">
+            <div class="modal-header border-0 pb-0 justify-content-center">
+                <h5 class="modal-title fw-bold text-danger" id="deleteAccountModalLabel">Delete Account Permanently</h5>
+            </div>
+            <div class="modal-body py-4 text-center">
+                <div class="mb-3">
+                    <i class="bi bi-exclamation-triangle-fill text-danger animate-pulse" style="font-size: 3rem;"></i>
+                </div>
+                <p class="text-dark fw-medium mb-4">Would you like to proceed with deleting your account permanently?
+                </p>
+
+                <div class="d-flex flex-column gap-2">
+                    <button type="button" id="confirmDeleteAccountBtn"
+                        class="btn btn-danger w-100 rounded-pill btn-lg position-relative overflow-hidden"
+                        style="height: 50px; font-weight: 600;" disabled>
+                        <span class="delete-btn-text position-relative z-index-2">Proceed (3s)</span>
+                    </button>
+                    <button type="button" id="cancelDeleteAccountBtn" class="btn btn-light w-100 rounded-pill btn-lg"
+                        style="height: 50px; font-weight: 600; border: 1px solid #e2e8f0; color: #4a5568;">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modalEl = document.getElementById('editProfileModal');
+        let editModal = null;
+
+        if (modalEl) {
+            // Move modal to body to prevent z-index/backdrop nesting issues
+            document.body.appendChild(modalEl);
+            editModal = new bootstrap.Modal(modalEl);
+        }
+
+        const deleteModalEl = document.getElementById('deleteAccountModal');
+        let deleteModal = null;
+        if (deleteModalEl) {
+            document.body.appendChild(deleteModalEl);
+            deleteModal = new bootstrap.Modal(deleteModalEl);
+        }
+
+        const deleteTrigger = document.getElementById('deleteAccountTriggerBtn');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteAccountBtn');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteAccountBtn');
+
+        let deleteTimer = null;
+        let countdownInterval = null;
+
+        if (deleteTrigger) {
+            deleteTrigger.addEventListener('click', function (e) {
+                e.preventDefault();
+
+                // Hide Edit Profile modal
+                if (editModal) {
+                    editModal.hide();
+                }
+
+                // Show delete confirmation modal
+                if (deleteModal) {
+                    deleteModal.show();
+                }
+
+                // Reset and start 3-second disabled state countdown & slide animation
+                if (deleteTimer) clearTimeout(deleteTimer);
+                if (countdownInterval) clearInterval(countdownInterval);
+
+                confirmDeleteBtn.disabled = true;
+                confirmDeleteBtn.classList.remove('animating');
+                void confirmDeleteBtn.offsetWidth; // force DOM reflow
+
+                confirmDeleteBtn.classList.add('animating');
+                let secondsLeft = 3;
+                const textSpan = confirmDeleteBtn.querySelector('.delete-btn-text');
+                textSpan.textContent = `Proceed (${secondsLeft}s)`;
+
+                countdownInterval = setInterval(() => {
+                    secondsLeft--;
+                    if (secondsLeft > 0) {
+                        textSpan.textContent = `Proceed (${secondsLeft}s)`;
+                    } else {
+                        clearInterval(countdownInterval);
+                    }
+                }, 1000);
+
+                deleteTimer = setTimeout(() => {
+                    confirmDeleteBtn.disabled = false;
+                    textSpan.textContent = "Proceed";
+                    confirmDeleteBtn.classList.remove('animating');
+                }, 3000);
+            });
+        }
+
+        if (cancelDeleteBtn) {
+            cancelDeleteBtn.addEventListener('click', function () {
+                // Clear active timers
+                if (deleteTimer) clearTimeout(deleteTimer);
+                if (countdownInterval) clearInterval(countdownInterval);
+
+                if (deleteModal) {
+                    deleteModal.hide();
+                }
+                if (editModal) {
+                    editModal.show();
+                }
+            });
+        }
+
+        if (confirmDeleteBtn) {
+            confirmDeleteBtn.addEventListener('click', async () => {
+                confirmDeleteBtn.disabled = true;
+                const textSpan = confirmDeleteBtn.querySelector('.delete-btn-text');
+                textSpan.textContent = "Deleting...";
+
+                try {
+                    const res = await fetch('/profile/delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    const data = await res.json();
+                    if (data.success) {
+                        try {
+                            // Sign out Firebase user client side after successful database deletion
+                            if (typeof firebase !== 'undefined' && firebase.auth) {
+                                await firebase.auth().signOut();
+                            }
+                        } catch (signOutErr) {
+                            console.warn("[Auth-SignOut] Firebase client signout error:", signOutErr);
+                        }
+
+                        if (deleteModal) {
+                            deleteModal.hide();
+                        }
+                        // Redirect to auth page with success parameter
+                        window.location.href = '/?deleted=true';
+                    } else {
+                        alert("Error: " + data.error);
+                        confirmDeleteBtn.disabled = false;
+                        textSpan.textContent = "Proceed";
+                    }
+                } catch (err) {
+                    alert("Network error deleting account: " + err.message);
+                    confirmDeleteBtn.disabled = false;
+                    textSpan.textContent = "Proceed";
+                }
+            });
+        }
+
+        const form = document.getElementById('editProfileForm');
+        const alertEl = document.getElementById('modalAlert');
+        const submitBtn = document.getElementById('saveProfileBtn');
+
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                alertEl.classList.add('d-none');
+                alertEl.textContent = '';
+
+                const disability = document.getElementById('editDisability').value;
+                const gender = document.getElementById('editGender').value;
+                const birthdate = document.getElementById('editBirthdate').value;
+
+                if (!disability || !gender || !birthdate) {
+                    alertEl.className = 'alert alert-danger mb-3';
+                    alertEl.textContent = 'Please fill in all fields.';
+                    alertEl.classList.remove('d-none');
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Saving Changes...';
+
+                try {
+                    const res = await fetch('/profile/update', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            disability_type: disability,
+                            gender: gender,
+                            birthdate: birthdate
+                        })
+                    });
+
+                    const data = await res.json();
+                    if (data.success) {
+                        alertEl.className = 'alert alert-success mb-3';
+                        alertEl.textContent = 'Profile updated! Reloading...';
+                        alertEl.classList.remove('d-none');
+
+                        setTimeout(() => {
+                            if (editModal) editModal.hide();
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        alertEl.className = 'alert alert-danger mb-3';
+                        alertEl.textContent = 'Error: ' + data.error;
+                        alertEl.classList.remove('d-none');
+                    }
+                } catch (err) {
+                    alertEl.className = 'alert alert-danger mb-3';
+                    alertEl.textContent = 'Network error: ' + err.message;
+                    alertEl.classList.remove('d-none');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Save Changes';
+                }
+            });
+        }
+
+        // Helper function to compress and resize image using HTML5 Canvas
+        function compressImage(file, maxWidth, maxHeight, quality) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > maxWidth) {
+                                height *= maxWidth / width;
+                                width = maxWidth;
+                            }
+                        } else {
+                            if (height > maxHeight) {
+                                width *= maxHeight / height;
+                                height = maxHeight;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                        resolve(dataUrl);
+                    };
+                    img.onerror = (err) => reject(err);
+                };
+                reader.onerror = (err) => reject(err);
+            });
+        }
+
+        // -------------------------------------------------------------
+        // PROFILE AVATAR UPLOAD HANDLER (INSIDE MODAL - BASE64 FIRESTORE)
+        // -------------------------------------------------------------
+        const avatarContainer = document.getElementById('modalAvatarContainer');
+        const fileInput = document.getElementById('modalAvatarFileInput');
+        const modalPreviewImage = document.getElementById('modalAvatarPreview');
+        const mainAvatarImage = document.getElementById('profileAvatarImage');
+
+        if (avatarContainer && fileInput && modalPreviewImage) {
+            avatarContainer.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', async () => {
+                if (!fileInput.files.length) return;
+
+                const file = fileInput.files[0];
+
+                // Show visual loading state on modal preview
+                avatarContainer.style.opacity = '0.5';
+                avatarContainer.style.pointerEvents = 'none';
+
+                try {
+                    // Compress image down to max 200px and 70% JPEG quality
+                    const compressedBase64 = await compressImage(file, 200, 200, 0.7);
+
+                    const res = await fetch('/profile/avatar/upload', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            avatar_data: compressedBase64
+                        })
+                    });
+
+                    const data = await res.json();
+                    if (data.success) {
+                        modalPreviewImage.src = data.avatar_url;
+                        if (mainAvatarImage) {
+                            mainAvatarImage.src = data.avatar_url;
+                        }
+                    } else {
+                        alert('Failed to save profile picture: ' + data.error);
+                    }
+                } catch (err) {
+                    alert('Error compressing or saving image: ' + err.message);
+                } finally {
+                    avatarContainer.style.opacity = '1';
+                    avatarContainer.style.pointerEvents = 'auto';
+                    fileInput.value = '';
+                }
+            });
+        }
+
+        // Apply progress bar widths dynamically to prevent inline CSS validation errors in IDEs
+        document.querySelectorAll('.progress-bar[data-width]').forEach(bar => {
+            const width = bar.getAttribute('data-width') || '0';
+            bar.style.width = width + '%';
+        });
+    });
+</script>
 {% endblock %}

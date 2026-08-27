@@ -8,93 +8,399 @@
 <!-- ACCESSIBILITY OPTIONS -->
 
     <div class="d-flex flex-column gap-3 mb-5">
-        <a href="#" class="access-card border d-flex align-items-center p-3 shadow-sm rounded-4 text-decoration-none">
-            <!-- ACCESSIBILITY ICON -->
-            <div class="icon-circle me-3">
-                <i class="bi bi-type"></i> 
+        <div class="access-card-wrapper border shadow-sm rounded-4 overflow-hidden mb-3">
+            <a href="#textModificationsCollapse" data-bs-toggle="collapse" class="access-card d-flex align-items-center p-3 text-decoration-none" role="button" aria-expanded="false" aria-controls="textModificationsCollapse">
+                <!-- ACCESSIBILITY ICON -->
+                <div class="icon-circle me-3">
+                    <i class="bi bi-type"></i>
+                </div>
+
+                <!-- ACCESSIBILITY DESCRIPTION -->
+                <div class="flex-grow-1">
+                    <h6 class="mb-1 text-dark">Text Modifications</h6>
+                    <p class="mb-0 text-muted">Modifiable font options for dyslexia. Adjustable text size and spacing.</p>
+                </div>
+
+                <!-- ARROW -->
+                <i class="bi bi-chevron-down text-secondary ms-2 transition-transform"></i>
+            </a>
+            
+            <div class="collapse bg-white" id="textModificationsCollapse">
+                <div class="p-4 border-top">
+                    <p class="small text-muted mb-3">Customize font, text size, and spacing preferences below.</p>
+                    
+                    <!-- DYSLEXIA FONT TOGGLE -->
+                    <div class="d-flex align-items-center justify-content-between mb-4">
+                        <div>
+                            <label class="fw-semibold text-dark d-block mb-0" for="switchDyslexiaFont">Dyslexia-Friendly Font</label>
+                            <span class="small text-muted">Enables OpenDyslexic typeface for easier reading</span>
+                        </div>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input custom-switch" type="checkbox" role="switch" id="switchDyslexiaFont">
+                        </div>
+                    </div>
+
+                    <!-- FONT STYLE SELECTION -->
+                    <div class="mb-4">
+                        <label for="selectFontStyle" class="fw-semibold text-dark d-block mb-2">Font Style</label>
+                        <select id="selectFontStyle" class="form-select auth-input" style="max-width: 300px; border-radius: 0.75rem;">
+                            <option value="default">Outfit (Default)</option>
+                            <option value="opendyslexic">OpenDyslexic</option>
+                            <option value="lexend">Lexend</option>
+                            <option value="comicneue">Comic Neue</option>
+                            <option value="arial">Arial</option>
+                            <option value="georgia">Georgia</option>
+                        </select>
+                    </div>
+                    
+                    <hr class="my-3 opacity-10">
+
+                    <!-- TEXT SIZE SELECTION -->
+                    <div class="mb-4">
+                        <label class="fw-semibold text-dark d-block mb-2">Text Size</label>
+                        <div class="d-flex gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input text-size-radio" type="radio" name="textSizeOptions" id="textSizeMedium" value="medium" checked>
+                                <label class="form-check-label text-dark" for="textSizeMedium">Medium</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input text-size-radio" type="radio" name="textSizeOptions" id="textSizeLarge" value="large">
+                                <label class="form-check-label text-dark" for="textSizeLarge">Large</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input text-size-radio" type="radio" name="textSizeOptions" id="textSizeXl" value="xl">
+                                <label class="form-check-label text-dark" for="textSizeXl">Extra Large</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-3 opacity-10">
+
+                    <!-- LETTER SPACING -->
+                    <div class="mb-4">
+                        <label class="fw-semibold text-dark d-block mb-2">Letter Spacing (Kerning)</label>
+                        <div class="d-flex gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input letter-spacing-radio" type="radio" name="letterSpacingOptions" id="letterSpacingNormal" value="normal" checked>
+                                <label class="form-check-label text-dark" for="letterSpacingNormal">Normal</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input letter-spacing-radio" type="radio" name="letterSpacingOptions" id="letterSpacingWide" value="wide">
+                                <label class="form-check-label text-dark" for="letterSpacingWide">Wide</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input letter-spacing-radio" type="radio" name="letterSpacingOptions" id="letterSpacingXl" value="xl">
+                                <label class="form-check-label text-dark" for="letterSpacingXl">Extra Wide</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-3 opacity-10">
+
+                    <!-- LINE SPACING -->
+                    <div class="mb-2">
+                        <label class="fw-semibold text-dark d-block mb-2">Line Spacing</label>
+                        <div class="d-flex gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input line-spacing-radio" type="radio" name="lineSpacingOptions" id="lineSpacingNormal" value="normal" checked>
+                                <label class="form-check-label text-dark" for="lineSpacingNormal">Normal</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input line-spacing-radio" type="radio" name="lineSpacingOptions" id="lineSpacingWide" value="wide">
+                                <label class="form-check-label text-dark" for="lineSpacingWide">Wide</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input line-spacing-radio" type="radio" name="lineSpacingOptions" id="lineSpacingXl" value="xl">
+                                <label class="form-check-label text-dark" for="lineSpacingXl">Extra Wide</label>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
             </div>
+        </div>
 
-            <!-- ACCESSIBILITY DESCRIPTION -->
-            <div class="flex-grow-1">
-                <h6 class="mb-1">Text Modifications</h6>
-                <p class="mb-0 text-muted">Modifiable font options for dyslexia. Adjustable text size and spacing.</p>
+        <div class="access-card-wrapper border shadow-sm rounded-4 overflow-hidden mb-3">
+            <a href="#colorFiltersCollapse" data-bs-toggle="collapse" class="access-card d-flex align-items-center p-3 text-decoration-none" role="button" aria-expanded="false" aria-controls="colorFiltersCollapse">
+                <!-- ACCESSIBILITY ICON -->
+                <div class="icon-circle me-3">
+                    <i class="bi bi-palette"></i>
+                </div>
+
+                <!-- ACCESSIBILITY DESCRIPTION -->
+                <div class="flex-grow-1">
+                    <h6 class="mb-1 text-dark">Color Filters</h6>
+                    <p class="mb-0 text-muted">Daltonization color blindness filters</p>
+                </div>
+
+                <!-- ARROW -->
+                <i class="bi bi-chevron-down text-secondary ms-2 transition-transform"></i>
+            </a>
+            
+            <div class="collapse bg-white" id="colorFiltersCollapse">
+                <div class="p-4 border-top">
+                    <p class="small text-muted mb-3">Select a filter to simulate Daltonization color correction across the application.</p>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input daltonize-radio" type="radio" name="colorFilterOptions" id="filterNone" value="none" checked>
+                        <label class="form-check-label fw-medium text-dark" for="filterNone">
+                            None (Default)
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input daltonize-radio" type="radio" name="colorFilterOptions" id="filterProtanopia" value="protanopia">
+                        <label class="form-check-label fw-medium text-dark" for="filterProtanopia">
+                            Protanopia
+                        </label>
+                        <div class="small text-muted">Red Weakness & Blindness</div>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input daltonize-radio" type="radio" name="colorFilterOptions" id="filterDeuteranopia" value="deuteranopia">
+                        <label class="form-check-label fw-medium text-dark" for="filterDeuteranopia">
+                            Deuteranopia
+                        </label>
+                        <div class="small text-muted">Green Weakness & Blindness</div>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input class="form-check-input daltonize-radio" type="radio" name="colorFilterOptions" id="filterTritanopia" value="tritanopia">
+                        <label class="form-check-label fw-medium text-dark" for="filterTritanopia">
+                            Tritanopia
+                        </label>
+                        <div class="small text-muted">Blue Weakness & Blindness</div>
+                    </div>
+                </div>
             </div>
+        </div>
 
-            <!-- ARROW -->
-            <i class="bi bi-chevron-right text-secondary ms-2"></i>
+        <div class="access-card-wrapper border shadow-sm rounded-4 overflow-hidden mb-3">
+            <a href="#contrastThemesCollapse" data-bs-toggle="collapse" class="access-card d-flex align-items-center p-3 text-decoration-none" role="button" aria-expanded="false" aria-controls="contrastThemesCollapse">
+                <!-- ACCESSIBILITY ICON -->
+                <div class="icon-circle me-3">
+                    <i class="bi bi-highlights"></i>
+                </div>
 
-        </a>
+                <!-- ACCESSIBILITY DESCRIPTION -->
+                <div class="flex-grow-1">
+                    <h6 class="mb-1 text-dark">Contrast Themes</h6>
+                    <p class="mb-0 text-muted">Color themes for Low Vision</p>
+                </div>
 
-        <a href="#" class="access-card border d-flex align-items-center p-3 shadow-sm rounded-4 text-decoration-none">
-            <!-- ACCESSIBILITY ICON -->
-            <div class="icon-circle me-3">
-                <i class="bi bi-palette"></i>
+                <!-- ARROW -->
+                <i class="bi bi-chevron-down text-secondary ms-2 transition-transform"></i>
+            </a>
+            
+            <div class="collapse bg-white" id="contrastThemesCollapse">
+                <div class="p-4 border-top">
+                    <p class="small text-muted mb-3">Select a contrast theme designed for low vision/visual impairment.</p>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input contrast-theme-radio" type="radio" name="contrastThemeOptions" id="contrastThemeNone" value="none" checked>
+                        <label class="form-check-label fw-medium text-dark" for="contrastThemeNone">
+                            None (Default)
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input contrast-theme-radio" type="radio" name="contrastThemeOptions" id="contrastThemeDark" value="dark">
+                        <label class="form-check-label fw-medium text-dark" for="contrastThemeDark">
+                            High Contrast (Dark)
+                        </label>
+                        <div class="small text-muted">Yellow text on black background for low vision sensitivity</div>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input class="form-check-input contrast-theme-radio" type="radio" name="contrastThemeOptions" id="contrastThemeLight" value="light">
+                        <label class="form-check-label fw-medium text-dark" for="contrastThemeLight">
+                            High Contrast (Light)
+                        </label>
+                        <div class="small text-muted">Black text on white background with heavy borders</div>
+                    </div>
+                </div>
             </div>
+        </div>
+        <div class="access-card-wrapper border shadow-sm rounded-4 overflow-hidden mb-3">
+            <a href="#contentLevelCollapse" data-bs-toggle="collapse" class="access-card d-flex align-items-center p-3 text-decoration-none" role="button" aria-expanded="false" aria-controls="contentLevelCollapse">
+                <!-- ACCESSIBILITY ICON -->
+                <div class="icon-circle me-3">
+                    <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
+                </div>
 
-            <!-- ACCESSIBILITY DESCRIPTION -->
-            <div class="flex-grow-1">
-                <h6 class="mb-1">Color Filters</h6>
-                <p class="mb-0 text-muted">Daltonization color blindness filters</p>
+                <!-- ACCESSIBILITY DESCRIPTION -->
+                <div class="flex-grow-1">
+                    <h6 class="mb-1 text-dark">Content Reading Level</h6>
+                    <p class="mb-0 text-muted">Adjust vocabulary and readability of generated decks</p>
+                </div>
+
+                <!-- ARROW -->
+                <i class="bi bi-chevron-down text-secondary ms-2 transition-transform"></i>
+            </a>
+            
+            <div class="collapse bg-white" id="contentLevelCollapse">
+                <div class="p-4 border-top">
+                    <p class="small text-muted mb-3">Select the complexity level for generated decks. Selecting 'Easy' simplifies document text before generation.</p>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input content-level-radio" type="radio" name="contentLevelOptions" id="contentLevelEasy" value="easy">
+                        <label class="form-check-label fw-medium text-dark" for="contentLevelEasy">
+                            Easy (Text Simplification Active)
+                        </label>
+                        <div class="small text-muted">Simplifies advanced words and structure for readability</div>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input content-level-radio" type="radio" name="contentLevelOptions" id="contentLevelMedium" value="medium" checked>
+                        <label class="form-check-label fw-medium text-dark" for="contentLevelMedium">
+                            Medium (Default)
+                        </label>
+                        <div class="small text-muted">Standard document text with original complexity</div>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input class="form-check-input content-level-radio" type="radio" name="contentLevelOptions" id="contentLevelHard" value="hard">
+                        <label class="form-check-label fw-medium text-dark" for="contentLevelHard">
+                            Hard
+                        </label>
+                        <div class="small text-muted">Uses original, advanced terminology and concepts</div>
+                    </div>
+                </div>
             </div>
-
-            <!-- ARROW -->
-            <i class="bi bi-chevron-right text-secondary ms-2"></i>
-
-        </a>
-
-        <a href="#" class="access-card border d-flex align-items-center p-3 shadow-sm rounded-4 text-decoration-none">
-            <!-- ACCESSIBILITY ICON -->
-            <div class="icon-circle me-3">
-                <i class="bi bi-highlights"></i>
-            </div>
-
-            <!-- ACCESSIBILITY DESCRIPTION -->
-            <div class="flex-grow-1">
-                <h6 class="mb-1">Contrast Themes</h6>
-                <p class="mb-0 text-muted">Color themes for Low Vision</p>
-            </div>
-
-            <!-- ARROW -->
-            <i class="bi bi-chevron-right text-secondary ms-2"></i>
-
-        </a>
+        </div>
     </div>
 
     <h6 class="fw-bold text-dark mb-3">Accessibility Study Features</h6>
     <div class="d-flex flex-column gap-3">
-        <div class="access-card d-flex align-items-center p-3 shadow-sm border rounded-4">
-            <!-- ACCESSIBILITY ICON -->
-            <div class="icon-circle me-3">
-                <i class="bi bi-megaphone"></i>
-            </div>
+        <!-- 1. Built-in Screen Reader (Rule-Based Static Accessibility) -->
+        <div class="access-card shadow-sm border rounded-4 p-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <!-- ACCESSIBILITY ICON -->
+                    <div class="icon-circle me-3">
+                        <i class="bi bi-file-earmark-music" aria-hidden="true"></i>
+                    </div>
 
-            <!-- ACCESSIBILITY DESCRIPTION -->
-            <div class="flex-grow-1">
-                <h6 class="mb-1">Text-to-Speech</h6>
-                <p class="mb-0 text-muted">Phonics & Decoding, Phonetic Highlighting and TTS</p>
-            </div>
+                    <!-- ACCESSIBILITY DESCRIPTION -->
+                    <div>
+                        <h6 class="mb-1">Built-in Screen Reader</h6>
+                        <p class="mb-0 text-muted">Auditory focus-based navigation narration for complete blindness</p>
+                    </div>
+                </div>
 
-            <!-- ACCESSIBILITY TOGGLE -->
-            <div class="form-check form-switch mb-0">
-                <input class="form-check-input custom-switch" type="checkbox" role="switch" checked>
+                <!-- ACCESSIBILITY TOGGLE -->
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input custom-switch" type="checkbox" role="switch" id="switchScreenReader" aria-label="Built-in Screen Reader">
+                </div>
             </div>
         </div>
 
-        <div class="access-card d-flex align-items-center p-3 shadow-sm border rounded-4">
-            <!-- ACCESSIBILITY ICON -->
-            <div class="icon-circle me-3">
-                <i class="bi bi-highlighter"></i>
+        <!-- 2. Text-to-Speech (ML-Driven Dynamic Personalization) -->
+        <div class="access-card shadow-sm border rounded-4 p-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <!-- ACCESSIBILITY ICON -->
+                    <div class="icon-circle me-3">
+                        <i class="bi bi-megaphone" aria-hidden="true"></i>
+                    </div>
+
+                    <!-- ACCESSIBILITY DESCRIPTION -->
+                    <div>
+                        <h6 class="mb-1">Text-to-Speech</h6>
+                        <p class="mb-0 text-muted">Phonics & Decoding, Phonetic Highlighting and TTS</p>
+                    </div>
+                </div>
+
+                <!-- ACCESSIBILITY TOGGLE -->
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input custom-switch" type="checkbox" role="switch" id="switchTts" aria-label="Text-to-Speech">
+                </div>
             </div>
 
-            <!-- ACCESSIBILITY DESCRIPTION -->
-            <div class="flex-grow-1">
-                <h6 class="mb-1">Line Focus & Color Overlays</h6>
-                <p class="mb-0 text-muted">Text highlight for text decks</p>
+            <!-- TTS Playback Speed Control -->
+            <div class="mt-3 pt-3 border-top" id="ttsSpeedContainer" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label for="sliderTtsRate" class="fw-semibold text-dark small">Speech Speed (Tempo)</label>
+                    <span id="ttsRateValue" class="badge rounded-pill px-2 text-white" style="background-color: var(--primary-blue, #5671C9);">1.00x</span>
+                </div>
+                <input type="range" class="form-range" id="sliderTtsRate" min="0.5" max="2.0" step="0.25" value="1.0" aria-valuemin="0.5" aria-valuemax="2.0" aria-valuenow="1.0">
             </div>
 
-            <!-- ACCESSIBILITY TOGGLE -->
-            <div class="form-check form-switch mb-0">
-                <input class="form-check-input custom-switch" type="checkbox" role="switch">
+            <!-- TTS Engine & Voice Selection Dropdowns -->
+            <div class="mt-3 pt-3 border-top" id="ttsVoiceContainer" style="display: none;">
+                <div class="mb-2">
+                    <label for="selectTtsEngine" class="fw-semibold text-dark small d-block mb-1">Narration Engine</label>
+                    <select class="form-select form-select-sm rounded-3 mb-2" id="selectTtsEngine">
+                        <option value="azure" selected>Microsoft Azure Neural (Premium)</option>
+                        <option value="elevenlabs">ElevenLabs (Premium Clones)</option>
+                        <option value="gtts">Google TTS (Standard)</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="selectTtsVoice" class="fw-semibold text-dark small d-block mb-1">Narration Voice</label>
+                    <select class="form-select form-select-sm rounded-3" id="selectTtsVoice">
+                        <!-- Populated dynamically via JS based on selected engine -->
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="access-card shadow-sm border rounded-4 p-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <!-- ACCESSIBILITY ICON -->
+                    <div class="icon-circle me-3">
+                        <i class="bi bi-highlighter"></i>
+                    </div>
+
+                    <!-- ACCESSIBILITY DESCRIPTION -->
+                    <div>
+                        <h6 class="mb-1">Line Focus & Color Overlays</h6>
+                        <p class="mb-0 text-muted">Text highlight for text decks</p>
+                    </div>
+                </div>
+
+                <!-- ACCESSIBILITY TOGGLE -->
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input custom-switch" type="checkbox" role="switch" id="switchLineFocus" aria-label="Line Focus and Color Overlays">
+                </div>
+            </div>
+
+            <!-- RULER CUSTOMIZATION OPTIONS -->
+            <div class="mt-3 pt-3 border-top" id="lineFocusCustomizationContainer" style="display: none;">
+                <div class="row g-3">
+                    <!-- Ruler Thickness Dropdown -->
+                    <div class="col-md-6">
+                        <label for="selectRulerThickness" class="fw-semibold text-dark small d-block mb-1">Ruler Height (Thickness)</label>
+                        <select class="form-select form-select-sm rounded-3" id="selectRulerThickness">
+                            <option value="small">Small (50px)</option>
+                            <option value="medium" selected>Medium (90px)</option>
+                            <option value="large">Large (130px)</option>
+                            <option value="xl">Extra Large (170px)</option>
+                        </select>
+                    </div>
+                    <!-- Ruler Length Dropdown -->
+                    <div class="col-md-6">
+                        <label for="selectRulerLength" class="fw-semibold text-dark small d-block mb-1">Ruler Width (Length)</label>
+                        <select class="form-select form-select-sm rounded-3" id="selectRulerLength">
+                            <option value="full" selected>Full Screen Width (100%)</option>
+                            <option value="wide">Wide Width (75%)</option>
+                            <option value="medium">Flashcard Container Width (50%)</option>
+                        </select>
+                    </div>
+                    <!-- Magnetic Snapping Mode -->
+                    <div class="col-12 mt-2">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <label class="fw-semibold text-dark d-block mb-0 small" for="switchMagneticRuler">Dyslexic Focus Ruler (Magnetic Snapping)</label>
+                                <span class="small text-muted" style="font-size: 0.75rem;">Automatically magnetizes and snaps the focus window to nearby sentences or paragraph elements</span>
+                            </div>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input custom-switch" type="checkbox" role="switch" id="switchMagneticRuler" aria-label="Dyslexic Focus Ruler Magnetic Snapping">
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -112,7 +418,97 @@
 
             <!-- ACCESSIBILITY TOGGLE-->
             <div class="form-check form-switch mb-0">
-                <input class="form-check-input custom-switch" type="checkbox" role="switch">
+                <input class="form-check-input custom-switch" type="checkbox" role="switch" id="switchAutoScroll" aria-label="Auto Scroll">
+            </div>
+        </div>
+
+        <div id="keyboard-navigation-card" class="access-card shadow-sm border rounded-4 p-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <!-- ACCESSIBILITY ICON -->
+                    <div class="icon-circle me-3">
+                        <i class="bi bi-keyboard" aria-hidden="true"></i>
+                    </div>
+
+                    <!-- ACCESSIBILITY DESCRIPTION -->
+                    <div>
+                        <h6 class="mb-1">Keyboard Navigation & Hotkeys</h6>
+                        <p class="mb-0 text-muted">Use hotkeys (e.g. Alt+H, Arrow keys, 1-4) to navigate & study</p>
+                    </div>
+                </div>
+
+                <!-- ACCESSIBILITY TOGGLE -->
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input custom-switch" type="checkbox" role="switch" id="switchHotkeys" aria-label="Keyboard Navigation and Hotkeys">
+                </div>
+            </div>
+
+            <!-- Hotkeys Guide List -->
+            <div class="mt-3 pt-3 border-top" id="hotkeysGuideContainer" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-semibold text-dark small mb-0">Customize Hotkeys</h6>
+                    <button type="button" id="btnResetHotkeys" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-0 fs-7">Reset to Default</button>
+                </div>
+                <p class="small text-muted mb-3">Click on any box and press a key combination (e.g. Alt+H or Ctrl+Enter) to customize it.</p>
+                
+                <div class="row g-3 small text-muted">
+                    <div class="col-md-6 d-flex align-items-center justify-content-between">
+                        <label class="mb-0 text-dark fw-medium">Go to Home</label>
+                        <input type="text" class="form-control form-control-sm hotkey-input text-center rounded-2 bg-light fw-bold text-primary" style="width: 120px; cursor: pointer;" data-action="nav_home" readonly>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-center justify-content-between">
+                        <label class="mb-0 text-dark fw-medium">Go to My Decks</label>
+                        <input type="text" class="form-control form-control-sm hotkey-input text-center rounded-2 bg-light fw-bold text-primary" style="width: 120px; cursor: pointer;" data-action="nav_decks" readonly>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-center justify-content-between">
+                        <label class="mb-0 text-dark fw-medium">Go to Accessibility</label>
+                        <input type="text" class="form-control form-control-sm hotkey-input text-center rounded-2 bg-light fw-bold text-primary" style="width: 120px; cursor: pointer;" data-action="nav_accessibility" readonly>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-center justify-content-between">
+                        <label class="mb-0 text-dark fw-medium">Go to Profile</label>
+                        <input type="text" class="form-control form-control-sm hotkey-input text-center rounded-2 bg-light fw-bold text-primary" style="width: 120px; cursor: pointer;" data-action="nav_profile" readonly>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-center justify-content-between">
+                        <label class="mb-0 text-dark fw-medium">Read TTS (Speak)</label>
+                        <input type="text" class="form-control form-control-sm hotkey-input text-center rounded-2 bg-light fw-bold text-primary" style="width: 120px; cursor: pointer;" data-action="action_tts" readonly>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-center justify-content-between">
+                        <label class="mb-0 text-dark fw-medium">Submit/Next Quiz</label>
+                        <input type="text" class="form-control form-control-sm hotkey-input text-center rounded-2 bg-light fw-bold text-primary" style="width: 120px; cursor: pointer;" data-action="action_enter" readonly>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-center justify-content-between">
+                        <label class="mb-0 text-dark fw-medium">Quiz Option 1</label>
+                        <input type="text" class="form-control form-control-sm hotkey-input text-center rounded-2 bg-light fw-bold text-primary" style="width: 120px; cursor: pointer;" data-action="quiz_opt1" readonly>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-center justify-content-between">
+                        <label class="mb-0 text-dark fw-medium">Quiz Option 2</label>
+                        <input type="text" class="form-control form-control-sm hotkey-input text-center rounded-2 bg-light fw-bold text-primary" style="width: 120px; cursor: pointer;" data-action="quiz_opt2" readonly>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-center justify-content-between">
+                        <label class="mb-0 text-dark fw-medium">Quiz Option 3</label>
+                        <input type="text" class="form-control form-control-sm hotkey-input text-center rounded-2 bg-light fw-bold text-primary" style="width: 120px; cursor: pointer;" data-action="quiz_opt3" readonly>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-center justify-content-between">
+                        <label class="mb-0 text-dark fw-medium">Quiz Option 4</label>
+                        <input type="text" class="form-control form-control-sm hotkey-input text-center rounded-2 bg-light fw-bold text-primary" style="width: 120px; cursor: pointer;" data-action="quiz_opt4" readonly>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-center justify-content-between">
+                        <label class="mb-0 text-dark fw-medium">Move Focus Up</label>
+                        <input type="text" class="form-control form-control-sm hotkey-input text-center rounded-2 bg-light fw-bold text-primary" style="width: 120px; cursor: pointer;" data-action="focus_up" readonly>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-center justify-content-between">
+                        <label class="mb-0 text-dark fw-medium">Move Focus Down</label>
+                        <input type="text" class="form-control form-control-sm hotkey-input text-center rounded-2 bg-light fw-bold text-primary" style="width: 120px; cursor: pointer;" data-action="focus_down" readonly>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-center justify-content-between">
+                        <label class="mb-0 text-dark fw-medium">Move Focus Left</label>
+                        <input type="text" class="form-control form-control-sm hotkey-input text-center rounded-2 bg-light fw-bold text-primary" style="width: 120px; cursor: pointer;" data-action="focus_left" readonly>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-center justify-content-between">
+                        <label class="mb-0 text-dark fw-medium">Move Focus Right</label>
+                        <input type="text" class="form-control form-control-sm hotkey-input text-center rounded-2 bg-light fw-bold text-primary" style="width: 120px; cursor: pointer;" data-action="focus_right" readonly>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

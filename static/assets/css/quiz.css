@@ -111,3 +111,74 @@ body {
         width: auto !important;
     }
 }
+
+/* 6. Answer Feedback States */
+.btn-quiz-option.correct {
+    background-color: var(--pastel-green) !important;
+    border-color: var(--primary-green) !important;
+    color: var(--primary-text) !important;
+}
+
+.btn-quiz-option.incorrect {
+    background-color: var(--pastel-red) !important;
+    border-color: #e53e3e !important;
+    color: var(--primary-text) !important;
+}
+
+.btn-quiz-option.disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* 7. Exit Confirmation Modal Design */
+#exitQuizModal.modal-dialog-centered,
+.modal-dialog-centered {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: calc(100vh - 2rem) !important;
+    margin: 1rem auto !important;
+}
+
+#exitQuizModal .modal-dialog-centered::before,
+.modal-dialog-centered::before {
+    display: none !important;
+}
+
+#exitQuizModal .modal-content {
+    border-radius: 1.5rem !important;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.12) !important;
+    border: 1px solid var(--primary-border) !important;
+    background-color: var(--primary-white) !important;
+    margin: auto !important;
+}
+
+#exitQuizModal .icon-circle {
+    background-color: #fff3cd !important;
+    color: #b45309 !important;
+}
+
+#exitQuizModal #btn-cancel-exit {
+    background-color: var(--quaternary-white) !important;
+    color: var(--primary-text) !important;
+    border: 1px solid var(--quaternary-border) !important;
+    transition: all 0.2s ease;
+}
+
+#exitQuizModal #btn-cancel-exit:hover {
+    background-color: var(--secondary-white) !important;
+}
+
+#exitQuizModal #btn-confirm-exit {
+    background-color: #ef4444 !important;
+    border-color: #ef4444 !important;
+    color: #ffffff !important;
+    transition: all 0.2s ease;
+}
+
+#exitQuizModal #btn-confirm-exit:hover {
+    background-color: #dc2626 !important;
+    border-color: #dc2626 !important;
+    transform: scale(1.02);
+}

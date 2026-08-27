@@ -1,0 +1,576 @@
+{% extends "base.html" %}
+
+{% block title %}ALALAY-AI | Ishihara Color Blindness Test{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column align-items-center justify-content-center min-vh-100 px-3 py-4" 
+     style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
+    
+    <!-- Test Card Container (Using fluid rem padding and dimensions) -->
+    <div id="testContainer" class="card border-0 shadow-lg rounded-5 p-4 text-center" 
+         style="max-width: 40rem; width: 100%; backdrop-filter: blur(1.125rem); background-color: rgba(255, 255, 255, 0.85); border: 1px solid rgba(255, 255, 255, 0.4) !important;">
+        
+        <!-- Header & Progress -->
+        <div class="mb-4">
+            <h3 class="fw-bold mb-1 text-dark" style="font-family: 'Josefin Sans', sans-serif;">Color Vision Assessment</h3>
+            <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                <span id="plateCounter" class="text-secondary small fw-semibold">Plate 1 of 38</span>
+                <span id="progressPercent" class="text-primary small fw-bold">2%</span>
+            </div>
+            <!-- ARIA progressbar attributes are managed dynamically in JS -->
+            <div class="progress rounded-pill shadow-inner" style="height: 0.5rem; background-color: rgba(0,0,0,0.05);">
+                <div id="testProgressBar" class="progress-bar rounded-pill" role="progressbar" 
+                     aria-valuemin="1" aria-valuemax="38" aria-valuenow="1"
+                     style="width: 2.6%; background: linear-gradient(90deg, #667eea, #764ba2); transition: width 0.3s ease;"></div>
+            </div>
+        </div>
+
+        <!-- Plate Viewport -->
+        <div class="mx-auto mb-4 p-3 rounded-4 bg-white shadow-sm border border-light d-flex align-items-center justify-content-center" 
+             style="max-width: 20rem; width: 100%; aspect-ratio: 1; overflow: hidden;">
+            <img id="plateImage" src="" alt="Ishihara Test Plate 1" class="img-fluid rounded-3" style="object-fit: contain; max-height: 17.5rem;">
+        </div>
+
+        <!-- Question Title -->
+        <h5 id="plateQuestion" class="fw-semibold text-dark mb-4 px-2" style="font-family: 'Josefin Sans', sans-serif;">
+            What number do you see in the circle?
+        </h5>
+
+        <!-- Options Grid -->
+        <div id="optionsGrid" class="d-grid gap-3 mb-4" role="group" aria-label="Choices for the current plate">
+            <!-- Dynamically populated options buttons -->
+        </div>
+
+        <!-- Text Input Container for Numeric Plates -->
+        <div id="textInputContainer" class="d-none mb-4">
+            <div class="d-flex flex-column gap-3">
+                <input type="text" id="txtAnswer" class="form-control text-center fs-4 fw-bold rounded-4 p-3 border-secondary-subtle" placeholder="Type the number here..." style="font-family: 'Josefin Sans', sans-serif;">
+                <div class="d-flex gap-2 justify-content-center">
+                    <button id="btnSubmitAnswer" class="btn text-white fw-semibold rounded-pill px-4 py-2" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">Submit</button>
+                    <button id="btnNoNumber" class="btn btn-outline-secondary rounded-pill px-4 py-2">I see nothing</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Controls -->
+        <div class="d-flex justify-content-between align-items-center border-top pt-3">
+            <button id="btnBack" class="btn btn-outline-secondary rounded-pill px-4 py-2 small fw-semibold" disabled>
+                <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Back
+            </button>
+            <button id="btnSkip" class="btn btn-link text-secondary text-decoration-none small fw-semibold">
+                Skip Assessment
+            </button>
+        </div>
+    </div>
+
+    <!-- Analyzing Screen (hidden initially, using aria-live for screen reader announcements) -->
+    <div id="analyzingContainer" class="card border-0 shadow-lg rounded-5 p-5 text-center d-none" 
+         style="max-width: 31.25rem; width: 100%; background-color: rgba(255, 255, 255, 0.9);"
+         aria-live="assertive" role="alert">
+        <div class="spinner-border text-primary mb-4" role="status" style="width: 3.5rem; height: 3.5rem;">
+            <span class="visually-hidden">Calculating...</span>
+        </div>
+        <h4 class="fw-bold mb-2 text-dark" style="font-family: 'Josefin Sans', sans-serif;">Analyzing Vision Results</h4>
+        <p class="text-muted mb-0">Processing plate scores and generating your daltonization correction profile...</p>
+    </div>
+
+    <!-- Results Screen (hidden initially, announced dynamically via aria-live) -->
+    <div id="resultsContainer" class="card border-0 shadow-lg rounded-5 p-4 p-md-5 text-center d-none" 
+         style="max-width: 33.75rem; width: 100%; background-color: rgba(255, 255, 255, 0.9);"
+         aria-live="polite" role="status">
+        
+        <div class="mx-auto mb-4 rounded-circle d-flex align-items-center justify-content-center text-white"
+             style="width: 4.375rem; height: 4.375rem; background-color: #22c55e; font-size: 2.2rem; box-shadow: 0 0.625rem 1.25rem rgba(34, 197, 94, 0.3);"
+             aria-hidden="true">
+            ✓
+        </div>
+        
+        <h3 class="fw-bold mb-2 text-dark" style="font-family: 'Josefin Sans', sans-serif;">Assessment Complete</h3>
+        
+        <h5 class="text-secondary fw-semibold mb-3">Diagnosed Profile:</h5>
+        <div class="p-3 mb-4 rounded-4 bg-light border border-light">
+            <span id="resultDiagnosisName" class="display-6 fw-bold text-primary" style="font-family: 'Josefin Sans', sans-serif;">
+                Normal Vision
+            </span>
+            <p id="resultDetails" class="text-muted mt-2 mb-0 small"></p>
+        </div>
+
+        <p class="text-muted mb-4 small">
+            We have automatically configured your Daltonization color correction filter and saved it to your profile.
+        </p>
+
+        <a href="/home" 
+           class="btn btn-lg rounded-pill text-white fw-semibold py-3 px-5 shadow-sm ishihara-btn-glow w-100" 
+           style="background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); border: none; font-family: 'Josefin Sans', sans-serif;">
+            Proceed to Homepage
+        </a>
+    </div>
+
+</div>
+
+<style>
+    /* Premium visible focus state outlines */
+    .btn:focus-visible, 
+    .option-btn:focus-visible {
+        outline: 3px solid #764ba2 !important;
+        outline-offset: 2px !important;
+        box-shadow: none !important;
+    }
+
+    /* Option button styling */
+    .option-btn {
+        background-color: rgba(255, 255, 255, 0.6);
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        padding: 0.875rem 1.25rem;
+        font-family: 'Open Sans', sans-serif;
+        font-weight: 600;
+        color: #1e293b;
+        text-align: center;
+        transition: all 0.2s ease;
+        box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.02);
+    }
+    
+    .option-btn:hover {
+        background-color: #ffffff;
+        border-color: #cbd5e1;
+        color: #0f172a;
+        transform: translateY(-0.125rem);
+        box-shadow: 0 0.375rem 0.75rem rgba(0,0,0,0.05);
+    }
+
+    .ishihara-btn-glow:hover {
+        transform: translateY(-0.125rem);
+        box-shadow: 0 0.625rem 1.25rem rgba(34, 197, 94, 0.3) !important;
+    }
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const plates = [
+        {
+            num: 1,
+            image: "/static/assets/images/ishihara/plate_1.png",
+            question: "What number do you see in the circle?",
+            is_numeric: true,
+            options: [
+                { text: "12", score: "normal" }
+            ]
+        },
+        {
+            num: 2,
+            image: "/static/assets/images/ishihara/plate_2.png",
+            question: "What number do you see in the circle?",
+            is_numeric: true,
+            options: [
+                { text: "8", score: "normal" },
+                { text: "3", score: "rg_deficient" }
+            ]
+        },
+        {
+            num: 10,
+            image: "/static/assets/images/ishihara/plate_10.png",
+            question: "What number do you see in the circle?",
+            is_numeric: true,
+            options: [
+                { text: "97", score: "normal" }
+            ]
+        },
+        {
+            num: 3,
+            image: "/static/assets/images/ishihara/plate_3.png",
+            question: "What number do you see in the circle?",
+            is_numeric: true,
+            options: [
+                { text: "6", score: "normal" },
+                { text: "5", score: "rg_deficient" }
+            ]
+        },
+        {
+            num: 11,
+            image: "/static/assets/images/ishihara/plate_11.png",
+            question: "What number do you see in the circle?",
+            is_numeric: true,
+            options: [
+                { text: "45", score: "normal" }
+            ]
+        },
+        {
+            num: 4,
+            image: "/static/assets/images/ishihara/plate_4.png",
+            question: "What number do you see in the circle?",
+            is_numeric: true,
+            options: [
+                { text: "29", score: "normal" },
+                { text: "70", score: "rg_deficient" }
+            ]
+        },
+        {
+            num: 12,
+            image: "/static/assets/images/ishihara/plate_12.png",
+            question: "What number do you see in the circle?",
+            is_numeric: true,
+            options: [
+                { text: "5", score: "normal" }
+            ]
+        },
+        {
+            num: 22,
+            image: "/static/assets/images/ishihara/plate_22.png",
+            question: "What number do you see in the circle?",
+            is_numeric: true,
+            options: [
+                { text: "26", score: "normal" },
+                { text: "6", score: "protan" },
+                { text: "2", score: "deutan" }
+            ]
+        },
+        {
+            num: 30,
+            image: "/static/assets/images/ishihara/plate_30.jpeg",
+            question: "Trace the path you can follow in the box:",
+            is_numeric: false,
+            options: [
+                { text: "A bluish-green line", score: "normal" },
+                { text: "No path / Cannot trace", score: "tritan" }
+            ]
+        },
+        {
+            num: 23,
+            image: "/static/assets/images/ishihara/plate_23.png",
+            question: "What number do you see in the circle?",
+            is_numeric: true,
+            options: [
+                { text: "42", score: "normal" },
+                { text: "2", score: "protan" },
+                { text: "4", score: "deutan" }
+            ]
+        },
+        {
+            num: 31,
+            image: "/static/assets/images/ishihara/plate_31.jpeg",
+            question: "Trace the path you can follow in the box:",
+            is_numeric: false,
+            options: [
+                { text: "A bluish-green line", score: "normal" },
+                { text: "No path / Cannot trace", score: "tritan" }
+            ]
+        },
+        {
+            num: 24,
+            image: "/static/assets/images/ishihara/plate_24.png",
+            question: "What number do you see in the circle?",
+            is_numeric: true,
+            options: [
+                { text: "35", score: "normal" },
+                { text: "5", score: "protan" },
+                { text: "3", score: "deutan" }
+            ]
+        },
+        {
+            num: 32,
+            image: "/static/assets/images/ishihara/plate_32.jpeg",
+            question: "Trace the path you can follow in the box:",
+            is_numeric: false,
+            options: [
+                { text: "An orange line", score: "normal" },
+                { text: "No path / Cannot trace", score: "tritan" }
+            ]
+        },
+        {
+            num: 25,
+            image: "/static/assets/images/ishihara/plate_25.jpeg",
+            question: "What number do you see in the circle?",
+            is_numeric: true,
+            options: [
+                { text: "96", score: "normal" },
+                { text: "6", score: "protan" },
+                { text: "9", score: "deutan" }
+            ]
+        },
+        {
+            num: 33,
+            image: "/static/assets/images/ishihara/plate_33.jpeg",
+            question: "Trace the path you can follow in the box:",
+            is_numeric: false,
+            options: [
+                { text: "An orange line", score: "normal" },
+                { text: "No path / Cannot trace", score: "tritan" }
+            ]
+        }
+    ];
+
+    let currentPlateIdx = 0;
+    let userSelections = new Array(plates.length).fill(null);
+
+    const plateCounter = document.getElementById("plateCounter");
+    const progressPercent = document.getElementById("progressPercent");
+    const progressBar = document.getElementById("testProgressBar");
+    const plateImage = document.getElementById("plateImage");
+    const plateQuestion = document.getElementById("plateQuestion");
+    const optionsGrid = document.getElementById("optionsGrid");
+    const btnBack = document.getElementById("btnBack");
+    const btnSkip = document.getElementById("btnSkip");
+
+    const textInputContainer = document.getElementById("textInputContainer");
+    const txtAnswer = document.getElementById("txtAnswer");
+    const btnSubmitAnswer = document.getElementById("btnSubmitAnswer");
+    const btnNoNumber = document.getElementById("btnNoNumber");
+
+    const testContainer = document.getElementById("testContainer");
+    const analyzingContainer = document.getElementById("analyzingContainer");
+    const resultsContainer = document.getElementById("resultsContainer");
+
+    const resultDiagnosisName = document.getElementById("resultDiagnosisName");
+    const resultDetails = document.getElementById("resultDetails");
+
+    function evaluateNumericAnswer(val) {
+        const plate = plates[currentPlateIdx];
+        const cleanVal = val.toLowerCase().trim();
+        
+        let matchedOpt = null;
+        for (let opt of plate.options) {
+            if (opt.text.toLowerCase() === cleanVal) {
+                matchedOpt = opt;
+                break;
+            }
+        }
+
+        if (matchedOpt) {
+            return { index: plate.options.indexOf(matchedOpt), score: matchedOpt.score, text: cleanVal };
+        } else {
+            let fallbackScore = "rg_deficient";
+            if (plate.num === 1) {
+                fallbackScore = "other";
+            }
+            return { index: -1, score: fallbackScore, text: cleanVal };
+        }
+    }
+
+    function advanceTest() {
+        if (currentPlateIdx < plates.length - 1) {
+            currentPlateIdx++;
+            renderCurrentPlate();
+        } else {
+            finishAssessment();
+        }
+    }
+
+    function handleNumericSubmit() {
+        const val = txtAnswer.value.trim();
+        if (val === "") {
+            alert("Please type a number or select 'I see nothing'.");
+            return;
+        }
+        userSelections[currentPlateIdx] = evaluateNumericAnswer(val);
+        advanceTest();
+    }
+
+    function handleNoNumberClick() {
+        userSelections[currentPlateIdx] = evaluateNumericAnswer("nothing");
+        advanceTest();
+    }
+
+    function renderCurrentPlate() {
+        const plate = plates[currentPlateIdx];
+        
+        plateCounter.textContent = `Plate ${currentPlateIdx + 1} of ${plates.length}`;
+        
+        const percent = Math.round(((currentPlateIdx + 1) / plates.length) * 100);
+        progressPercent.textContent = `${percent}%`;
+        
+        progressBar.style.width = `${percent}%`;
+        progressBar.setAttribute("aria-valuenow", currentPlateIdx + 1);
+
+        plateImage.src = plate.image;
+        plateImage.setAttribute("alt", `Ishihara color vision test plate number ${plate.num}`);
+
+        plateQuestion.textContent = plate.question;
+
+        if (plate.is_numeric) {
+            optionsGrid.classList.add("d-none");
+            optionsGrid.innerHTML = "";
+            textInputContainer.classList.remove("d-none");
+            
+            const prevSel = userSelections[currentPlateIdx];
+            if (prevSel) {
+                if (prevSel.text === "nothing") {
+                    txtAnswer.value = "";
+                } else {
+                    txtAnswer.value = prevSel.text;
+                }
+            } else {
+                txtAnswer.value = "";
+            }
+            txtAnswer.focus();
+        } else {
+            textInputContainer.classList.add("d-none");
+            optionsGrid.classList.remove("d-none");
+            optionsGrid.innerHTML = "";
+            
+            plate.options.forEach((opt, idx) => {
+                const btn = document.createElement("button");
+                btn.className = "btn option-btn";
+                btn.textContent = opt.text;
+                
+                if (userSelections[currentPlateIdx] && userSelections[currentPlateIdx].index === idx) {
+                    btn.style.backgroundColor = "#eef2ff";
+                    btn.style.borderColor = "#667eea";
+                    btn.style.color = "#4f46e5";
+                    btn.setAttribute("aria-pressed", "true");
+                } else {
+                    btn.setAttribute("aria-pressed", "false");
+                }
+
+                btn.addEventListener("click", () => {
+                    userSelections[currentPlateIdx] = {
+                        index: idx,
+                        score: opt.score,
+                        text: opt.text
+                    };
+                    advanceTest();
+                });
+
+                optionsGrid.appendChild(btn);
+            });
+        }
+
+        btnBack.disabled = (currentPlateIdx === 0);
+    }
+
+    btnBack.addEventListener("click", () => {
+        if (currentPlateIdx > 0) {
+            currentPlateIdx--;
+            renderCurrentPlate();
+        }
+    });
+
+    btnSkip.addEventListener("click", () => {
+        if (confirm("Are you sure you want to skip the assessment? No color filters will be automatically configured.")) {
+            window.location.href = "/home";
+        }
+    });
+
+    btnSubmitAnswer.addEventListener("click", handleNumericSubmit);
+    btnNoNumber.addEventListener("click", handleNoNumberClick);
+    txtAnswer.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            handleNumericSubmit();
+        }
+    });
+
+    function finishAssessment() {
+        testContainer.classList.add("d-none");
+        analyzingContainer.classList.remove("d-none");
+
+        setTimeout(() => {
+            calculateAndSubmitResults();
+        }, 1800);
+    }
+
+    function calculateAndSubmitResults() {
+        let normalScore = 0;
+        let protanScore = 0;
+        let deutanScore = 0;
+        let tritanScore = 0;
+        let screeningErrors = 0;
+
+        for (let i = 0; i < plates.length; i++) {
+            const selection = userSelections[i];
+            if (!selection) continue;
+
+            const scoreType = selection.score;
+
+            if (scoreType === "normal") {
+                normalScore++;
+            } else {
+                if (scoreType === "rg_deficient") {
+                    screeningErrors++;
+                } else if (scoreType === "protan") {
+                    protanScore++;
+                } else if (scoreType === "deutan") {
+                    deutanScore++;
+                } else if (scoreType === "tritan") {
+                    tritanScore++;
+                }
+            }
+        }
+
+        // Calculate error ratios to identify the primary color deficiency type fairly
+        const totalRedGreenScreening = 6;
+        const totalClassification = 4;
+        const totalTritan = 4;
+
+        const rgScreeningRatio = screeningErrors / totalRedGreenScreening;
+        const protanRatio = protanScore / totalClassification;
+        const deutanRatio = deutanScore / totalClassification;
+        const tritanRatio = tritanScore / totalTritan;
+
+        let diagnosedFilter = "none";
+        let diagnosisTitle = "Normal Vision";
+        let diagnosisDescription = "Your color vision responses match standard normal patterns.";
+
+        // Threshold of errors to determine if deficiency exists
+        if (screeningErrors >= 2 || protanScore >= 1 || deutanScore >= 1 || tritanScore >= 1) {
+            // Check if Tritan ratio is highest
+            if (tritanRatio > rgScreeningRatio && tritanRatio > protanRatio && tritanRatio > deutanRatio) {
+                diagnosedFilter = "tritanopia";
+                diagnosisTitle = "Tritanopia";
+                diagnosisDescription = "Blue-weakness or blue-blindness (Tritanopia) detected. Custom blue-weakness Daltonization filters have been applied.";
+            } else {
+                // Red-Green deficiency
+                if (protanRatio > deutanRatio) {
+                    diagnosedFilter = "protanopia";
+                    diagnosisTitle = "Protanopia";
+                    diagnosisDescription = "Red-weakness or red-blindness (Protanopia) detected. Custom red-weakness Daltonization filters have been applied.";
+                } else {
+                    // Mapped to Deuteranopia if deutanRatio >= protanRatio or general red-green screening errors tie
+                    diagnosedFilter = "deuteranopia";
+                    diagnosisTitle = "Deuteranopia";
+                    diagnosisDescription = "Green-weakness or green-blindness (Deuteranopia) detected. Custom green-weakness Daltonization filters have been applied.";
+                }
+            }
+        }
+
+        fetch('/api/ishihara/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ color_filter: diagnosedFilter })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                console.log("[Ishihara Test] Results saved to backend Firestore profile.");
+                
+                const userId = document.body.getAttribute('data-user-id') || '';
+                const getStorageKey = (key) => userId ? `${userId}_${key}` : key;
+                localStorage.setItem(getStorageKey('daltonizeFilter'), diagnosedFilter);
+
+                if (diagnosedFilter === 'none') {
+                    document.body.style.filter = '';
+                } else {
+                    document.body.style.filter = `url(#daltonize-${diagnosedFilter})`;
+                }
+
+                resultDiagnosisName.textContent = diagnosisTitle;
+                resultDetails.textContent = diagnosisDescription;
+
+                analyzingContainer.classList.add("d-none");
+                resultsContainer.classList.remove("d-none");
+            } else {
+                alert("Failed to save results to your profile: " + data.error);
+                window.location.href = "/home";
+            }
+        })
+        .catch(err => {
+            console.error("[Ishihara Test Submission Error]", err);
+            alert("An error occurred during submission. Proceeding to homepage.");
+            window.location.href = "/home";
+        });
+    }
+
+    renderCurrentPlate();
+});
+</script>
+{% endblock %}

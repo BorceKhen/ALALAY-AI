@@ -55,6 +55,20 @@ nav .nav-link:hover {
     color: var(--primary-white) !important;
 }
 
+/* "Logout" Button - Sleek Slate-to-Red Outline Theme */
+.btn-logout {
+    background-color: transparent !important;
+    color: var(--secondary-text) !important;
+    border: 2px solid var(--primary-border) !important;
+    transition: all 0.2s ease;
+}
+
+.btn-logout:hover {
+    background-color: #e05252 !important;
+    border-color: #e05252 !important;
+    color: var(--primary-white) !important;
+}
+
 .card h5,
 .list-group-item h6 {
     color: var(--primary-text);
@@ -188,6 +202,7 @@ PROFILE PAGE
 .btn-edit-icon {
     width: 48px;
     height: 48px;
+    flex-shrink: 0;
     border-radius: 50%;
     border: none;
     background-color: var(--quaternary-white);
@@ -227,20 +242,10 @@ PROFILE PAGE
 .progress-circle {
     width: 60px;
     height: 60px;
-    border: 4px solid #e5e5e5;
     background: white;
     flex-shrink: 0;
     position: relative;
-}
-
-/* OPTIONAL GREEN PROGRESS EFFECT */
-.progress-circle::before {
-    content: "";
-    position: absolute;
-    inset: -4px;
     border-radius: 50%;
-    border: 4px solid var(--primary-green);
-    clip-path: inset(0 50% 0 0);
 }
 
 /*
@@ -280,4 +285,104 @@ DECK PAGE
     font-size: 0.95rem;
     color: var(--secondary-text);
     line-height: 1.4;
+}
+
+/*
+---------------------------------------------
+Dashboard Layout Lock & Scrollable Panels
+---------------------------------------------
+*/
+@media (min-width: 1200px) {
+    /* Lock the main dashboard card to a fixed viewport percentage */
+    .main-container {
+        height: 80vh;
+        min-height: 640px;
+        max-height: 820px;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .main-container > .row {
+        height: 100%;
+        flex: 1;
+        overflow: hidden;
+    }
+    
+    /* Layout heights and alignments */
+    aside.col-xl-3,
+    section.col-xl-9 {
+        height: 100%;
+        overflow: hidden;
+    }
+    
+    .sidebar {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    .main-content {
+        height: 100%;
+        overflow-y: auto;
+        padding-right: 15px; /* Prevent text overlap with scrollbar */
+    }
+    
+    /* Premium Thin Scrollbars styling */
+    .main-content::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .main-content::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    .main-content::-webkit-scrollbar-thumb {
+        background-color: rgba(79, 70, 229, 0.15); /* Light Indigo hint */
+        border-radius: 10px;
+        transition: background-color 0.2s ease;
+    }
+    
+    .main-content::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(79, 70, 229, 0.35);
+    }
+}
+
+/* Sidebar Deck Ticker Carousel Styles */
+.sidebar-deck-ticker {
+    position: relative;
+    height: 42px;
+    width: 100%;
+    overflow: hidden;
+    border: 2px solid var(--primary-border) !important;
+    background-color: var(--secondary-white) !important;
+}
+
+.ticker-slide-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.ticker-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s ease;
+}
+
+.ticker-slide.active {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.ticker-slide.slide-out {
+    opacity: 0;
+    transform: translateX(-100%);
 }

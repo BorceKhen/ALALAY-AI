@@ -40,7 +40,7 @@ ALALAY-AI | Main Interface
                         <!-- NAVIGATION -->
                         <nav class="nav flex-column gap-3 mb-4">
                             
-                            <a class="nav-link {% if request.endpoint == 'index' %}text-dark fw-semibold{% else %}text-secondary{% endif %}"
+                            <a class="nav-link {% if request.endpoint == 'home' %}text-dark fw-semibold{% else %}text-secondary{% endif %}"
                                href="{{ url_for('home') }}">
                                Home
                             </a>
@@ -64,13 +64,9 @@ ALALAY-AI | Main Interface
 
                         <!-- BUTTONS -->
                         <div class="d-grid gap-2 mb-4">
-                            <button class="btn-study btn btn-primary btn-lg rounded-pill">
-                                Study
-                            </button>
-
-                            <button class="btn-add btn btn-outline-primary btn-lg rounded-pill">
-                                Add
-                            </button>
+                            <a href="#" class="btn-logout btn btn-lg rounded-pill text-decoration-none d-inline-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#logoutConfirmModal">
+                                Logout
+                            </a>
                         </div>
 
                         <hr>
@@ -82,34 +78,27 @@ ALALAY-AI | Main Interface
                                 My decks
                             </h6>
 
-                            <div class="d-flex align-items-center mb-3">
-                                <span class="me-2 rounded-1"
-                                      style="width:14px;height:14px;background:#D8C8FF;">
-                                </span>
-
-                                <span class="text-secondary">
-                                    Social Sciences
-                                </span>
-                            </div>
-
-                            <div class="d-flex align-items-center mb-3">
-                                <span class="me-2 rounded-1"
-                                      style="width:14px;height:14px;background:#C1D9FF;"></span>
-
-                                <span class="text-secondary">
-                                    Political Science
-                                </span>
-                            </div>
-
-                            <div class="d-flex align-items-center">
-                                <span class="me-2 rounded-1"
-                                      style="width:14px;height:14px;background:#DEFFCA;"></span>
-
-                                <span class="text-secondary">
-                                    Psychology
-                                </span>
-                            </div>
-
+                            {% if sidebar_decks %}
+                                <div class="sidebar-deck-ticker rounded-pill px-3 py-2 d-flex align-items-center">
+                                    <div class="ticker-slide-wrapper">
+                                        {% for deck in sidebar_decks %}
+                                        <a href="{{ url_for('flashcard_deck', deck_name=deck.get('name')) }}"
+                                           class="ticker-slide {% if loop.first %}active{% endif %} d-flex align-items-center gap-2 text-decoration-none text-secondary"
+                                           data-index="{{ loop.index0 }}">
+                                            <span class="rounded-1 deck-color-badge flex-shrink-0"
+                                                  style="width:14px;height:14px;"
+                                                  data-bg="{{ deck.get('color', '#D8C8FF') }}">
+                                            </span>
+                                            <span class="text-truncate fw-semibold text-dark text-start" style="max-width: 140px; font-size: 0.85rem;" title="{{ deck.get('name') }}">
+                                                {{ deck.get('name') }}
+                                            </span>
+                                        </a>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="small text-muted">No decks generated yet.</div>
+                            {% endif %}
                         </div>
 
                     </div>

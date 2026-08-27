@@ -1,50 +1,124 @@
 {% extends "index.html" %}
 
-{% block title %}ALALAY-AI | Deck{% endblock %}
+{% block title %}ALALAY-AI | {{ deck_name }}{% endblock %}
 
 {% block homepage_content %}
-<div class="d-flex align-items-center justify-content-between mb-5 pb-3">
+<!-- Mobile Back Button -->
+<div class="mobile-back-header d-flex d-md-none mb-3">
+    <a href="{{ url_for('my_decks') }}" class="btn btn-back-circle shadow-sm" title="Back to Decks">
+        <i class="bi bi-chevron-left" style="font-size: 1.15rem; color: #1a237e;"></i>
+    </a>
+</div>
+
+<div class="deck-header-wrapper d-flex align-items-center justify-content-between mb-5 pb-3" style="gap: 20px;">
     <!-- DECK TITLE-->
-    <div class="d-flex align-items-center gap-3">
-        <span class="rounded-1 flex-shrink-0" style="width: 16px; height: 16px; background-color: var(--pastel-purple);"></span>
-        <h1 class="h2 fw-bold text-dark mb-0 text-truncate" style="max-width: 450px;">Simulation Experi...</h1>
+    <div class="d-flex align-items-center gap-3" style="min-width: 0;">
+        <span class="rounded-1 flex-shrink-0 deck-color-badge" style="width: 16px; height: 16px;" data-bg="{{ deck_color }}"></span>
+        <h1 class="h2 fw-bold text-dark mb-0 text-truncate" title="{{ deck_name }}">{{ deck_name }}</h1>
     </div>
 
     <!-- BUTTONS COLUMN -->
-
-    <div class="d-flex gap-2">
-        <button class="btn-study btn btn-primary btn-lg rounded-pill px-4">Add deck</button>
-        <a href="{{ url_for('quiz') }}" class="btn-add btn btn-outline-primary btn-lg rounded-pill px-4 d-inline-flex align-items-center justify-content-center">
-        Study
+    <div class="deck-header-buttons d-flex gap-2 flex-shrink-0">
+        <a href="{{ url_for('home') }}" class="btn-study btn btn-primary btn-lg rounded-pill px-4 d-inline-flex align-items-center justify-content-center text-decoration-none">
+            Add deck
+        </a>
+        <a href="{{ url_for('quiz_deck', deck_name=deck_name) }}" class="btn-add btn btn-outline-primary btn-lg rounded-pill px-4 d-inline-flex align-items-center justify-content-center text-decoration-none">
+            Study
         </a>
     </div>
 
 </div>
 <hr class="divider-line">
 <!-- DECK LISTS -->
- <h2 class="h5 fw-bold mb-4 mt-5">Decks (53)</h2>
+<!-- DECK LIST HEADER WITH AUTOPLAY TRIGGER -->
+<div class="d-flex align-items-center justify-content-between mb-4 mt-5 pb-2 border-bottom">
+    <h2 class="h5 fw-bold mb-0">Decks ({{ card_count }})</h2>
+    <button id="btn-autoplay-tts" class="btn btn-outline-primary rounded-pill px-3 py-1 btn-sm d-flex align-items-center gap-2 btn-autoplay-tts" aria-label="Auto Play TTS">
+        <i class="bi bi-play-circle-fill"></i> <span class="autoplay-text-span">Auto Play TTS</span>
+    </button>
+</div>
 <div class="deck-cards-stack">
+    {% for card in cards %}
     <div class="flashcard-item rounded-4 mb-3 shadow-sm bg-white overflow-hidden border">
-        <div class="flashcard-panel-top p-3">
-            <h2 class="flashcard-text-title mb-0">What is the first core component of simulation experiment control?</h2>
+        <div class="flashcard-panel-top p-3 d-flex align-items-center justify-content-between">
+            <h2 class="flashcard-text-title mb-0">{{ card.question }}</h2>
+            <button class="btn btn-sm btn-link text-secondary p-0 tts-trigger" data-tts-text="{{ card.question }}" aria-label="Read Question Aloud">
+                <i class="bi bi-volume-up-fill" style="font-size: 1.25rem;"></i>
+            </button>
         </div>
         
         <div class="flashcard-divider"></div>
         
-        <div class="flashcard-panel-bottom p-3">
-            <p class="flashcard-text-body mb-0">Planning and designing experiments</p>
+        <div class="flashcard-panel-bottom p-3 d-flex align-items-center justify-content-between">
+            <p class="flashcard-text-body mb-0">{{ card.answer }}</p>
+            <button class="btn btn-sm btn-link text-secondary p-0 tts-trigger" data-tts-text="{{ card.answer }}" aria-label="Read Answer Aloud">
+                <i class="bi bi-volume-up-fill" style="font-size: 1.25rem;"></i>
+            </button>
         </div>
     </div>
-    
-    <div class="flashcard-item rounded-4 mb-3 shadow-sm bg-white overflow-hidden border">
-        <div class="flashcard-panel-top p-3">
-            <h2 class="flashcard-text-title mb-0">What is the first core component of simulation experiment control?</h2>
-        </div>
-        <div class="flashcard-divider"></div>
-        <div class="flashcard-panel-bottom p-3">
-            <p class="flashcard-text-body mb-0">Planning and designing experiments</p>
-        </div>
+    {% else %}
+    <div class="text-center py-5 text-muted border rounded-4 bg-white">
+        <p class="mb-0">No flashcards in this deck yet. Generate some from the home page!</p>
     </div>
+    {% endfor %}
 </div>
 
+<!-- Mobile Sticky / Bottom "Study Deck" Action Button -->
+<div class="btn-study-deck-mobile-container d-md-none mt-4 mb-3">
+    <a href="{{ url_for('quiz_deck', deck_name=deck_name) }}" class="btn btn-study-deck-mobile d-flex align-items-center justify-content-center text-decoration-none">
+        Study Deck
+    </a>
+</div>
+
+<!-- Mobile Floating Action Button (+) -->
+<a href="{{ url_for('home') }}" class="mobile-fab-btn d-md-none" aria-label="Add / Import Deck" title="Add Deck">
+    <i class="bi bi-plus"></i>
+</a>
+
+<!-- Floating Action Button for TTS Autoplay -->
+<button id="btn-autoplay-tts-floating" class="btn btn-outline-primary rounded-pill px-4 py-2 d-none align-items-center gap-2" style="position: fixed; bottom: 30px; right: 30px; z-index: 1050;" aria-label="Auto Play TTS">
+    <i class="bi bi-play-circle-fill" style="font-size: 1.25rem;"></i> <span class="autoplay-text-span d-none d-md-inline">Auto Play TTS</span>
+</button>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.deck-color-badge[data-bg]').forEach(function(el) {
+            el.style.backgroundColor = el.getAttribute('data-bg');
+        });
+
+        // Initialize telemetry session logging
+        if (window.TelemetryTracker) {
+            const deckName = "{{ deck_name | safe }}";
+            window.TelemetryTracker.init(deckName, 'flashcard');
+        }
+
+        // Setup Floating Autoplay Button Observer (hides floating when top header is visible)
+        const headerBtn = document.getElementById('btn-autoplay-tts');
+        const floatingBtn = document.getElementById('btn-autoplay-tts-floating');
+        
+        if (headerBtn && floatingBtn) {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        floatingBtn.classList.remove('d-flex');
+                        floatingBtn.classList.add('d-none');
+                    } else {
+                        floatingBtn.classList.remove('d-none');
+                        floatingBtn.classList.add('d-flex');
+                    }
+                });
+            }, { threshold: 0.1 });
+            observer.observe(headerBtn);
+
+            const handleToggle = (e) => {
+                e.preventDefault();
+                if (window.toggleAutoplay) {
+                    window.toggleAutoplay();
+                }
+            };
+            headerBtn.addEventListener('click', handleToggle);
+            floatingBtn.addEventListener('click', handleToggle);
+        }
+    });
+</script>
 {% endblock %}
