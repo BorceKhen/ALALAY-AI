@@ -91,16 +91,10 @@ Study Text to Simplify:
         if self.groq_initialized and self.groq_client:
             try:
                 print("[TextSimplifier] Attempting text simplification via Groq (openai/gpt-oss-20b)...")
-                try:
-                    response = self.groq_client.chat.completions.create(
-                        model="openai/gpt-oss-20b",
-                        messages=[{"role": "user", "content": prompt}]
-                    )
-                except Exception:
-                    response = self.groq_client.chat.completions.create(
-                        model="llama-3.1-8b-instant",
-                        messages=[{"role": "user", "content": prompt}]
-                    )
+                response = self.groq_client.chat.completions.create(
+                    model="openai/gpt-oss-20b",
+                    messages=[{"role": "user", "content": prompt}]
+                )
                 res_content = response.choices[0].message.content
                 if res_content and res_content.strip():
                     return res_content.strip()
@@ -174,18 +168,11 @@ Input JSON cards:
         if self.groq_initialized and self.groq_client:
             try:
                 print("[TextSimplifier] Attempting bulk card simplification via Groq (openai/gpt-oss-20b)...")
-                try:
-                    response = self.groq_client.chat.completions.create(
-                        model="openai/gpt-oss-20b",
-                        messages=[{"role": "user", "content": prompt}],
-                        response_format={"type": "json_object"}
-                    )
-                except Exception:
-                    response = self.groq_client.chat.completions.create(
-                        model="llama-3.1-8b-instant",
-                        messages=[{"role": "user", "content": prompt}],
-                        response_format={"type": "json_object"}
-                    )
+                response = self.groq_client.chat.completions.create(
+                    model="openai/gpt-oss-20b",
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"}
+                )
                 res_content = response.choices[0].message.content
                 if res_content:
                     text = res_content.strip()
@@ -287,18 +274,11 @@ Input JSON quiz items:
         if self.groq_initialized and self.groq_client:
             try:
                 print("[TextSimplifier] Attempting bulk quiz simplification via Groq (openai/gpt-oss-20b)...")
-                try:
-                    response = self.groq_client.chat.completions.create(
-                        model="openai/gpt-oss-20b",
-                        messages=[{"role": "user", "content": prompt}],
-                        response_format={"type": "json_object"}
-                    )
-                except Exception:
-                    response = self.groq_client.chat.completions.create(
-                        model="llama-3.1-8b-instant",
-                        messages=[{"role": "user", "content": prompt}],
-                        response_format={"type": "json_object"}
-                    )
+                response = self.groq_client.chat.completions.create(
+                    model="openai/gpt-oss-20b",
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"}
+                )
                 res_content = response.choices[0].message.content
                 if res_content:
                     text = res_content.strip()

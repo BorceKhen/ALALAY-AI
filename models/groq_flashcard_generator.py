@@ -119,21 +119,12 @@ Expected JSON output format:
 
         try:
             model_to_use = "openai/gpt-oss-20b"
-            try:
-                print(f"[Groq-FlashGen] Requesting flashcards from Groq using model ({model_to_use})...")
-                response = self.client.chat.completions.create(
-                    model=model_to_use,
-                    messages=[{"role": "user", "content": prompt}],
-                    response_format={"type": "json_object"}
-                )
-            except Exception as primary_err:
-                print(f"[Groq-FlashGen] Model ({model_to_use}) failed ({primary_err}). Falling back to llama-3.1-8b-instant...")
-                model_to_use = "llama-3.1-8b-instant"
-                response = self.client.chat.completions.create(
-                    model=model_to_use,
-                    messages=[{"role": "user", "content": prompt}],
-                    response_format={"type": "json_object"}
-                )
+            print(f"[Groq-FlashGen] Requesting flashcards from Groq using model ({model_to_use})...")
+            response = self.client.chat.completions.create(
+                model=model_to_use,
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"}
+            )
 
             response_text = response.choices[0].message.content
             if response_text:
