@@ -119,10 +119,18 @@ class T5QuizGenerator:
                 seen_questions.add(q_norm)
                 unique_cards.append(card)
 
+        # If fewer than max_questions (20), expand unique_cards until max_questions is reached
+        cards_pool = unique_cards[:]
+        if len(cards_pool) < max_questions and cards_pool:
+            idx = 0
+            while len(cards_pool) < max_questions:
+                cards_pool.append(unique_cards[idx % len(unique_cards)])
+                idx += 1
+
         all_answers = [c.get('answer', '').strip() for c in flashcard_pairs if isinstance(c, dict) and c.get('answer')]
 
         quiz_items = []
-        for card in unique_cards:
+        for card in cards_pool[:max_questions]:
             q_text = card.get('question', '').strip()
             correct = card.get('answer', '').strip()
 
@@ -141,5 +149,5 @@ class T5QuizGenerator:
                 "options": options
             })
 
-        print(f"[T5-QuizGen] Quiz generated successfully with {len(quiz_items)} questions from flashcards.")
-        return quiz_items
+        print(f"[T5-QuizGen] Quiz generated successfully with {len(quiz_items)} questions.")
+        return quiz_items[:max_questions]

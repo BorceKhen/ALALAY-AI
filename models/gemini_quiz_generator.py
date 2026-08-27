@@ -83,24 +83,46 @@ class GeminiQuizGenerator:
 
         # Answer pool for fallback distractor choices
         answer_pool = [c.get('answer', '').strip() for c in flashcard_pairs if isinstance(c, dict) and c.get('answer')]
-
-        # Batch generate distractors for the unique flashcards
         to_generate = [{"question": c.get('question', '').strip(), "correct_answer": c.get('answer', '').strip()} for c in unique_cards]
-        
-        distractors_map = {}
-        if to_generate:
-            distractors_map = self._generate_batch_distractors(to_generate)
+
+        # If fewer than max_questions (20), generate extra quiz items from study context
+        if len(to_generate) < max_questions:
+            needed = max_questions - len(to_generate)
+            extra_items = self._generate_extra_quiz_questions(extracted_text, flashcard_pairs, needed=needed, content_level=content_level)
+            for ex in extra_items:
+                q_text = ex.get('question', '').strip()
+                c_ans = ex.get('correct_answer', '').strip()
+                if not q_text or not c_ans:
+                    continue
+                q_norm = re.sub(r'[^\w\s]', '', q_text).lower().strip()
+                q_norm = re.sub(r'\s+', ' ', q_norm)
+                if q_norm and q_norm not in seen_questions:
+                    seen_questions.add(q_norm)
+                    to_generate.append({
+                        "question": q_text,
+                        "correct_answer": c_ans,
+                        "options": ex.get("options", [])
+                    })
+                if len(to_generate) >= max_questions:
+                    break
+
+        # Batch generate distractors for the questions
+        distractors_map = self._generate_batch_distractors(to_generate)
 
         quiz_data = []
-        for item in to_generate:
+        for item in to_generate[:max_questions]:
             q_text = item["question"]
             c_ans = item["correct_answer"]
             distractors = distractors_map.get(q_text.lower(), [])
             
-            options = [{"text": c_ans, "is_correct": True}]
-            for d in distractors:
-                options.append({"text": d, "is_correct": False})
-                
+            raw_opts = item.get("options", [])
+            if not raw_opts:
+                options = [{"text": c_ans, "is_correct": True}]
+                for d in distractors:
+                    options.append({"text": d, "is_correct": False})
+            else:
+                options = raw_opts
+
             norm = self._normalize_quiz_item({
                 'question': q_text,
                 'correct_answer': c_ans,
@@ -110,8 +132,55 @@ class GeminiQuizGenerator:
             if norm:
                 quiz_data.append(norm)
 
-        print(f"[Gemini-QuizGen] Quiz generated successfully with {len(quiz_data)} questions from flashcards.")
-        return quiz_data
+        print(f"[Gemini-QuizGen] Quiz generated successfully with {len(quiz_data)} questions.")
+        return quiz_data[:max_questions]
+
+    def _generate_extra_quiz_questions(self, text: str, flashcards: List[Dict], needed: int = 17, content_level: str = "Medium") -> List[Dict]:
+        """
+        Generates additional multiple-choice questions from study text and flashcards
+        to ensure every quiz reaches the standard 20-question target.
+        """
+        try:
+            self._init_client()
+            if not self.model:
+                return []
+            
+            context_str = text[:10000] if text else json.dumps(flashcards, ensure_ascii=False)
+            
+            prompt = f"""
+You are an expert educational quiz creator. Generate exactly {needed} unique, high-quality multiple-choice questions based on the study content below.
+
+Study Content:
+{context_str}
+
+Requirements:
+1. Generate exactly {needed} unique questions.
+2. Keep the exact same language as the text (Filipino/Tagalog or English).
+3. Output MUST be a valid JSON array of objects without markdown wrappers:
+[
+  {{
+    "question": "Question text here...",
+    "correct_answer": "Correct answer here...",
+    "options": [
+      {{"text": "Option 1", "is_correct": false}},
+      {{"text": "Correct answer here...", "is_correct": true}},
+      {{"text": "Option 3", "is_correct": false}},
+      {{"text": "Option 4", "is_correct": false}}
+    ]
+  }}
+]
+"""
+            response = self.model.generate_content(
+                prompt,
+                generation_config={"response_mime_type": "application/json"}
+            )
+            if response and response.text:
+                res_items = json.loads(response.text.strip())
+                if isinstance(res_items, list):
+                    return res_items
+        except Exception as e:
+            print(f"[Gemini-QuizGen] Failed to generate extra quiz items: {e}")
+        return []
 
     def _generate_batch_distractors(self, items: List[Dict]) -> Dict[str, List[str]]:
         """
