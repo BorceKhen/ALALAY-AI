@@ -169,9 +169,9 @@ Input JSON cards:
         self._init_groq()
         if self.groq_initialized and self.groq_client:
             try:
-                print("[TextSimplifier] Attempting bulk card simplification via Groq (llama-3.3-70b-versatile)...")
+                print("[TextSimplifier] Attempting bulk card simplification via Groq (llama-3.1-8b-instant)...")
                 response = self.groq_client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
+                    model="llama-3.1-8b-instant",
                     messages=[
                         {"role": "user", "content": prompt}
                     ]
@@ -276,9 +276,9 @@ Input JSON quiz items:
         self._init_groq()
         if self.groq_initialized and self.groq_client:
             try:
-                print("[TextSimplifier] Attempting bulk quiz simplification via Groq (llama-3.3-70b-versatile)...")
+                print("[TextSimplifier] Attempting bulk quiz simplification via Groq (llama-3.1-8b-instant)...")
                 response = self.groq_client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
+                    model="llama-3.1-8b-instant",
                     messages=[
                         {"role": "user", "content": prompt}
                     ]

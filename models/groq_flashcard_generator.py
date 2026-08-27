@@ -118,22 +118,13 @@ Expected JSON output format:
 """
 
         try:
-            model_to_use = "llama-3.3-70b-versatile"
-            try:
-                print(f"[Groq-FlashGen] Requesting flashcards from Groq using premium model ({model_to_use})...")
-                response = self.client.chat.completions.create(
-                    model=model_to_use,
-                    messages=[{"role": "user", "content": prompt}],
-                    response_format={"type": "json_object"}
-                )
-            except Exception as premium_err:
-                print(f"[Groq-FlashGen] Premium model failed or rate-limited: {premium_err}. Falling back to llama-3.1-8b-instant...")
-                model_to_use = "llama-3.1-8b-instant"
-                response = self.client.chat.completions.create(
-                    model=model_to_use,
-                    messages=[{"role": "user", "content": prompt}],
-                    response_format={"type": "json_object"}
-                )
+            model_to_use = "llama-3.1-8b-instant"
+            print(f"[Groq-FlashGen] Requesting flashcards from Groq using model ({model_to_use})...")
+            response = self.client.chat.completions.create(
+                model=model_to_use,
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"}
+            )
 
             response_text = response.choices[0].message.content
             if response_text:
