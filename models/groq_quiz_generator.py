@@ -143,11 +143,20 @@ Expected JSON Output format:
   "question text here": ["distractor 1", "distractor 2", "distractor 3"]
 }}
 """
-            response = self.client.chat.completions.create(
-                model="llama-3.1-8b-instant",
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"}
-            )
+            model_to_use = "openai/gpt-oss-20b"
+            try:
+                response = self.client.chat.completions.create(
+                    model=model_to_use,
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"}
+                )
+            except Exception as primary_err:
+                print(f"[Groq-QuizGen] Model ({model_to_use}) failed ({primary_err}). Falling back to llama-3.1-8b-instant...")
+                response = self.client.chat.completions.create(
+                    model="llama-3.1-8b-instant",
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"}
+                )
             if response and response.choices:
                 res_dict = json.loads(response.choices[0].message.content.strip())
                 return {str(k).lower().strip(): v for k, v in res_dict.items() if isinstance(v, list)}
