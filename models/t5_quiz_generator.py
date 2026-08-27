@@ -78,19 +78,20 @@ class T5QuizGenerator:
         return best_answer if best_answer else "N/A"
 
     @staticmethod
-    def _make_distractors(question: str, correct_answer: str, all_answers: List[str], count: int = 3) -> List[str]:
+    def _make_distractors(question: str, correct_answer: str, all_answers: List[str], count: int = 3, content_level: str = "Medium") -> List[str]:
         """
         Uses SmartDistractorGenerator to generate contextually matched, high-quality distractors.
         """
         from models.distractor_generator import SmartDistractorGenerator
         generator = SmartDistractorGenerator.get_instance()
-        return generator.generate_distractors(question, correct_answer, existing_deck_answers=all_answers, count=count)
+        return generator.generate_distractors(question, correct_answer, existing_deck_answers=all_answers, count=count, content_level=content_level)
 
     def generate_quiz(
         self,
         extracted_text: str,
         flashcard_pairs: List[Dict[str, str]],
-        max_questions: int = 20
+        max_questions: int = 20,
+        content_level: str = "Medium"
     ) -> List[Dict]:
         """
         Generates multiple-choice quiz questions strictly focused on the content of the provided flashcards.
@@ -125,8 +126,8 @@ class T5QuizGenerator:
             q_text = card.get('question', '').strip()
             correct = card.get('answer', '').strip()
 
-            # Build smart distractors matching the specific question category
-            distractors = self._make_distractors(q_text, correct, all_answers, count=3)
+            # Build smart distractors matching the specific question category & content_level
+            distractors = self._make_distractors(q_text, correct, all_answers, count=3, content_level=content_level)
 
             # Combine and shuffle options
             options = [{"text": correct, "is_correct": True}]

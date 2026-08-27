@@ -25,11 +25,13 @@ class SmartDistractorGenerator:
         question: str,
         correct_answer: str,
         existing_deck_answers: List[str] = None,
-        count: int = 3
+        count: int = 3,
+        content_level: str = "Medium"
     ) -> List[str]:
         q_lower = (question or "").lower()
         a_lower = (correct_answer or "").lower()
         ans_str = (correct_answer or "").strip()
+        level = (content_level or "Medium").strip().capitalize()
 
         is_filipino = self._is_tagalog(q_lower + " " + a_lower)
         distractors = []
@@ -43,8 +45,13 @@ class SmartDistractorGenerator:
                 is_int = val.is_integer()
                 val_int = int(val) if is_int else val
                 
-                # Generate scale factors
-                multipliers = [0.5, 1.5, 2.0, 0.25, 3.0, 2.5]
+                # Adjust numerical offsets based on difficulty content_level
+                if level == "Easy":
+                    multipliers = [0.5, 2.0, 3.0, 4.0]  # Clearly distinct numbers
+                elif level == "Hard":
+                    multipliers = [0.8, 1.2, 0.9, 1.1, 1.3]  # Challenging, close numbers
+                else:
+                    multipliers = [0.5, 1.5, 2.0, 0.25, 3.0, 2.5]  # Medium (Default)
                 random.shuffle(multipliers)
                 
                 generated_nums = []
@@ -74,23 +81,29 @@ class SmartDistractorGenerator:
         # ── Category 2: Shapes / Geometry ────────────────────────────
         if not distractors and any(w in q_lower or w in a_lower for w in ["shape", "hugis", "oktagono", "tatsulok", "bilog", "parisukat", "hexagon", "pentagon", "sulok"]):
             if is_filipino:
-                candidates = [
-                    "Tatsulok (hugis na may 3 sulok)",
-                    "Bilog (hugis na walang sulok)",
-                    "Parisukat (hugis na may 4 na pantay na sulok)",
-                    "Hexagon (hugis na may 6 na sulok)",
-                    "Pentagon (hugis na may 5 sulok)",
-                    "Rektanggulo (hugis na may 4 na sulok)"
-                ]
+                if level == "Easy":
+                    candidates = ["Tatsulok", "Bilog", "Parisukat", "Hexagon", "Pentagon", "Rektanggulo"]
+                else:
+                    candidates = [
+                        "Tatsulok (hugis na may 3 sulok)",
+                        "Bilog (hugis na walang sulok)",
+                        "Parisukat (hugis na may 4 na pantay na sulok)",
+                        "Hexagon (hugis na may 6 na sulok)",
+                        "Pentagon (hugis na may 5 sulok)",
+                        "Rektanggulo (hugis na may 4 na sulok)"
+                    ]
             else:
-                candidates = [
-                    "Triangle (3 sides)",
-                    "Circle (no corners)",
-                    "Square (4 equal sides)",
-                    "Hexagon (6 sides)",
-                    "Pentagon (5 sides)",
-                    "Rectangle (4 sides)"
-                ]
+                if level == "Easy":
+                    candidates = ["Triangle", "Circle", "Square", "Hexagon", "Pentagon", "Rectangle"]
+                else:
+                    candidates = [
+                        "Triangle (3 sides)",
+                        "Circle (no corners)",
+                        "Square (4 equal sides)",
+                        "Hexagon (6 sides)",
+                        "Pentagon (5 sides)",
+                        "Rectangle (4 sides)"
+                    ]
             for c in candidates:
                 if c.lower() != a_lower and c not in distractors:
                     distractors.append(c)
