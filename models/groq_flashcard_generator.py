@@ -107,11 +107,11 @@ Study Text:
 
 Requirements:
 1. {lang_instruction}
-2. Extract key concepts, formulas, dates, vocabulary, definitions, and important ideas.
+2. CRITICAL QUANTITY REQUIREMENT: You MUST generate EXACTLY 20 distinct flashcard question-answer pairs covering every main idea, detail, vocabulary, concept, and sub-point in the study text. Do not stop until you have created 20 cards.
 3. Format each flashcard as a question-answer pair. Keep questions clear and answers concise.
 4. {level_instruction}
 5. Output must be strictly valid JSON matching the format below, without markdown wrappers or descriptions.
-6. CRITICAL SPELLING ACCURACY: You must preserve the EXACT spelling of all concepts, terms, vocabulary, names, and key definitions from the Study Text. Do not translate, paraphrase, correct, or change the spelling of these key terms under any circumstances (e.g. if the text says 'BERBAL', you must use 'BERBAL' or 'Berbal' exactly, not 'Bermabal').
+6. CRITICAL SPELLING ACCURACY: You must preserve the EXACT spelling of all concepts, terms, vocabulary, names, and key definitions from the Study Text. Do not translate, paraphrase, correct, or change the spelling of these key terms.
 
 Expected JSON output format:
 {json_example}
@@ -127,19 +127,48 @@ Expected JSON output format:
             )
 
             response_text = response.choices[0].message.content
+            cards = []
             if response_text:
                 data = json.loads(response_text.strip())
                 if isinstance(data, list):
                     cards = data
                 elif isinstance(data, dict):
-                    # Find the first list value in the dict
                     lists = [v for v in data.values() if isinstance(v, list)]
                     cards = lists[0] if lists else []
-                else:
-                    cards = []
                 
-                print(f"[Groq-FlashGen] Flashcards generated successfully using {model_to_use} with {len(cards)} cards.")
-                return cards
+            # If fewer than 20 cards generated, request additional cards to reach 20
+            if len(cards) < 20 and extracted_text:
+                needed = 20 - len(cards)
+                print(f"[Groq-FlashGen] Flashcards initial count is {len(cards)}. Requesting {needed} more to reach 20 standard cards...")
+                extra_prompt = f"""
+Based on the study text below, generate EXACTLY {needed} additional UNIQUE question-answer study flashcard pairs that do NOT repeat any previous cards.
+
+Existing Cards:
+{json.dumps([c.get('question', '') for c in cards if isinstance(c, dict)], ensure_ascii=False)}
+
+Study Text:
+{extracted_text[:10000]}
+
+Output MUST be a JSON array of objects:
+[
+  {{"question": "Question text...", "answer": "Answer text..."}}
+]
+"""
+                try:
+                    extra_res = self.client.chat.completions.create(
+                        model=model_to_use,
+                        messages=[{"role": "user", "content": extra_prompt}],
+                        response_format={"type": "json_object"}
+                    )
+                    if extra_res and extra_res.choices:
+                        extra_data = json.loads(extra_res.choices[0].message.content.strip())
+                        extra_list = extra_data if isinstance(extra_data, list) else ([v for v in extra_data.values() if isinstance(v, list)][0] if [v for v in extra_data.values() if isinstance(v, list)] else [])
+                        cards.extend(extra_list)
+                except Exception as extra_err:
+                    print(f"[Groq-FlashGen] Extra card generation warning: {extra_err}")
+
+            print(f"[Groq-FlashGen] Flashcards generated successfully using {model_to_use} with {len(cards[:20])} cards.")
+            return cards[:20]
             
             print("[Groq-FlashGen] Empty response received from Groq.")
             return []

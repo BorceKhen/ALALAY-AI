@@ -108,11 +108,11 @@ Study Text:
 
 Requirements:
 1. {lang_instruction}
-2. Extract key concepts, formulas, dates, vocabulary, definitions, and important ideas.
+2. CRITICAL QUANTITY REQUIREMENT: You MUST generate EXACTLY 20 distinct flashcard question-answer pairs covering every main idea, detail, vocabulary, concept, and sub-point in the study text. Do not stop until you have created 20 cards.
 3. Format each flashcard as a question-answer pair. Keep questions clear and answers concise.
 4. {level_instruction}
 5. Output must be strictly valid JSON matching the format below, without markdown wrappers or descriptions.
-6. CRITICAL SPELLING ACCURACY: You must preserve the EXACT spelling of all concepts, terms, vocabulary, names, and key definitions from the Study Text. Do not translate, paraphrase, correct, or change the spelling of these key terms under any circumstances (e.g. if the text says 'BERBAL', you must use 'BERBAL' or 'Berbal' exactly, not 'Bermabal').
+6. CRITICAL SPELLING ACCURACY: You must preserve the EXACT spelling of all concepts, terms, vocabulary, names, and key definitions from the Study Text. Do not translate, paraphrase, correct, or change the spelling of these key terms.
 
 Expected JSON output format:
 {json_example}
@@ -125,10 +125,47 @@ Expected JSON output format:
                 generation_config={"response_mime_type": "application/json"}
             )
 
+            cards = []
             if response and response.text:
-                cards = json.loads(response.text.strip())
-                print(f"[Gemini-FlashGen] Flashcards generated successfully with {len(cards)} cards.")
-                return cards
+                data = json.loads(response.text.strip())
+                if isinstance(data, list):
+                    cards = data
+                elif isinstance(data, dict):
+                    lists = [v for v in data.values() if isinstance(v, list)]
+                    cards = lists[0] if lists else []
+
+            # If fewer than 20 cards generated, request additional cards to reach 20
+            if len(cards) < 20 and extracted_text:
+                needed = 20 - len(cards)
+                print(f"[Gemini-FlashGen] Flashcards initial count is {len(cards)}. Requesting {needed} more to reach 20 standard cards...")
+                extra_prompt = f"""
+Based on the study text below, generate EXACTLY {needed} additional UNIQUE question-answer study flashcard pairs that do NOT repeat any previous cards.
+
+Existing Cards:
+{json.dumps([c.get('question', '') for c in cards if isinstance(c, dict)], ensure_ascii=False)}
+
+Study Text:
+{extracted_text[:10000]}
+
+Output MUST be a JSON array of objects:
+[
+  {{"question": "Question text...", "answer": "Answer text..."}}
+]
+"""
+                try:
+                    extra_res = self.model.generate_content(
+                        extra_prompt,
+                        generation_config={"response_mime_type": "application/json"}
+                    )
+                    if extra_res and extra_res.text:
+                        extra_data = json.loads(extra_res.text.strip())
+                        extra_list = extra_data if isinstance(extra_data, list) else ([v for v in extra_data.values() if isinstance(v, list)][0] if [v for v in extra_data.values() if isinstance(v, list)] else [])
+                        cards.extend(extra_list)
+                except Exception as extra_err:
+                    print(f"[Gemini-FlashGen] Extra card generation warning: {extra_err}")
+
+            print(f"[Gemini-FlashGen] Flashcards generated successfully with {len(cards[:20])} cards.")
+            return cards[:20]
             
             print("[Gemini-FlashGen] Empty response received from Gemini.")
             return []
