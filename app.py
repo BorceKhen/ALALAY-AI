@@ -599,27 +599,12 @@ def upload_file():
         # Combine pages to get full extracted text
         full_text = '\n\n'.join([p['text'] for p in result_pages])
         
-        # Check if simplification is required (User struggling / content_level is Easy)
-        simplified_text = None
-        user_id = session.get("user", {}).get("id")
-        if user_id:
-            db = get_db()
-            if db:
-                profile_doc = db.collection("profiles").document(user_id).get()
-                if profile_doc.exists:
-                    content_level = profile_doc.to_dict().get("recommended_settings", {}).get("content_level", "Medium")
-                    if content_level.lower() == "easy":
-                        from models.text_simplifier import TextSimplifier
-                        simplifier = TextSimplifier.get_instance()
-                        simplified_text = simplifier.simplify(full_text)
-                        print(f"[Upload] Text simplified for user {user_id} (length: {len(simplified_text)}).")
-
         return jsonify({
             'success': True,
             'filename': file.filename,
             'total_pages': len(result_pages),
             'pages': result_pages,
-            'simplified_text': simplified_text
+            'simplified_text': None
         })
 
     except Exception as e:

@@ -66,24 +66,27 @@
             <h5 class="fw-semibold mb-0">
                 <span style="color:#3b49a1;">&#9989;</span> Extraction Complete
             </h5>
-            <div class="d-flex align-items-center gap-2">
-                <span id="simplificationBadge" class="badge rounded-pill bg-success-subtle text-success border border-success-subtle d-none px-3 py-2" style="font-size: 0.8rem;">
-                    <i class="bi bi-magic me-1"></i> Adaptive Simplification Active
-                </span>
-                <span id="resultBadge" class="badge rounded-pill px-3 py-2" style="background:#3b49a1; font-size: 0.8rem;"></span>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span id="resultBadge" class="badge rounded-pill px-3 py-2 text-wrap text-break" style="background:#3b49a1; font-size: 0.8rem; max-width: 100%;"></span>
             </div>
         </div>
         <div class="mb-3">
             <small class="text-muted">File:</small>
-            <span id="resultFilename" class="fw-semibold ms-1"></span>
+            <span id="resultFilename" class="fw-semibold ms-1 text-break"></span>
         </div>
-        <div class="mb-3">
-            <small class="text-muted">Method:</small>
-            <span id="resultMethod" class="ms-1"></span>
-            <small class="text-muted ms-3">Pages:</small>
-            <span id="resultPages" class="ms-1"></span>
-            <small class="text-muted ms-3">Words:</small>
-            <span id="resultWordCount" class="ms-1"></span>
+        <div class="mb-3 d-flex flex-wrap gap-3 align-items-center">
+            <div>
+                <small class="text-muted">Method:</small>
+                <span id="resultMethod" class="ms-1 fw-semibold text-break"></span>
+            </div>
+            <div>
+                <small class="text-muted">Pages:</small>
+                <span id="resultPages" class="ms-1 fw-semibold"></span>
+            </div>
+            <div>
+                <small class="text-muted">Words:</small>
+                <span id="resultWordCount" class="ms-1 fw-semibold"></span>
+            </div>
         </div>
         <div>
             <small class="text-muted d-block mb-1">Extracted Text Preview:</small>
@@ -95,10 +98,10 @@
 </div>
 
 <!-- Divider + Generate Flashcard (shown after extraction) -->
-<div id="generateSection" class="mt-4" style="display:none;">
+<div id="generateSection" class="mt-4 mb-5 pb-5" style="display:none;">
     <hr style="border-color:#d0d5e8;">
     <div class="d-flex justify-content-center mt-4">
-        <button id="generateFlashcardBtn" class="btn btn-lg rounded-pill px-5 py-3 fw-semibold d-flex align-items-center gap-2"
+        <button id="generateFlashcardBtn" class="btn btn-lg rounded-pill px-5 py-3 fw-semibold d-flex align-items-center gap-2 shadow-sm"
                 style="background:#3b49a1; color:#fff; border:none; transition: transform 0.2s ease, box-shadow 0.2s ease;">
             <span style="font-size:1.3rem;">&#9889;</span>
             Generate Flashcard
