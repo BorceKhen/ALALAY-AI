@@ -236,6 +236,244 @@
         </nav>
         {% endif %}
 
+        <!-- High-End Entertaining Pop Loading Animation Modal -->
+        <div id="quizPopLoadingModal" class="quiz-pop-modal-overlay" style="display: none;">
+            <div class="quiz-pop-modal-card text-center p-4 p-md-5">
+                <!-- Floating Pop Sparkle / Brain Animation -->
+                <div class="quiz-pop-icon-wrapper mx-auto mb-4">
+                    <div class="quiz-pop-glow-ring"></div>
+                    <div class="quiz-pop-icon-container">
+                        <i class="bi bi-patch-question-fill quiz-pop-main-icon"></i>
+                    </div>
+                    <div class="quiz-pop-sparkle sparkle-1">✨</div>
+                    <div class="quiz-pop-sparkle sparkle-2">⚡</div>
+                    <div class="quiz-pop-sparkle sparkle-3">💡</div>
+                </div>
+
+                <h3 class="quiz-pop-title fw-bold mb-2">Generating Your Quiz...</h3>
+                
+                <!-- Dynamic Entertaining Quote Carousel -->
+                <p id="quizPopQuote" class="quiz-pop-quote text-secondary mb-4 fs-6 fw-medium">
+                    Creating 20 challenging questions tailored for you...
+                </p>
+
+                <!-- Animated Progress Bar -->
+                <div class="quiz-pop-progress-wrapper mx-auto mb-3" style="max-width: 340px;">
+                    <div class="progress quiz-pop-progress-bar rounded-pill" style="height: 12px; background: rgba(59,73,161,0.1);">
+                        <div id="quizPopProgressBar" class="progress-bar progress-bar-striped progress-bar-animated rounded-pill" 
+                             role="progressbar" style="width: 15%; background: linear-gradient(90deg, #4f46e5, #ec4899); transition: width 0.4s ease;"></div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2 px-1">
+                        <span class="quiz-pop-badge badge rounded-pill px-3 py-1" style="background: rgba(79,70,229,0.1); color: #4f46e5; font-size: 0.75rem;">
+                            <i class="bi bi-robot me-1"></i> AI Engine Active
+                        </span>
+                        <span id="quizPopPercent" class="fw-bold text-primary small">15%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <style>
+        .quiz-pop-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            animation: fadeInOverlay 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeInOverlay {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .quiz-pop-modal-card {
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            border-radius: 2rem;
+            max-width: 440px;
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgba(79, 70, 229, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+            animation: popInModal 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            transform-origin: center center;
+        }
+
+        @keyframes popInModal {
+            0% { opacity: 0; transform: scale(0.6) translateY(20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .quiz-pop-icon-wrapper {
+            position: relative;
+            width: 90px;
+            height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .quiz-pop-glow-ring {
+            position: absolute;
+            inset: -6px;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, #4f46e5, #ec4899, #8b5cf6, #4f46e5);
+            animation: spinGlow 3s linear infinite;
+            filter: blur(6px);
+            opacity: 0.8;
+        }
+
+        @keyframes spinGlow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .quiz-pop-icon-container {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4);
+            z-index: 2;
+            animation: pulseIcon 2s ease-in-out infinite;
+        }
+
+        @keyframes pulseIcon {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        .quiz-pop-main-icon {
+            font-size: 2.5rem;
+            color: #ffffff;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .quiz-pop-sparkle {
+            position: absolute;
+            font-size: 1.4rem;
+            z-index: 3;
+            animation: floatSparkle 2s ease-in-out infinite alternate;
+        }
+
+        .sparkle-1 { top: -10px; right: -10px; animation-delay: 0s; }
+        .sparkle-2 { bottom: -5px; left: -10px; animation-delay: 0.6s; }
+        .sparkle-3 { top: 10px; left: -15px; animation-delay: 1.2s; }
+
+        @keyframes floatSparkle {
+            0% { transform: translateY(0) scale(0.9); opacity: 0.7; }
+            100% { transform: translateY(-8px) scale(1.2); opacity: 1; }
+        }
+
+        .quiz-pop-title {
+            background: linear-gradient(135deg, #1e1b4b, #4338ca);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .quiz-pop-quote {
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .quiz-pop-quote.quote-swap {
+            opacity: 0;
+            transform: translateY(-5px);
+        }
+        </style>
+
+        <script>
+        window.showQuizPopLoading = function(titleText, initialMessage) {
+            const modal = document.getElementById('quizPopLoadingModal');
+            if (!modal) return;
+
+            if (titleText) {
+                const titleEl = modal.querySelector('.quiz-pop-title');
+                if (titleEl) titleEl.innerText = titleText;
+            }
+
+            const quotes = [
+                "Crafting 20 challenging questions tailored for you...",
+                "Generating smart, topic-correlated distractors...",
+                "Analyzing key concepts with AI...",
+                "Balancing reading level & choice complexity...",
+                "Almost ready! Finalizing your interactive quiz deck..."
+            ];
+
+            const quoteEl = document.getElementById('quizPopQuote');
+            const barEl = document.getElementById('quizPopProgressBar');
+            const percentEl = document.getElementById('quizPopPercent');
+
+            if (initialMessage && quoteEl) quoteEl.innerText = initialMessage;
+
+            modal.style.display = 'flex';
+
+            let progress = 15;
+            let quoteIndex = 0;
+
+            if (window._quizPopInterval) clearInterval(window._quizPopInterval);
+
+            window._quizPopInterval = setInterval(() => {
+                progress += Math.floor(Math.random() * 12) + 6;
+                if (progress > 95) progress = 95;
+
+                if (barEl) barEl.style.width = progress + '%';
+                if (percentEl) percentEl.innerText = progress + '%';
+
+                quoteIndex = (quoteIndex + 1) % quotes.length;
+                if (quoteEl) {
+                    quoteEl.classList.add('quote-swap');
+                    setTimeout(() => {
+                        quoteEl.innerText = quotes[quoteIndex];
+                        quoteEl.classList.remove('quote-swap');
+                    }, 300);
+                }
+            }, 1800);
+        };
+
+        window.hideQuizPopLoading = function() {
+            const modal = document.getElementById('quizPopLoadingModal');
+            if (modal) modal.style.display = 'none';
+            if (window._quizPopInterval) clearInterval(window._quizPopInterval);
+            const barEl = document.getElementById('quizPopProgressBar');
+            const percentEl = document.getElementById('quizPopPercent');
+            if (barEl) barEl.style.width = '100%';
+            if (percentEl) percentEl.innerText = '100%';
+        };
+
+        // Auto-attach Pop Loading animation to Quiz & Flashcard generation triggers
+        document.addEventListener('DOMContentLoaded', () => {
+            const genBtn = document.getElementById('generateFlashcardBtn');
+            if (genBtn) {
+                genBtn.addEventListener('click', () => {
+                    window.showQuizPopLoading("Generating Flashcards & Quiz...", "Extracting key concepts & generating 20 questions...");
+                });
+            }
+
+            document.addEventListener('click', (e) => {
+                const quizLink = e.target.closest('a[href*="/quiz/"], .btn-start-quiz, a[href*="quiz_deck"]');
+                if (quizLink) {
+                    window.showQuizPopLoading("Loading Quiz Deck...", "Preparing your 20 interactive quiz questions...");
+                }
+            });
+        });
+        </script>
 </body>
 
 </html>
