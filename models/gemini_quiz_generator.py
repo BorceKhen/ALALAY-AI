@@ -132,7 +132,26 @@ class GeminiQuizGenerator:
             if norm:
                 quiz_data.append(norm)
 
-        print(f"[Gemini-QuizGen] Quiz generated successfully with {len(quiz_data)} questions.")
+        # Guarantee exact max_questions (20 questions) target
+        if len(quiz_data) < max_questions and to_generate:
+            idx = 0
+            while len(quiz_data) < max_questions and idx < len(to_generate):
+                item = to_generate[idx % len(to_generate)]
+                options = item.get("options", [])
+                if not options:
+                    options = [{"text": item["correct_answer"], "is_correct": True}]
+                    for d in distractors_map.get(item["question"].lower(), []):
+                        options.append({"text": d, "is_correct": False})
+                norm = self._normalize_quiz_item({
+                    'question': item["question"],
+                    'correct_answer': item["correct_answer"],
+                    'options': options
+                }, answer_pool, content_level=content_level)
+                if norm:
+                    quiz_data.append(norm)
+                idx += 1
+
+        print(f"[Gemini-QuizGen] Quiz generated successfully with {len(quiz_data[:max_questions])} questions.")
         return quiz_data[:max_questions]
 
     def _generate_extra_quiz_questions(self, text: str, flashcards: List[Dict], needed: int = 17, content_level: str = "Medium") -> List[Dict]:

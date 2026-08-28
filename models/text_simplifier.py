@@ -409,4 +409,9 @@ Input JSON quiz items:
                 "options": unique_opts
             })
 
-        return normalized if normalized else original_items
+        # Guarantee exact same item count as original_items (e.g. 20 questions)
+        if len(normalized) < len(original_items):
+            for idx in range(len(normalized), len(original_items)):
+                normalized.append(original_items[idx])
+
+        return normalized[:len(original_items)] if normalized else original_items
