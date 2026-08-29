@@ -27,19 +27,31 @@ firebase_db = None
 
 # Only initialize once to avoid duplicate app errors
 if not firebase_admin._apps:
-    cred_path = os.environ.get("FIREBASE_CREDENTIALS_PATH", "firebase-credentials.json")
-    if not os.path.isabs(cred_path):
-        cred_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), cred_path)
-        
-    if os.path.exists(cred_path):
+    cred_json_str = os.environ.get("FIREBASE_CREDENTIALS_JSON")
+    if cred_json_str:
         try:
-            cred = credentials.Certificate(cred_path)
+            import json
+            cred_dict = json.loads(cred_json_str)
+            cred = credentials.Certificate(cred_dict)
             firebase_admin.initialize_app(cred)
-            print(f"[Firebase-Backend] Admin SDK initialized successfully using: {cred_path}")
+            print("[Firebase-Backend] Admin SDK initialized successfully using FIREBASE_CREDENTIALS_JSON env var.")
         except Exception as e:
-            print(f"[Firebase-Backend] Error initializing Firebase SDK: {e}")
-    else:
-        print(f"[Firebase-Backend] Warning: Credentials file not found at {cred_path}")
+            print(f"[Firebase-Backend] Error initializing Firebase SDK from FIREBASE_CREDENTIALS_JSON: {e}")
+    
+    if not firebase_admin._apps:
+        cred_path = os.environ.get("FIREBASE_CREDENTIALS_PATH", "firebase-credentials.json")
+        if not os.path.isabs(cred_path):
+            cred_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), cred_path)
+            
+        if os.path.exists(cred_path):
+            try:
+                cred = credentials.Certificate(cred_path)
+                firebase_admin.initialize_app(cred)
+                print(f"[Firebase-Backend] Admin SDK initialized successfully using: {cred_path}")
+            except Exception as e:
+                print(f"[Firebase-Backend] Error initializing Firebase SDK: {e}")
+        else:
+            print(f"[Firebase-Backend] Warning: Credentials file not found at {cred_path}")
 
 
 def get_db():
