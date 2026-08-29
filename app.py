@@ -17,8 +17,17 @@ if os.path.exists(_env_path):
                     _k, _v = _line.strip().split("=", 1)
                     os.environ[_k.strip()] = _v.strip()
 
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-alalay-ai-12345")
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = 604800
+
+# Fix reverse proxy headers (X-Forwarded-Proto / Host) on Azure App Service
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
 
 # ── Upload configuration ────────────────────────────────────
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
@@ -200,8 +209,12 @@ def login():
     # Sync server-side session with client-side Firebase authentication
     try:
         data = request.get_json() or {}
-        session["user"] = data.get("user")
-        return jsonify({"success": True})
+        user_data = data.get("user")
+        if user_data:
+            session.permanent = True
+            session["user"] = user_data
+            return jsonify({"success": True})
+        return jsonify({"success": False, "error": "No user payload"}), 400
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 400
 
