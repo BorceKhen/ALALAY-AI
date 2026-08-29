@@ -24,15 +24,15 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Zip project files for Azure
+        run: |
+          zip -r release.zip . -x "antenv/*" ".git/*" ".venv/*"
+
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: |
-            .
-            !antenv/
-            !.git/
-            !.venv/
+          path: release.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -60,3 +60,4 @@ jobs:
         with:
           app-name: 'alalay-ai-app'
           slot-name: 'Production'
+          package: release.zip
