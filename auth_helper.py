@@ -32,6 +32,8 @@ if not firebase_admin._apps:
         try:
             import json
             cred_dict = json.loads(cred_json_str)
+            if isinstance(cred_dict, dict) and "private_key" in cred_dict:
+                cred_dict["private_key"] = cred_dict["private_key"].replace("\\n", "\n")
             cred = credentials.Certificate(cred_dict)
             firebase_admin.initialize_app(cred)
             print("[Firebase-Backend] Admin SDK initialized successfully using FIREBASE_CREDENTIALS_JSON env var.")
