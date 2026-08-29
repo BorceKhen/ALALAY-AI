@@ -90,7 +90,7 @@
 
         <!-- USER INFO -->
         <div style="min-width: 0; flex: 1;">
-            <h1 class="display-6 fw-bold mb-0 text-break">{{ profile.get('email', 'User Email') }}</h1>
+            <h1 class="display-6 fw-bold mb-0 text-break">{{ profile.get('email') or user.get('email') or 'User Email' }}</h1>
             <p class="text-muted mb-2">Disability: {{ profile.get('disability_type', 'None') }} | Gender: {{
                 profile.get('gender', 'Not Specified') }} | Birthdate: {{ profile.get('birthdate', 'N/A') }}</p>
 

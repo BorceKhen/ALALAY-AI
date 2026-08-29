@@ -588,6 +588,8 @@ def profile():
         print(f"[Profile] Failed to recalculate personalization indices: {e}")
         
     profile_data = fetch_user_profile(user_id) or {}
+    if isinstance(profile_data, dict) and not profile_data.get("email"):
+        profile_data["email"] = user.get("email", "")
     decks = load_user_decks(user_id)
     return render_template('profile.html', user=user, profile=profile_data, decks=decks)
 
