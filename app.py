@@ -37,23 +37,12 @@ def allowed_file(filename: str) -> bool:
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def load_local_decks() -> list:
-    """Load default fallback decks from decks.json."""
-    decks_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'decks.json')
-    if os.path.exists(decks_file):
-        try:
-            with open(decks_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"Error reading local decks.json: {e}")
-    return []
-
-
 def load_user_decks(user_id: str) -> list:
-    """Load decks for a specific user from Firestore. Falls back to local decks if empty."""
+    """Load decks for a specific user strictly from Firebase Cloud Firestore."""
     db = get_db()
     if not db or not user_id:
-        return load_local_decks()
+        print(f"[Firestore] Unable to load decks: db={db is not None}, user_id={user_id}")
+        return []
     try:
         decks_ref = db.collection("users").document(user_id).collection("decks")
         docs = list(decks_ref.stream())
@@ -64,18 +53,11 @@ def load_user_decks(user_id: str) -> list:
             if 'name' not in deck_data:
                 deck_data['name'] = doc.id
             decks.append(deck_data)
-        
-        # If user has no Firestore decks yet, seed them with sample decks from decks.json
-        if not decks:
-            local_decks = load_local_decks()
-            for l_deck in local_decks:
-                save_user_deck(user_id, l_deck)
-            return local_decks
-
+        print(f"[Firestore] Loaded {len(decks)} decks for user_id={user_id}")
         return decks
     except Exception as e:
-        print(f"Error loading decks from Firestore: {e}")
-        return load_local_decks()
+        print(f"[Firestore] Error loading decks from Firestore for user {user_id}: {e}")
+        return []
 
 
 def save_user_deck(user_id: str, deck: dict):
