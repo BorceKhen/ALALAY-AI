@@ -28,17 +28,12 @@ class GroqFlashcardGenerator:
         if self.client_initialized:
             return
 
-        api_key = os.environ.get("GROQ_API_KEY", "")
-        if not api_key:
-            print("[Groq-FlashGen] Warning: GROQ_API_KEY environment variable is not set in your .env file.")
-
         try:
-            from groq import Groq
-            self.client = Groq(api_key=api_key)
+            from models.groq_helper import get_groq_client
+            self.client, _ = get_groq_client()
             self.client_initialized = True
-        except ImportError:
-            print("[Groq-FlashGen] Error: 'groq' package is not installed.")
-            print("[Groq-FlashGen] Please run: pip install groq")
+        except Exception as e:
+            print(f"[Groq-FlashGen] Error initializing Groq client: {e}")
             raise
 
     def generate_deck(self, extracted_text: str, content_level: str = "Medium") -> List[Dict[str, str]]:
@@ -48,7 +43,7 @@ class GroqFlashcardGenerator:
         """
         try:
             self._init_client()
-        except ImportError:
+        except Exception:
             return []
 
         if not extracted_text or not extracted_text.strip():
@@ -82,17 +77,18 @@ class GroqFlashcardGenerator:
 ]"""
 
         # Set up difficulty/complexity constraints dynamically based on language
+        content_level_str = str(content_level or "Medium").strip().lower()
         if is_tagalog:
-            if content_level.lower() == "easy":
+            if content_level_str == "easy":
                 level_instruction = "Siguraduhing napakasimple ng mga tanong at ang mga sagot ay nakasulat gamit ang mga payak at madaling maunawaang salita (in Filipino/Tagalog)."
-            elif content_level.lower() == "hard":
+            elif content_level_str == "hard":
                 level_instruction = "Siguraduhing ang mga tanong ay nangangailangan ng kritikal na pag-iisip at pagsusuri, at ang mga sagot ay komprehensibo (in Filipino/Tagalog)."
             else:
                 level_instruction = "Siguraduhing ang mga tanong at sagot ay malinaw, maikli, at balanse (in Filipino/Tagalog)."
         else:
-            if content_level.lower() == "easy":
+            if content_level_str == "easy":
                 level_instruction = "Ensure questions are VERY SIMPLE and answers are written using straightforward, plain-language definitions and easy-to-understand words."
-            elif content_level.lower() == "hard":
+            elif content_level_str == "hard":
                 level_instruction = "Ensure questions demand critical thinking and analytical application, and answers are comprehensive."
             else:
                 level_instruction = "Ensure questions and answers are clear, concise, and balanced."
@@ -120,11 +116,23 @@ Expected JSON output format:
         try:
             model_to_use = "openai/gpt-oss-20b"
             print(f"[Groq-FlashGen] Requesting flashcards from Groq using model ({model_to_use})...")
-            response = self.client.chat.completions.create(
-                model=model_to_use,
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"}
-            )
+            
+            try:
+                response = self.client.chat.completions.create(
+                    model=model_to_use,
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"}
+                )
+            except Exception as api_err:
+                print(f"[Groq-FlashGen] Primary key failed: {api_err}. Trying backup API key...")
+                from models.groq_helper import get_groq_client, mark_primary_failed
+                mark_primary_failed()
+                self.client, _ = get_groq_client(force_backup=True)
+                response = self.client.chat.completions.create(
+                    model=model_to_use,
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"}
+                )
 
             response_text = response.choices[0].message.content
             cards = []
@@ -155,11 +163,23 @@ Output MUST be a JSON array of objects:
 ]
 """
                 try:
-                    extra_res = self.client.chat.completions.create(
-                        model=model_to_use,
-                        messages=[{"role": "user", "content": extra_prompt}],
-                        response_format={"type": "json_object"}
-                    )
+                    try:
+                        extra_res = self.client.chat.completions.create(
+                            model=model_to_use,
+                            messages=[{"role": "user", "content": extra_prompt}],
+                            response_format={"type": "json_object"}
+                        )
+                    except Exception as api_err:
+                        print(f"[Groq-FlashGen] Extra generation primary key failed: {api_err}. Trying backup API key...")
+                        from models.groq_helper import get_groq_client, mark_primary_failed
+                        mark_primary_failed()
+                        self.client, _ = get_groq_client(force_backup=True)
+                        extra_res = self.client.chat.completions.create(
+                            model=model_to_use,
+                            messages=[{"role": "user", "content": extra_prompt}],
+                            response_format={"type": "json_object"}
+                        )
+                    
                     if extra_res and extra_res.choices:
                         extra_data = json.loads(extra_res.choices[0].message.content.strip())
                         extra_list = extra_data if isinstance(extra_data, list) else ([v for v in extra_data.values() if isinstance(v, list)][0] if [v for v in extra_data.values() if isinstance(v, list)] else [])

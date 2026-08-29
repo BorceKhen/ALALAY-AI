@@ -27,14 +27,12 @@ class TextSimplifier:
     def _init_groq(self):
         if self.groq_initialized:
             return
-        api_key = os.environ.get("GROQ_API_KEY", "")
-        if api_key:
-            try:
-                from groq import Groq
-                self.groq_client = Groq(api_key=api_key)
-                self.groq_initialized = True
-            except Exception as e:
-                print(f"[TextSimplifier] Failed to initialize Groq client: {e}")
+        try:
+            from models.groq_helper import get_groq_client
+            self.groq_client, _ = get_groq_client()
+            self.groq_initialized = True
+        except Exception as e:
+            print(f"[TextSimplifier] Failed to initialize Groq client: {e}")
 
     def _init_gemini(self):
         if self.gemini_initialized:
@@ -91,10 +89,20 @@ Study Text to Simplify:
         if self.groq_initialized and self.groq_client:
             try:
                 print("[TextSimplifier] Attempting text simplification via Groq (openai/gpt-oss-20b)...")
-                response = self.groq_client.chat.completions.create(
-                    model="openai/gpt-oss-20b",
-                    messages=[{"role": "user", "content": prompt}]
-                )
+                try:
+                    response = self.groq_client.chat.completions.create(
+                        model="openai/gpt-oss-20b",
+                        messages=[{"role": "user", "content": prompt}]
+                    )
+                except Exception as api_err:
+                    print(f"[TextSimplifier] Text simplification primary key failed: {api_err}. Trying backup API key...")
+                    from models.groq_helper import get_groq_client, mark_primary_failed
+                    mark_primary_failed()
+                    self.groq_client, _ = get_groq_client(force_backup=True)
+                    response = self.groq_client.chat.completions.create(
+                        model="openai/gpt-oss-20b",
+                        messages=[{"role": "user", "content": prompt}]
+                    )
                 res_content = response.choices[0].message.content
                 if res_content and res_content.strip():
                     return res_content.strip()
@@ -134,20 +142,24 @@ Study Text to Simplify:
 
         if is_tagalog:
             lang_instruction = "LANGUAGE REQUIREMENT: The input cards are in Filipino/Tagalog. You MUST simplify them in Filipino/Tagalog. DO NOT translate to English. Keep technical words as they are."
-            json_example = """[
-  {
-    "question": "Ano ang wika?",
-    "answer": "Ito ay sistema ng tunog para sa komunikasyon."
-  }
-]"""
+            json_example = """{
+  "cards": [
+    {
+      "question": "Ano ang wika?",
+      "answer": "Ito ay sistema ng tunog para sa komunikasyon."
+    }
+  ]
+}"""
         else:
             lang_instruction = "LANGUAGE REQUIREMENT: The input cards are in English. You MUST simplify them in English."
-            json_example = """[
-  {
-    "question": "What is language?",
-    "answer": "It is a system of sounds used for communication."
-  }
-]"""
+            json_example = """{
+  "cards": [
+    {
+      "question": "What is language?",
+      "answer": "It is a system of sounds used for communication."
+    }
+  ]
+}"""
 
         prompt = f"""
 You are an expert accessibility assistant. Your task is to simplify the questions and answers of the study flashcards below. Make the vocabulary and sentence structure easy to read for users with learning/cognitive difficulties.
@@ -168,11 +180,22 @@ Input JSON cards:
         if self.groq_initialized and self.groq_client:
             try:
                 print("[TextSimplifier] Attempting bulk card simplification via Groq (openai/gpt-oss-20b)...")
-                response = self.groq_client.chat.completions.create(
-                    model="openai/gpt-oss-20b",
-                    messages=[{"role": "user", "content": prompt}],
-                    response_format={"type": "json_object"}
-                )
+                try:
+                    response = self.groq_client.chat.completions.create(
+                        model="openai/gpt-oss-20b",
+                        messages=[{"role": "user", "content": prompt}],
+                        response_format={"type": "json_object"}
+                    )
+                except Exception as api_err:
+                    print(f"[TextSimplifier] Bulk card simplification primary key failed: {api_err}. Trying backup API key...")
+                    from models.groq_helper import get_groq_client, mark_primary_failed
+                    mark_primary_failed()
+                    self.groq_client, _ = get_groq_client(force_backup=True)
+                    response = self.groq_client.chat.completions.create(
+                        model="openai/gpt-oss-20b",
+                        messages=[{"role": "user", "content": prompt}],
+                        response_format={"type": "json_object"}
+                    )
                 res_content = response.choices[0].message.content
                 if res_content:
                     text = res_content.strip()
@@ -183,8 +206,14 @@ Input JSON cards:
                     data = json.loads(text.strip())
                     if isinstance(data, list):
                         return data
-                    elif isinstance(data, dict) and "cards" in data:
-                        return data["cards"]
+                    elif isinstance(data, dict):
+                        if "cards" in data:
+                            return data["cards"]
+                        if "question" in data and "answer" in data:
+                            return [data]
+                        lists = [v for v in data.values() if isinstance(v, list)]
+                        if lists:
+                            return lists[0]
             except Exception as e:
                 print(f"[TextSimplifier] Groq bulk card simplification failed: {e}")
 
@@ -203,8 +232,14 @@ Input JSON cards:
                     data = json.loads(text.strip())
                     if isinstance(data, list):
                         return data
-                    elif isinstance(data, dict) and "cards" in data:
-                        return data["cards"]
+                    elif isinstance(data, dict):
+                        if "cards" in data:
+                            return data["cards"]
+                        if "question" in data and "answer" in data:
+                            return [data]
+                        lists = [v for v in data.values() if isinstance(v, list)]
+                        if lists:
+                            return lists[0]
             except Exception as e:
                 print(f"[TextSimplifier] Gemini bulk card simplification failed: {e}")
 
@@ -274,11 +309,22 @@ Input JSON quiz items:
         if self.groq_initialized and self.groq_client:
             try:
                 print("[TextSimplifier] Attempting bulk quiz simplification via Groq (openai/gpt-oss-20b)...")
-                response = self.groq_client.chat.completions.create(
-                    model="openai/gpt-oss-20b",
-                    messages=[{"role": "user", "content": prompt}],
-                    response_format={"type": "json_object"}
-                )
+                try:
+                    response = self.groq_client.chat.completions.create(
+                        model="openai/gpt-oss-20b",
+                        messages=[{"role": "user", "content": prompt}],
+                        response_format={"type": "json_object"}
+                    )
+                except Exception as api_err:
+                    print(f"[TextSimplifier] Bulk quiz simplification primary key failed: {api_err}. Trying backup API key...")
+                    from models.groq_helper import get_groq_client, mark_primary_failed
+                    mark_primary_failed()
+                    self.groq_client, _ = get_groq_client(force_backup=True)
+                    response = self.groq_client.chat.completions.create(
+                        model="openai/gpt-oss-20b",
+                        messages=[{"role": "user", "content": prompt}],
+                        response_format={"type": "json_object"}
+                    )
                 res_content = response.choices[0].message.content
                 if res_content:
                     text = res_content.strip()
@@ -415,3 +461,255 @@ Input JSON quiz items:
                 normalized.append(original_items[idx])
 
         return normalized[:len(original_items)] if normalized else original_items
+
+    def enhance_cards(self, cards: list) -> list:
+        """
+        Rewrites a list of cards dynamically to be more academically challenging/comprehensive.
+        """
+        if not cards:
+            return []
+
+        sample_text = " ".join([c.get('question', '') + ' ' + c.get('answer', '') for c in cards[:5]])
+        tagalog_keywords = {
+            "ang", "mga", "ano", "paano", "bakit", "saan", "kailan", "sa", "ng", "na", "at", "o",
+            "isang", "may", "para", "dahil", "wika", "filipino", "pilipino", "ito", "sila", "tayo"
+        }
+        words = set(sample_text.lower().split())
+        is_tagalog = len(words.intersection(tagalog_keywords)) >= 2
+
+        if is_tagalog:
+            lang_instruction = "LANGUAGE REQUIREMENT: The input cards are in Filipino/Tagalog. You MUST enhance them in Filipino/Tagalog. DO NOT translate to English. Keep technical words as they are."
+            json_example = """{
+  "cards": [
+    {
+      "question": "Ano ang mas malalim at komprehensibong kahalagahan ng wika?",
+      "answer": "Ang wika ay nagsisilbing pangunahing instrumento ng komunikasyon at pagkakakilanlan, na nagpapahayag ng masalimuot na kultura at kaisipan ng isang lipunan."
+    }
+  ]
+}"""
+        else:
+            lang_instruction = "LANGUAGE REQUIREMENT: The input cards are in English. You MUST enhance them in English."
+            json_example = """{
+  "cards": [
+    {
+      "question": "What is the comprehensive academic significance of language?",
+      "answer": "Language functions as the primary mechanism for human expression, encapsulating complex cultural nuances and serving as a vector for transmitting knowledge."
+    }
+  ]
+}"""
+
+        prompt = f"""
+You are an expert educational enhancer. Your task is to increase the academic complexity, difficulty, and depth of the study flashcards below.
+Enhance the vocabulary, require critical thinking/analysis, and make definitions more comprehensive, without changing the core factual correctness.
+
+Requirements:
+1. {lang_instruction}
+2. Maintain the exact count of cards and the JSON structure. Do not change the underlying meaning or educational facts.
+3. Output MUST be strictly valid JSON matching the format below, without markdown wrappers or descriptions.
+
+Expected JSON output format:
+{json_example}
+
+Input JSON cards:
+{json.dumps(cards, indent=2)}
+"""
+        # 1. Try Groq
+        self._init_groq()
+        if self.groq_initialized and self.groq_client:
+            try:
+                print("[TextSimplifier] Attempting bulk card enhancement via Groq (openai/gpt-oss-20b)...")
+                try:
+                    response = self.groq_client.chat.completions.create(
+                        model="openai/gpt-oss-20b",
+                        messages=[{"role": "user", "content": prompt}],
+                        response_format={"type": "json_object"}
+                    )
+                except Exception as api_err:
+                    print(f"[TextSimplifier] Bulk card enhancement primary key failed: {api_err}. Trying backup API key...")
+                    from models.groq_helper import get_groq_client, mark_primary_failed
+                    mark_primary_failed()
+                    self.groq_client, _ = get_groq_client(force_backup=True)
+                    response = self.groq_client.chat.completions.create(
+                        model="openai/gpt-oss-20b",
+                        messages=[{"role": "user", "content": prompt}],
+                        response_format={"type": "json_object"}
+                    )
+                res_content = response.choices[0].message.content
+                if res_content:
+                    text = res_content.strip()
+                    if text.startswith("```"):
+                        text = text.split("```")[1]
+                        if text.startswith("json"):
+                            text = text[4:]
+                    data = json.loads(text.strip())
+                    if isinstance(data, list):
+                        return data
+                    elif isinstance(data, dict):
+                        if "cards" in data:
+                            return data["cards"]
+                        if "question" in data and "answer" in data:
+                            return [data]
+                        lists = [v for v in data.values() if isinstance(v, list)]
+                        if lists:
+                            return lists[0]
+            except Exception as e:
+                print(f"[TextSimplifier] Groq bulk card enhancement failed: {e}")
+
+        # 2. Try Gemini (Fallback)
+        self._init_gemini()
+        if self.gemini_initialized and self.gemini_model:
+            try:
+                print("[TextSimplifier] Attempting bulk card enhancement via Gemini...")
+                response = self.gemini_model.generate_content(prompt)
+                if response and response.text:
+                    text = response.text.strip()
+                    if text.startswith("```"):
+                        text = text.split("```")[1]
+                        if text.startswith("json"):
+                            text = text[4:]
+                    data = json.loads(text.strip())
+                    if isinstance(data, list):
+                        return data
+                    elif isinstance(data, dict):
+                        if "cards" in data:
+                            return data["cards"]
+                        if "question" in data and "answer" in data:
+                            return [data]
+                        lists = [v for v in data.values() if isinstance(v, list)]
+                        if lists:
+                            return lists[0]
+            except Exception as e:
+                print(f"[TextSimplifier] Gemini bulk card enhancement failed: {e}")
+
+        return cards
+
+    def enhance_quiz_items(self, quiz_items: list) -> list:
+        """
+        Rewrites a list of quiz items dynamically to be more academically challenging.
+        """
+        if not quiz_items:
+            return []
+
+        sample_text = " ".join([q.get('question', '') + ' ' + q.get('correct_answer', '') for q in quiz_items[:3]])
+        tagalog_keywords = {
+            "ang", "mga", "ano", "paano", "bakit", "saan", "kailan", "sa", "ng", "na", "at", "o",
+            "isang", "may", "para", "dahil", "wika", "filipino", "pilipino", "ito", "sila", "tayo"
+        }
+        words = set(sample_text.lower().split())
+        is_tagalog = len(words.intersection(tagalog_keywords)) >= 2
+
+        if is_tagalog:
+            lang_instruction = "LANGUAGE REQUIREMENT: The input quiz items are in Filipino/Tagalog. You MUST enhance them in Filipino/Tagalog. DO NOT translate to English. Keep technical words as they are."
+            json_example = """[
+  {
+    "question": "Ano ang mas malalim at komprehensibong kahalagahan ng wika?",
+    "correct_answer": "Ito ang instrumento sa pagbabahagi ng kumplikadong impormasyon at kultura",
+    "options": [
+      {"text": "Ito ay para sa pagsusulat lamang ng mga liham", "is_correct": false},
+      {"text": "Ito ang instrumento sa pagbabahagi ng kumplikadong impormasyon at kultura", "is_correct": true},
+      {"text": "Ito ay para sa panandaliang pakikipag-usap lamang", "is_correct": false},
+      {"text": "Ito ay isang simpleng ingay ng tao", "is_correct": false}
+    ]
+  }
+]"""
+        else:
+            lang_instruction = "LANGUAGE REQUIREMENT: The input quiz items are in English. You MUST enhance them in English."
+            json_example = """[
+  {
+    "question": "What is the comprehensive academic significance of language?",
+    "correct_answer": "To serve as a vector for transmitting complex cultural and cognitive knowledge",
+    "options": [
+      {"text": "To write basic correspondence and text messages only", "is_correct": false},
+      {"text": "To serve as a vector for transmitting complex cultural and cognitive knowledge", "is_correct": true},
+      {"text": "To participate in casual conversation exclusively", "is_correct": false},
+      {"text": "To act as a simple vocal expression", "is_correct": false}
+    ]
+  }
+]"""
+
+        prompt = f"""
+You are an expert educational enhancer. Your task is to increase the academic complexity, difficulty, and depth of the multiple-choice quiz questions below.
+Make the questions demand critical analysis, use advanced terminology, and ensure options are highly challenging, without changing the core factual correctness.
+
+Requirements:
+1. {lang_instruction}
+2. Maintain the exact count of quiz items and the JSON structure. The options must align directly with the enhanced question/correct answer.
+3. Output MUST be strictly valid JSON matching the format below, without markdown wrappers or descriptions.
+
+Expected JSON output format:
+{json_example}
+
+Input JSON quiz items:
+{json.dumps(quiz_items, indent=2)}
+"""
+        # 1. Try Groq
+        self._init_groq()
+        if self.groq_initialized and self.groq_client:
+            try:
+                print("[TextSimplifier] Attempting bulk quiz enhancement via Groq (openai/gpt-oss-20b)...")
+                try:
+                    response = self.groq_client.chat.completions.create(
+                        model="openai/gpt-oss-20b",
+                        messages=[{"role": "user", "content": prompt}],
+                        response_format={"type": "json_object"}
+                    )
+                except Exception as api_err:
+                    print(f"[TextSimplifier] Bulk quiz enhancement primary key failed: {api_err}. Trying backup API key...")
+                    from models.groq_helper import get_groq_client, mark_primary_failed
+                    mark_primary_failed()
+                    self.groq_client, _ = get_groq_client(force_backup=True)
+                    response = self.groq_client.chat.completions.create(
+                        model="openai/gpt-oss-20b",
+                        messages=[{"role": "user", "content": prompt}],
+                        response_format={"type": "json_object"}
+                    )
+                res_content = response.choices[0].message.content
+                if res_content:
+                    text = res_content.strip()
+                    if text.startswith("```"):
+                        text = text.split("```")[1]
+                        if text.startswith("json"):
+                            text = text[4:]
+                    data = json.loads(text.strip())
+                    items = []
+                    if isinstance(data, list):
+                        items = data
+                    elif isinstance(data, dict) and "quiz_items" in data:
+                        items = data["quiz_items"]
+                    elif isinstance(data, dict):
+                        lists = [v for v in data.values() if isinstance(v, list)]
+                        items = lists[0] if lists else []
+
+                    if items:
+                        return self._normalize_quiz_items(items, quiz_items)
+            except Exception as e:
+                print(f"[TextSimplifier] Groq bulk quiz enhancement failed: {e}")
+
+        # 2. Try Gemini (Fallback)
+        self._init_gemini()
+        if self.gemini_initialized and self.gemini_model:
+            try:
+                print("[TextSimplifier] Attempting bulk quiz enhancement via Gemini...")
+                response = self.gemini_model.generate_content(prompt)
+                if response and response.text:
+                    text = response.text.strip()
+                    if text.startswith("```"):
+                        text = text.split("```")[1]
+                        if text.startswith("json"):
+                            text = text[4:]
+                    data = json.loads(text.strip())
+                    items = []
+                    if isinstance(data, list):
+                        items = data
+                    elif isinstance(data, dict) and "quiz_items" in data:
+                        items = data["quiz_items"]
+                    elif isinstance(data, dict):
+                        lists = [v for v in data.values() if isinstance(v, list)]
+                        items = lists[0] if lists else []
+
+                    if items:
+                        return self._normalize_quiz_items(items, quiz_items)
+            except Exception as e:
+                print(f"[TextSimplifier] Gemini bulk quiz enhancement failed: {e}")
+
+        return quiz_items

@@ -290,12 +290,10 @@ class SmartDistractorGenerator:
         to generate 3 highly accurate, correlated distractors for the given question.
         """
         # 1. Try Groq (openai/gpt-oss-20b)
-        groq_key = os.environ.get("GROQ_API_KEY")
-        if groq_key:
-            try:
-                from groq import Groq
-                client = Groq(api_key=groq_key)
-                prompt = f"""
+        try:
+            from models.groq_helper import get_groq_client, mark_primary_failed
+            client, _ = get_groq_client()
+            prompt = f"""
 You are an expert test designer. For the question below, generate exactly {count} incorrect multiple-choice distractor options.
 
 Question: {question}
@@ -312,28 +310,39 @@ CRITICAL RULES:
   "distractors": ["distractor 1", "distractor 2", "distractor 3"]
 }}
 """
+            try:
                 response = client.chat.completions.create(
                     model="openai/gpt-oss-20b",
                     messages=[{"role": "user", "content": prompt}],
                     response_format={"type": "json_object"}
                 )
-                if response and response.choices:
-                    res_text = response.choices[0].message.content.strip()
-                    res_data = json.loads(res_text)
-                    if isinstance(res_data, dict) and "distractors" in res_data:
-                        items = res_data["distractors"]
-                        if isinstance(items, list):
-                            clean = [str(d).strip() for d in items if str(d).strip().lower() != correct_answer.lower()]
-                            if len(clean) >= count:
-                                print(f"[SmartDistractorGen] Groq AI generated distractors for '{question[:30]}...': {clean}")
-                                return clean[:count]
-                    elif isinstance(res_data, list):
-                        clean = [str(d).strip() for d in res_data if str(d).strip().lower() != correct_answer.lower()]
+            except Exception as api_err:
+                print(f"[SmartDistractorGen] Groq primary key failed: {api_err}. Trying backup API key...")
+                mark_primary_failed()
+                client, _ = get_groq_client(force_backup=True)
+                response = client.chat.completions.create(
+                    model="openai/gpt-oss-20b",
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"}
+                )
+
+            if response and response.choices:
+                res_text = response.choices[0].message.content.strip()
+                res_data = json.loads(res_text)
+                if isinstance(res_data, dict) and "distractors" in res_data:
+                    items = res_data["distractors"]
+                    if isinstance(items, list):
+                        clean = [str(d).strip() for d in items if str(d).strip().lower() != correct_answer.lower()]
                         if len(clean) >= count:
                             print(f"[SmartDistractorGen] Groq AI generated distractors for '{question[:30]}...': {clean}")
                             return clean[:count]
-            except Exception as e:
-                print(f"[SmartDistractorGen] Groq AI distractor generation failed: {e}")
+                elif isinstance(res_data, list):
+                    clean = [str(d).strip() for d in res_data if str(d).strip().lower() != correct_answer.lower()]
+                    if len(clean) >= count:
+                        print(f"[SmartDistractorGen] Groq AI generated distractors for '{question[:30]}...': {clean}")
+                        return clean[:count]
+        except Exception as e:
+            print(f"[SmartDistractorGen] Groq AI distractor generation failed: {e}")
 
         # 2. Try Gemini (gemini-3.6-flash)
         gemini_key = os.environ.get("GEMINI_API_KEY")

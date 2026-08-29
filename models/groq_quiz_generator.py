@@ -28,17 +28,12 @@ class GroqQuizGenerator:
         if self.client_initialized:
             return
 
-        api_key = os.environ.get("GROQ_API_KEY", "")
-        if not api_key:
-            print("[Groq-QuizGen] Warning: GROQ_API_KEY environment variable is not set in your .env file.")
-
         try:
-            from groq import Groq
-            self.client = Groq(api_key=api_key)
+            from models.groq_helper import get_groq_client
+            self.client, _ = get_groq_client()
             self.client_initialized = True
-        except ImportError:
-            print("[Groq-QuizGen] Error: 'groq' package is not installed.")
-            print("[Groq-QuizGen] To use this generator, please run: pip install groq")
+        except Exception as e:
+            print(f"[Groq-QuizGen] Error initializing Groq client: {e}")
             raise
 
     def generate_quiz(
@@ -54,7 +49,7 @@ class GroqQuizGenerator:
         """
         try:
             self._init_client()
-        except ImportError:
+        except Exception:
             return []
 
         if not flashcard_pairs:
@@ -187,11 +182,22 @@ Requirements:
   }}
 ]
 """
-            response = self.client.chat.completions.create(
-                model="openai/gpt-oss-20b",
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"}
-            )
+            try:
+                response = self.client.chat.completions.create(
+                    model="openai/gpt-oss-20b",
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"}
+                )
+            except Exception as api_err:
+                print(f"[Groq-QuizGen] Extra question generation primary key failed: {api_err}. Trying backup API key...")
+                from models.groq_helper import get_groq_client, mark_primary_failed
+                mark_primary_failed()
+                self.client, _ = get_groq_client(force_backup=True)
+                response = self.client.chat.completions.create(
+                    model="openai/gpt-oss-20b",
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"}
+                )
             if response and response.choices:
                 res_items = json.loads(response.choices[0].message.content.strip())
                 if isinstance(res_items, list):
@@ -235,11 +241,22 @@ Expected JSON Output format:
   "question text here": ["distractor 1", "distractor 2", "distractor 3"]
 }}
 """
-            response = self.client.chat.completions.create(
-                model="openai/gpt-oss-20b",
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"}
-            )
+            try:
+                response = self.client.chat.completions.create(
+                    model="openai/gpt-oss-20b",
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"}
+                )
+            except Exception as api_err:
+                print(f"[Groq-QuizGen] Batch distractor generation primary key failed: {api_err}. Trying backup API key...")
+                from models.groq_helper import get_groq_client, mark_primary_failed
+                mark_primary_failed()
+                self.client, _ = get_groq_client(force_backup=True)
+                response = self.client.chat.completions.create(
+                    model="openai/gpt-oss-20b",
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"}
+                )
             if response and response.choices:
                 res_dict = json.loads(response.choices[0].message.content.strip())
                 return {str(k).lower().strip(): v for k, v in res_dict.items() if isinstance(v, list)}

@@ -83,17 +83,18 @@ class GeminiFlashcardGenerator:
 ]"""
 
         # Set up difficulty/complexity constraints dynamically based on language
+        content_level_str = str(content_level or "Medium").strip().lower()
         if is_tagalog:
-            if content_level.lower() == "easy":
+            if content_level_str == "easy":
                 level_instruction = "Siguraduhing napakasimple ng mga tanong at ang mga sagot ay nakasulat gamit ang mga payak at madaling maunawaang salita (in Filipino/Tagalog)."
-            elif content_level.lower() == "hard":
+            elif content_level_str == "hard":
                 level_instruction = "Siguraduhing ang mga tanong ay nangangailangan ng kritikal na pag-iisip at pagsusuri, at ang mga sagot ay komprehensibo (in Filipino/Tagalog)."
             else:
                 level_instruction = "Siguraduhing ang mga tanong at sagot ay malinaw, maikli, at balanse (in Filipino/Tagalog)."
         else:
-            if content_level.lower() == "easy":
+            if content_level_str == "easy":
                 level_instruction = "Ensure questions are VERY SIMPLE and answers are written using straightforward, plain-language definitions and easy-to-understand words."
-            elif content_level.lower() == "hard":
+            elif content_level_str == "hard":
                 level_instruction = "Ensure questions demand critical thinking and analytical application, and answers are comprehensive."
             else:
                 level_instruction = "Ensure questions and answers are clear, concise, and balanced."

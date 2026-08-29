@@ -339,6 +339,35 @@ def flashcard_deck(deck_name):
                 print(f"[Flashcard-Simplification] Error during card simplification: {se}")
                 simplified_cards = cards
         cards = simplified_cards
+    elif content_level.lower() == "hard" and cards:
+        hard_cards = deck.get('cards_hard')
+        if hard_cards and cards:
+            orig_sample = " ".join([c.get('question', '') for c in cards[:3]])
+            hard_sample = " ".join([c.get('question', '') for c in hard_cards[:3]])
+            tagalog_keywords = {"ang", "mga", "ano", "paano", "bakit", "saan", "kailan", "sa", "ng", "na", "at", "o"}
+            orig_is_tagalog = len(set(orig_sample.lower().split()).intersection(tagalog_keywords)) >= 1
+            hard_is_tagalog = len(set(hard_sample.lower().split()).intersection(tagalog_keywords)) >= 1
+            if orig_is_tagalog and not hard_is_tagalog:
+                print("[Flashcard-Enhancement] Stale cache mismatch. Forcing regeneration.")
+                hard_cards = None
+
+        if not hard_cards:
+            try:
+                from models.text_simplifier import TextSimplifier
+                simplifier = TextSimplifier.get_instance()
+                hard_cards = simplifier.enhance_cards(cards)
+                if hard_cards:
+                    # Update cache in Firestore
+                    doc_id = deck.get('doc_id')
+                    if doc_id:
+                        db.collection("users").document(user_id).collection("decks").document(doc_id).update({
+                            "cards_hard": hard_cards
+                        })
+                        print(f"[Flashcard-Enhancement] Cached enhanced hard cards for deck: {deck_name}")
+            except Exception as se:
+                print(f"[Flashcard-Enhancement] Error during card enhancement: {se}")
+                hard_cards = cards
+        cards = hard_cards
 
     return render_template('flashcard.html',
                            deck_name=deck['name'],
@@ -482,6 +511,35 @@ def quiz_deck(deck_name):
                 print(f"[Quiz-Simplification] Error during quiz simplification: {se}")
                 simplified_quiz = quiz_items
         quiz_items = simplified_quiz
+    elif content_level.lower() == "hard" and quiz_items:
+        hard_quiz = deck.get('quiz_items_hard')
+        if hard_quiz and quiz_items:
+            orig_sample = " ".join([q.get('question', '') for q in quiz_items[:3]])
+            hard_sample = " ".join([q.get('question', '') for q in hard_quiz[:3]])
+            tagalog_keywords = {"ang", "mga", "ano", "paano", "bakit", "saan", "kailan", "sa", "ng", "na", "at", "o"}
+            orig_is_tagalog = len(set(orig_sample.lower().split()).intersection(tagalog_keywords)) >= 1
+            hard_is_tagalog = len(set(hard_sample.lower().split()).intersection(tagalog_keywords)) >= 1
+            if orig_is_tagalog and not hard_is_tagalog:
+                print("[Quiz-Enhancement] Stale cache mismatch. Forcing regeneration.")
+                hard_quiz = None
+
+        if not hard_quiz:
+            try:
+                from models.text_simplifier import TextSimplifier
+                simplifier = TextSimplifier.get_instance()
+                hard_quiz = simplifier.enhance_quiz_items(quiz_items)
+                if hard_quiz:
+                    # Update cache in Firestore
+                    doc_id = deck.get('doc_id')
+                    if doc_id:
+                        db.collection("users").document(user_id).collection("decks").document(doc_id).update({
+                            "quiz_items_hard": hard_quiz
+                        })
+                        print(f"[Quiz-Enhancement] Cached enhanced hard quiz items for deck: {deck_name}")
+            except Exception as se:
+                print(f"[Quiz-Enhancement] Error during quiz enhancement: {se}")
+                hard_quiz = quiz_items
+        quiz_items = hard_quiz
 
     return render_template('quiz.html',
                            deck_name=deck_name,
