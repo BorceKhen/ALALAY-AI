@@ -1,1 +1,1 @@
-web: gunicorn --bind 0.0.0.0:$PORT --pythonpath . --workers 1 --threads 4 --timeout 120 app:app
+web: sh -c "exec gunicorn --bind 0.0.0.0:${PORT:-8000} --pythonpath . --workers 2 --threads 4 --timeout 120 wsgi:app"
