@@ -128,7 +128,7 @@
             <div class="d-flex align-items-center justify-content-between p-3 border rounded-4 bg-white shadow-sm" style="transition: transform 0.2s; border-radius: 1.25rem !important;">
                 <div class="d-flex align-items-center gap-3">
                     <!-- Left colored strip -->
-                    <div style="width: 12px; height: 48px; border-radius: 6px; background-color: {{ deck.get('color', '#FF8A80') }};"></div>
+                    <div style="width: 12px; height: 48px; border-radius: 6px; --deck-color: {{ deck.get('color', '#FF8A80') }}; background-color: var(--deck-color);"></div>
                     <div>
                         <h6 class="fw-semibold mb-1" style="font-size: 0.98rem; font-family: 'Lexend', sans-serif;">{{ deck.get('name') }}</h6>
                         <p class="text-muted mb-0 small">{{ deck.get('card_count', 0) }} Cards</p>

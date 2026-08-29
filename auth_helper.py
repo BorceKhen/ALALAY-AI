@@ -24,22 +24,55 @@ import firebase_admin
 from firebase_admin import credentials, auth, firestore
 
 firebase_db = None
+firebase_init_error = None
 
-# Only initialize once to avoid duplicate app errors
-if not firebase_admin._apps:
+
+def init_firebase_admin():
+    """Initializes Firebase Admin SDK supporting raw JSON, Base64 JSON, or file path."""
+    global firebase_init_error, firebase_db
+    
+    if firebase_admin._apps:
+        return True
+        
+    # 1. Try FIREBASE_CREDENTIALS_JSON (Raw JSON or Base64)
     cred_json_str = os.environ.get("FIREBASE_CREDENTIALS_JSON")
-    if cred_json_str:
+    if cred_json_str and cred_json_str.strip():
         try:
-            import json
-            cred_dict = json.loads(cred_json_str)
+            import json, base64
+            cleaned_str = cred_json_str.strip()
+            
+            # Strip surrounding quotes if added by container/shell
+            if (cleaned_str.startswith("'") and cleaned_str.endswith("'")) or \
+               (cleaned_str.startswith('"') and cleaned_str.endswith('"') and not cleaned_str.startswith('{"')):
+                cleaned_str = cleaned_str[1:-1].strip()
+                
+            # Decode if base64 encoded
+            if not cleaned_str.startswith("{"):
+                try:
+                    cleaned_str = base64.b64decode(cleaned_str).decode("utf-8")
+                except Exception as b64_err:
+                    print(f"[Firebase-Backend] Base64 decode attempt failed: {b64_err}")
+            
+            cred_dict = json.loads(cleaned_str)
+            # Handle double-encoded string
+            if isinstance(cred_dict, str):
+                cred_dict = json.loads(cred_dict)
+                
             if isinstance(cred_dict, dict) and "private_key" in cred_dict:
                 cred_dict["private_key"] = cred_dict["private_key"].replace("\\n", "\n")
-            cred = credentials.Certificate(cred_dict)
-            firebase_admin.initialize_app(cred)
-            print("[Firebase-Backend] Admin SDK initialized successfully using FIREBASE_CREDENTIALS_JSON env var.")
+                cred = credentials.Certificate(cred_dict)
+                firebase_admin.initialize_app(cred)
+                firebase_init_error = None
+                print("[Firebase-Backend] Admin SDK initialized successfully using FIREBASE_CREDENTIALS_JSON env var.")
+                return True
+            else:
+                firebase_init_error = f"Invalid service account dictionary format (type={type(cred_dict)})."
+                print(f"[Firebase-Backend] Error: {firebase_init_error}")
         except Exception as e:
-            print(f"[Firebase-Backend] Error initializing Firebase SDK from FIREBASE_CREDENTIALS_JSON: {e}")
-    
+            firebase_init_error = f"Error initializing from FIREBASE_CREDENTIALS_JSON: {e}"
+            print(f"[Firebase-Backend] {firebase_init_error}")
+
+    # 2. Try credentials file path
     if not firebase_admin._apps:
         cred_path = os.environ.get("FIREBASE_CREDENTIALS_PATH", "firebase-credentials.json")
         if not os.path.isabs(cred_path):
@@ -49,22 +82,49 @@ if not firebase_admin._apps:
             try:
                 cred = credentials.Certificate(cred_path)
                 firebase_admin.initialize_app(cred)
+                firebase_init_error = None
                 print(f"[Firebase-Backend] Admin SDK initialized successfully using: {cred_path}")
+                return True
             except Exception as e:
-                print(f"[Firebase-Backend] Error initializing Firebase SDK: {e}")
+                firebase_init_error = f"Error initializing from credentials file ({cred_path}): {e}"
+                print(f"[Firebase-Backend] {firebase_init_error}")
         else:
-            print(f"[Firebase-Backend] Warning: Credentials file not found at {cred_path}")
+            if not firebase_init_error:
+                firebase_init_error = f"Credentials file not found at {cred_path} and FIREBASE_CREDENTIALS_JSON env var is missing or invalid."
+            print(f"[Firebase-Backend] Warning: {firebase_init_error}")
+            
+    return bool(firebase_admin._apps)
+
+
+# Run initialization on import
+init_firebase_admin()
 
 
 def get_db():
     """Returns the Firestore client instance."""
     global firebase_db
-    if firebase_db is None:
+    if not firebase_admin._apps:
+        init_firebase_admin()
+        
+    if firebase_db is None and firebase_admin._apps:
         try:
             firebase_db = firestore.client()
         except Exception as e:
             print(f"[Firebase-Backend] Error getting Firestore client: {e}")
     return firebase_db
+
+
+def get_firebase_status():
+    """Returns detailed diagnostic status about Firebase Admin SDK."""
+    db = get_db()
+    return {
+        "admin_sdk_initialized": bool(firebase_admin._apps),
+        "init_error": firebase_init_error,
+        "firestore_client_ready": db is not None,
+        "has_credentials_env": bool(os.environ.get("FIREBASE_CREDENTIALS_JSON")),
+        "credentials_path_checked": os.environ.get("FIREBASE_CREDENTIALS_PATH", "firebase-credentials.json"),
+        "firebase_project_id": os.environ.get("FIREBASE_PROJECT_ID", "")
+    }
 
 
 def login_required(f):

@@ -2,7 +2,7 @@ from flask import Flask, render_template, redirect, url_for, request, jsonify, s
 import os
 import json
 import re
-from auth_helper import login_required, fetch_user_profile, get_db
+from auth_helper import login_required, fetch_user_profile, get_db, get_firebase_status
 
 # Load local environment variables from .env file securely
 _env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
@@ -238,6 +238,34 @@ def logout():
     if request.method == 'POST':
         return jsonify({"success": True})
     return redirect(url_for('auth'))
+
+
+@app.route('/api/debug/auth-status')
+def debug_auth_status():
+    """Diagnostic endpoint to verify Firebase Admin, Firestore connection, and Session."""
+    user = session.get("user")
+    status = get_firebase_status()
+    db = get_db()
+    
+    diagnostic = {
+        "firebase_admin_status": status,
+        "session_user": user,
+        "firestore_available": db is not None,
+        "user_decks": [],
+        "user_profile": None,
+        "firestore_error": None
+    }
+    
+    if user and user.get("id") and db:
+        try:
+            user_id = user.get("id")
+            decks = load_user_decks(user_id)
+            diagnostic["user_decks"] = [d.get("name") for d in decks]
+            diagnostic["user_profile"] = fetch_user_profile(user_id)
+        except Exception as e:
+            diagnostic["firestore_error"] = str(e)
+            
+    return jsonify(diagnostic)
 
 @app.context_processor
 def inject_user_settings():
