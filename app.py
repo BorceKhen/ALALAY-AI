@@ -55,6 +55,20 @@ def load_user_decks(user_id: str) -> list:
     try:
         decks_ref = db.collection("users").document(user_id).collection("decks")
         docs = list(decks_ref.stream())
+        
+        # If user has no Cloud Firestore decks yet, save starter reviewer decks into their Firestore collection
+        if not docs:
+            decks_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'decks.json')
+            if os.path.exists(decks_file):
+                try:
+                    with open(decks_file, 'r', encoding='utf-8') as f:
+                        starter_decks = json.load(f)
+                    for s_deck in starter_decks:
+                        save_user_deck(user_id, s_deck)
+                    docs = list(decks_ref.stream())
+                except Exception as se:
+                    print(f"[Firestore] Error seeding initial Firestore decks: {se}")
+
         decks = []
         for doc in docs:
             deck_data = doc.to_dict()
