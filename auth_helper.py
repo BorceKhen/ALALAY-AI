@@ -34,39 +34,70 @@ def init_firebase_admin():
     if firebase_admin._apps:
         return True
         
-    # 1. Try FIREBASE_CREDENTIALS_JSON (Raw JSON or Base64)
+    # 1. Try FIREBASE_CREDENTIALS_JSON (Raw JSON, Base64, certutil, escaped)
     cred_json_str = os.environ.get("FIREBASE_CREDENTIALS_JSON")
-    if cred_json_str and cred_json_str.strip():
+    if cred_json_str and str(cred_json_str).strip():
         try:
             import json, base64
-            cleaned_str = cred_json_str.strip()
+            s = str(cred_json_str).strip()
             
-            # Strip surrounding quotes if added by container/shell
-            if (cleaned_str.startswith("'") and cleaned_str.endswith("'")) or \
-               (cleaned_str.startswith('"') and cleaned_str.endswith('"') and not cleaned_str.startswith('{"')):
-                cleaned_str = cleaned_str[1:-1].strip()
+            # Clean PEM / certutil header lines if present
+            if "-----BEGIN" in s:
+                lines = [line.strip() for line in s.splitlines() if not line.startswith("-----")]
+                s = "".join(lines).strip()
                 
-            # Decode if base64 encoded
-            if not cleaned_str.startswith("{"):
+            # Strip wrapping quotes
+            while (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
+                s = s[1:-1].strip()
+                
+            cred_dict = None
+            
+            # A. Try direct JSON parsing
+            if s.startswith("{"):
                 try:
-                    cleaned_str = base64.b64decode(cleaned_str).decode("utf-8")
-                except Exception as b64_err:
-                    print(f"[Firebase-Backend] Base64 decode attempt failed: {b64_err}")
-            
-            cred_dict = json.loads(cleaned_str)
-            # Handle double-encoded string
-            if isinstance(cred_dict, str):
-                cred_dict = json.loads(cred_dict)
-                
+                    parsed = json.loads(s)
+                    if isinstance(parsed, str):
+                        parsed = json.loads(parsed)
+                    if isinstance(parsed, dict) and "private_key" in parsed:
+                        cred_dict = parsed
+                except Exception:
+                    pass
+                    
+            # B. Try Base64 decoding
+            if not cred_dict:
+                try:
+                    cleaned_b64 = "".join(s.split())
+                    decoded = base64.b64decode(cleaned_b64).decode("utf-8")
+                    while (decoded.startswith('"') and decoded.endswith('"')) or (decoded.startswith("'") and decoded.endswith("'")):
+                        decoded = decoded[1:-1].strip()
+                    parsed = json.loads(decoded)
+                    if isinstance(parsed, str):
+                        parsed = json.loads(parsed)
+                    if isinstance(parsed, dict) and "private_key" in parsed:
+                        cred_dict = parsed
+                except Exception:
+                    pass
+                    
+            # C. Try unicode escape decode (handles escaped JSON strings)
+            if not cred_dict:
+                try:
+                    unescaped = s.encode("utf-8").decode("unicode_escape")
+                    parsed = json.loads(unescaped)
+                    if isinstance(parsed, dict) and "private_key" in parsed:
+                        cred_dict = parsed
+                except Exception:
+                    pass
+                    
             if isinstance(cred_dict, dict) and "private_key" in cred_dict:
-                cred_dict["private_key"] = cred_dict["private_key"].replace("\\n", "\n")
+                if isinstance(cred_dict["private_key"], str):
+                    cred_dict["private_key"] = cred_dict["private_key"].replace("\\n", "\n")
                 cred = credentials.Certificate(cred_dict)
                 firebase_admin.initialize_app(cred)
                 firebase_init_error = None
                 print("[Firebase-Backend] Admin SDK initialized successfully using FIREBASE_CREDENTIALS_JSON env var.")
                 return True
             else:
-                firebase_init_error = f"Invalid service account dictionary format (type={type(cred_dict)})."
+                firebase_init_error = "Unable to parse FIREBASE_CREDENTIALS_JSON into valid service account credentials."
                 print(f"[Firebase-Backend] Error: {firebase_init_error}")
         except Exception as e:
             firebase_init_error = f"Error initializing from FIREBASE_CREDENTIALS_JSON: {e}"
