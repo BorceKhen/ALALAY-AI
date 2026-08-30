@@ -51,42 +51,55 @@ def init_firebase_admin():
                 s = s[1:-1].strip()
                 
             cred_dict = None
-            
-            # A. Try direct JSON parsing
-            if s.startswith("{"):
+
+            # A. Try Base64 decoding FIRST (primary method). Railway env vars
+            # store the service account JSON as base64 so it can be safely
+            # passed through the platform without shell/quoting issues.
+            try:
+                cleaned_b64 = "".join(s.split())
+                decoded = base64.b64decode(cleaned_b64).decode("utf-8")
+                while (decoded.startswith('"') and decoded.endswith('"')) or (decoded.startswith("'") and decoded.endswith("'")):
+                    decoded = decoded[1:-1].strip()
+                print(f"[Firebase-Backend] Base64 decode succeeded. decoded_length={len(decoded)} preview={decoded[:30]!r}")
+                parsed = json.loads(decoded)
+                if isinstance(parsed, str):
+                    parsed = json.loads(parsed)
+                if isinstance(parsed, dict) and "private_key" in parsed:
+                    cred_dict = parsed
+                    print(f"[Firebase-Backend] Base64-decoded JSON parsed successfully. project_id={parsed.get('project_id')} client_email={parsed.get('client_email')}")
+                else:
+                    print("[Firebase-Backend] Base64-decoded JSON parsed but is missing the 'private_key' field.")
+            except (ValueError, TypeError) as e:
+                # Covers binascii.Error (subclass of ValueError) for invalid base64 padding/characters
+                print(f"[Firebase-Backend] Base64 decode step failed (input is not valid base64): {e}")
+            except json.JSONDecodeError as e:
+                print(f"[Firebase-Backend] Base64 decoded successfully, but JSON parsing of the decoded string failed: {e}")
+            except Exception as e:
+                print(f"[Firebase-Backend] Unexpected error during base64 decode/parse step: {e}")
+
+            # B. Fallback: Try direct JSON parsing (in case raw JSON was passed unencoded)
+            if not cred_dict and s.startswith("{"):
                 try:
                     parsed = json.loads(s)
                     if isinstance(parsed, str):
                         parsed = json.loads(parsed)
                     if isinstance(parsed, dict) and "private_key" in parsed:
                         cred_dict = parsed
-                except Exception:
-                    pass
-                    
-            # B. Try Base64 decoding
-            if not cred_dict:
-                try:
-                    cleaned_b64 = "".join(s.split())
-                    decoded = base64.b64decode(cleaned_b64).decode("utf-8")
-                    while (decoded.startswith('"') and decoded.endswith('"')) or (decoded.startswith("'") and decoded.endswith("'")):
-                        decoded = decoded[1:-1].strip()
-                    parsed = json.loads(decoded)
-                    if isinstance(parsed, str):
-                        parsed = json.loads(parsed)
-                    if isinstance(parsed, dict) and "private_key" in parsed:
-                        cred_dict = parsed
-                except Exception:
-                    pass
-                    
-            # C. Try unicode escape decode (handles escaped JSON strings)
+                        print("[Firebase-Backend] Fell back to direct (non-base64) JSON parsing successfully.")
+                except Exception as e:
+                    print(f"[Firebase-Backend] Fallback direct JSON parsing failed: {e}")
+
+            # C. Fallback: Try unicode escape decode (handles escaped JSON strings)
             if not cred_dict:
                 try:
                     unescaped = s.encode("utf-8").decode("unicode_escape")
                     parsed = json.loads(unescaped)
                     if isinstance(parsed, dict) and "private_key" in parsed:
                         cred_dict = parsed
-                except Exception:
-                    pass
+                        print("[Firebase-Backend] Fell back to unicode-escape JSON parsing successfully.")
+                except Exception as e:
+                    print(f"[Firebase-Backend] Fallback unicode-escape parsing failed: {e}")
+
                     
             if isinstance(cred_dict, dict) and "private_key" in cred_dict:
                 if isinstance(cred_dict["private_key"], str):
