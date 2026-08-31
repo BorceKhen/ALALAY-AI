@@ -28,76 +28,97 @@ firebase_init_error = None
 
 
 def init_firebase_admin():
-    """Initializes Firebase Admin SDK supporting raw JSON, Base64 JSON, or file path."""
+    """Initializes Firebase Admin SDK supporting raw JSON, Base64 JSON, escaped strings, or file path."""
     global firebase_init_error, firebase_db
     
     if firebase_admin._apps:
         return True
         
-    # 1. Try FIREBASE_CREDENTIALS_JSON (Raw JSON, Base64, certutil, escaped)
+    # 1. Try FIREBASE_CREDENTIALS_JSON (Raw JSON, Base64, escaped, certutil)
     cred_json_str = os.environ.get("FIREBASE_CREDENTIALS_JSON")
     if cred_json_str and str(cred_json_str).strip():
         try:
             import json, base64
-            s = str(cred_json_str).strip()
+            raw_s = str(cred_json_str).strip()
             
-            # Clean PEM / certutil header lines if present
-            if "-----BEGIN" in s:
-                lines = [line.strip() for line in s.splitlines() if not line.startswith("-----")]
-                s = "".join(lines).strip()
-                
-            # Strip wrapping quotes
-            while (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
-                s = s[1:-1].strip()
-                
             cred_dict = None
             
-            # A. Try direct JSON parsing
-            if s.startswith("{"):
+            # Step A: Try direct JSON parsing
+            try:
+                parsed = json.loads(raw_s)
+                if isinstance(parsed, str):
+                    parsed = json.loads(parsed)
+                if isinstance(parsed, dict) and ("private_key" in parsed or "project_id" in parsed):
+                    cred_dict = parsed
+            except Exception:
+                pass
+
+            # Step B: Strip outer wrapping quotes if any
+            if not cred_dict:
+                s = raw_s
+                while (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
+                    s = s[1:-1].strip()
                 try:
                     parsed = json.loads(s)
                     if isinstance(parsed, str):
                         parsed = json.loads(parsed)
-                    if isinstance(parsed, dict) and "private_key" in parsed:
+                    if isinstance(parsed, dict) and ("private_key" in parsed or "project_id" in parsed):
                         cred_dict = parsed
                 except Exception:
                     pass
-                    
-            # B. Try Base64 decoding
+
+            # Step C: Try unicode-escape decoding for escaped newlines/quotes
             if not cred_dict:
                 try:
-                    cleaned_b64 = "".join(s.split())
-                    decoded = base64.b64decode(cleaned_b64).decode("utf-8")
-                    while (decoded.startswith('"') and decoded.endswith('"')) or (decoded.startswith("'") and decoded.endswith("'")):
-                        decoded = decoded[1:-1].strip()
-                    parsed = json.loads(decoded)
+                    unescaped = raw_s.encode("utf-8").decode("unicode_escape")
+                    while (unescaped.startswith('"') and unescaped.endswith('"')) or (unescaped.startswith("'") and unescaped.endswith("'")):
+                        unescaped = unescaped[1:-1].strip()
+                    parsed = json.loads(unescaped)
                     if isinstance(parsed, str):
                         parsed = json.loads(parsed)
-                    if isinstance(parsed, dict) and "private_key" in parsed:
+                    if isinstance(parsed, dict) and ("private_key" in parsed or "project_id" in parsed):
                         cred_dict = parsed
                 except Exception:
                     pass
-                    
-            # C. Try unicode escape decode (handles escaped JSON strings)
+
+            # Step D: Try Base64 decoding (handle certutil headers if present)
             if not cred_dict:
                 try:
-                    unescaped = s.encode("utf-8").decode("unicode_escape")
-                    parsed = json.loads(unescaped)
-                    if isinstance(parsed, dict) and "private_key" in parsed:
+                    b64_candidate = raw_s
+                    if "-----BEGIN" in b64_candidate:
+                        lines = [line.strip() for line in b64_candidate.splitlines() if not line.startswith("-----")]
+                        b64_candidate = "".join(lines).strip()
+                    b64_candidate = "".join(b64_candidate.split())
+                    decoded_bytes = base64.b64decode(b64_candidate)
+                    decoded_str = decoded_bytes.decode("utf-8", errors="ignore").strip()
+                    while (decoded_str.startswith('"') and decoded_str.endswith('"')) or (decoded_str.startswith("'") and decoded_str.endswith("'")):
+                        decoded_str = decoded_str[1:-1].strip()
+                    parsed = json.loads(decoded_str)
+                    if isinstance(parsed, str):
+                        parsed = json.loads(parsed)
+                    if isinstance(parsed, dict) and ("private_key" in parsed or "project_id" in parsed):
                         cred_dict = parsed
                 except Exception:
                     pass
-                    
+
             if isinstance(cred_dict, dict) and "private_key" in cred_dict:
-                if isinstance(cred_dict["private_key"], str):
-                    cred_dict["private_key"] = cred_dict["private_key"].replace("\\n", "\n")
+                # Ensure the private key has real newlines and valid PEM headers
+                pk = str(cred_dict["private_key"]).strip()
+                pk = pk.replace("\\n", "\n")
+                if "-----BEGIN PRIVATE KEY-----" not in pk:
+                    pk = f"-----BEGIN PRIVATE KEY-----\n{pk}\n-----END PRIVATE KEY-----\n"
+                cred_dict["private_key"] = pk
+                
+                project_id = cred_dict.get("project_id") or os.environ.get("FIREBASE_PROJECT_ID")
+                app_options = {"projectId": project_id} if project_id else {}
+                
                 cred = credentials.Certificate(cred_dict)
-                firebase_admin.initialize_app(cred)
+                firebase_admin.initialize_app(cred, app_options)
                 firebase_init_error = None
-                print("[Firebase-Backend] Admin SDK initialized successfully using FIREBASE_CREDENTIALS_JSON env var.")
+                print(f"[Firebase-Backend] Admin SDK initialized successfully using FIREBASE_CREDENTIALS_JSON (Project: {project_id}).")
                 return True
             else:
-                firebase_init_error = "Unable to parse FIREBASE_CREDENTIALS_JSON into valid service account credentials."
+                firebase_init_error = "Unable to parse FIREBASE_CREDENTIALS_JSON into valid service account credentials with 'private_key'."
                 print(f"[Firebase-Backend] Error: {firebase_init_error}")
         except Exception as e:
             firebase_init_error = f"Error initializing from FIREBASE_CREDENTIALS_JSON: {e}"
@@ -114,7 +135,7 @@ def init_firebase_admin():
                 cred = credentials.Certificate(cred_path)
                 firebase_admin.initialize_app(cred)
                 firebase_init_error = None
-                print(f"[Firebase-Backend] Admin SDK initialized successfully using: {cred_path}")
+                print(f"[Firebase-Backend] Admin SDK initialized successfully using file: {cred_path}")
                 return True
             except Exception as e:
                 firebase_init_error = f"Error initializing from credentials file ({cred_path}): {e}"

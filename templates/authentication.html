@@ -414,10 +414,15 @@
     }
 
     // ── Guided Speech Narrator System ──
+    let isScreenReaderActive = false;
     let isWelcomeSpeaking = false;
     window._activeUtterance = null;
 
     function safeSpeak(text, onComplete = null) {
+        if (!isScreenReaderActive) {
+            if (onComplete) onComplete();
+            return;
+        }
         if (!window.speechSynthesis) return;
         try {
             window.speechSynthesis.cancel();
@@ -467,6 +472,7 @@
 
     let currentAudio = null;
     function speakWithNarrator(text, audioKey = null, forceInterrupt = false) {
+        if (!isScreenReaderActive) return;
         if (!text && !audioKey) return;
 
         // Reset welcome speaking flag when active user interaction begins
@@ -649,60 +655,7 @@
     // Call once to attach listeners to all elements
     setupNarratorListeners();
 
-    // ── Welcome Greeting & Autoplay Policy Safe Announcer ──
-    let hasWelcomed = false;
-    const playWelcomePrompt = () => {
-        if (hasWelcomed) return;
-        hasWelcomed = true;
-        isWelcomeSpeaking = true;
-
-        const isMobileDevice = window.matchMedia("(max-width: 768px)").matches || ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-        let welcomeMsg = "";
-        if (isMobileDevice) {
-            welcomeMsg = "Welcome to ALALAY-AI. To enable the built-in screen reader guided signup at any time, double-tap anywhere on the screen. Swipe left or right, or tap to choose your accessibility profile.";
-        } else {
-            welcomeMsg = "Welcome to ALALAY-AI. To enable the built-in screen reader guided signup at any time, press Shift plus S, or double-tap anywhere on the screen. Use the arrow keys or Tab to choose your accessibility profile.";
-        }
-        
-        safeSpeak(welcomeMsg, () => {
-            isWelcomeSpeaking = false;
-        });
-
-        // Remove trigger listeners once welcome prompt has fired
-        window.removeEventListener('pointerdown', playWelcomePrompt);
-        window.removeEventListener('keydown', playWelcomePrompt);
-        window.removeEventListener('touchstart', playWelcomePrompt);
-        window.removeEventListener('focusin', playWelcomePrompt);
-        window.removeEventListener('click', playWelcomePrompt);
-    };
-
-    // Auto-trigger on page readiness
-    const initWelcome = () => {
-        if (window.speechSynthesis) {
-            window.speechSynthesis.getVoices();
-            if (window.speechSynthesis.onvoiceschanged !== undefined) {
-                window.speechSynthesis.onvoiceschanged = () => {
-                    if (!hasWelcomed) playWelcomePrompt();
-                };
-            }
-        }
-        setTimeout(playWelcomePrompt, 100);
-    };
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initWelcome);
-    } else {
-        initWelcome();
-    }
-
-    // 2. Fulfill browser user-gesture autoplay requirements if initial load was blocked
-    window.addEventListener('pointerdown', playWelcomePrompt, { once: true });
-    window.addEventListener('keydown', playWelcomePrompt, { once: true });
-    window.addEventListener('touchstart', playWelcomePrompt, { once: true });
-    window.addEventListener('focusin', playWelcomePrompt, { once: true });
-    window.addEventListener('click', playWelcomePrompt, { once: true });
-
-    // ── Shortcut and Touch Gesture listeners ──
+    // ── Shortcut and Touch Gesture listeners (Directly activates Screen Reader Support) ──
     function activateGuidedSetup() {
         const isSignUpActive = !signUpView.classList.contains('d-none');
         const isCompleteActive = !document.getElementById('completeProfileView').classList.contains('d-none');
@@ -756,6 +709,7 @@
         document.body.setAttribute('data-color-filter', 'none');
         document.body.setAttribute('data-letter-spacing', 'normal');
         document.body.setAttribute('data-line-spacing', 'normal');
+        document.body.setAttribute('data-screen-reader', 'off');
         
         document.body.classList.remove(
             'bigger-ui-mode', 'bigger-ui-mode-xl', 
@@ -765,6 +719,19 @@
             'contrast-theme-light', 'contrast-theme-dark'
         );
         document.body.style.filter = '';
+
+        // Reset screen reader state and cancel any active speech
+        isScreenReaderActive = false;
+        if (window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+        }
+        if (currentAudio) {
+            try {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+            } catch(e) {}
+            currentAudio = null;
+        }
 
         // Reset local storage preferences
         localStorage.setItem(getStorageKey('textSize'), 'medium');
@@ -776,6 +743,7 @@
         localStorage.setItem(getStorageKey('letterSpacing'), 'normal');
         localStorage.setItem(getStorageKey('lineSpacing'), 'normal');
         localStorage.setItem(getStorageKey('screenReader'), 'off');
+        localStorage.setItem(getStorageKey('access_screen_reader'), '0');
 
         if (disability === 'Low-Vision') {
             document.body.setAttribute('data-text-size', 'large');
@@ -798,7 +766,10 @@
             localStorage.setItem(getStorageKey('letterSpacing'), 'wide');
             localStorage.setItem(getStorageKey('lineSpacing'), 'wide');
         } else if (disability === 'Complete Blindness') {
+            isScreenReaderActive = true;
+            document.body.setAttribute('data-screen-reader', 'on');
             localStorage.setItem(getStorageKey('screenReader'), 'on');
+            localStorage.setItem(getStorageKey('access_screen_reader'), '1');
             if (window.speechSynthesis) {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance("Screen reader support activated. Let's proceed to account details.");
@@ -831,8 +802,10 @@
             applyAccessibilitySettings(val);
             signUpNextBtn.disabled = false;
 
-            const title = cardEl.querySelector('.card-title')?.innerText || val;
-            speakWithNarrator(`${title} profile selected. Press Down button to navigate to the Next button.`);
+            if (val === 'Complete Blindness') {
+                const title = cardEl.querySelector('.card-title')?.innerText || val;
+                speakWithNarrator(`${title} profile selected. Press Down button to navigate to the Next button.`);
+            }
         };
 
         cardEl.addEventListener('click', selectCard);
@@ -889,8 +862,10 @@
             applyAccessibilitySettings(val);
             completeNextBtn.disabled = false;
 
-            const title = cardEl.querySelector('.card-title')?.innerText || val;
-            speakWithNarrator(`${title} profile selected. Press Down button to navigate to the Next button.`);
+            if (val === 'Complete Blindness') {
+                const title = cardEl.querySelector('.card-title')?.innerText || val;
+                speakWithNarrator(`${title} profile selected. Press Down button to navigate to the Next button.`);
+            }
         };
 
         cardEl.addEventListener('click', selectCard);

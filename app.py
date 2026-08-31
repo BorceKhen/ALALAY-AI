@@ -22,7 +22,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-alalay-ai-12345")
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 604800
 
@@ -244,6 +244,7 @@ def logout():
 def debug_auth_status():
     """Diagnostic endpoint to verify Firebase Admin, Firestore connection, and Session."""
     user = session.get("user")
+    test_uid = request.args.get("uid") or (user.get("id") if user else None)
     status = get_firebase_status()
     db = get_db()
     
@@ -256,12 +257,11 @@ def debug_auth_status():
         "firestore_error": None
     }
     
-    if user and user.get("id") and db:
+    if test_uid and db:
         try:
-            user_id = user.get("id")
-            decks = load_user_decks(user_id)
+            decks = load_user_decks(test_uid)
             diagnostic["user_decks"] = [d.get("name") for d in decks]
-            diagnostic["user_profile"] = fetch_user_profile(user_id)
+            diagnostic["user_profile"] = fetch_user_profile(test_uid)
         except Exception as e:
             diagnostic["firestore_error"] = str(e)
             
