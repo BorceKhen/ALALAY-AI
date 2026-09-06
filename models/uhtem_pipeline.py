@@ -168,12 +168,19 @@ class UHTEMEngine:
         Extracts text from scanned files or pure images using lightweight mobile PaddleOCR.
         Bypasses native extraction, performing high-fidelity OCR on CPU (or GPU if specified).
         """
-        self._init_paddle()
+        is_pdf = file_path.lower().endswith(".pdf")
+        try:
+            self._init_paddle()
+        except Exception as e:
+            print(f"[WARNING] PaddleOCR initialization failed ({e}). Falling back to digital parser.")
+            if is_pdf:
+                return self._extract_digital_pdf(file_path)
+            return []
+
         import fitz
         print(f"[UHTEM-Router] Routing to LIGHTWEIGHT PADDLEOCR ENGINE for: {os.path.basename(file_path)}")
 
         image_paths = []
-        is_pdf = file_path.lower().endswith(".pdf")
         temp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uhtem_temp_cache")
         os.makedirs(temp_dir, exist_ok=True)
 
@@ -199,11 +206,13 @@ class UHTEMEngine:
             width, height = img.size
 
             # Run PaddleOCR predict directly to bypass broken internal ocr() method
-            try:
-                result = self.paddle_ocr.predict(img_path)
-            except Exception as e:
-                print(f"[WARNING] OCR execution error: {e}")
-                result = None
+            result = None
+            if self.paddle_ocr:
+                try:
+                    result = self.paddle_ocr.predict(img_path)
+                except Exception as e:
+                    print(f"[WARNING] OCR execution error: {e}")
+                    result = None
 
             words_list = []
             boxes_list = []

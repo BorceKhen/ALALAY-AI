@@ -295,6 +295,11 @@ document.addEventListener("DOMContentLoaded", () => {
             // Hide previous results and generate section
             if (resultsBox) resultsBox.style.display = "none";
             if (generateSection) generateSection.style.display = "none";
+            const emptyWarningInitEl = document.getElementById("extractionEmptyWarning");
+            if (emptyWarningInitEl) {
+                emptyWarningInitEl.classList.add("d-none");
+                emptyWarningInitEl.classList.remove("d-flex");
+            }
             lastExtractionData = null;
 
             // Initialize progress bar variables
@@ -383,7 +388,13 @@ document.addEventListener("DOMContentLoaded", () => {
                         // Empty warning element toggle
                         const emptyWarningEl = document.getElementById("extractionEmptyWarning");
                         if (emptyWarningEl) {
-                            emptyWarningEl.style.display = hasExtractedText ? "none" : "flex";
+                            if (hasExtractedText) {
+                                emptyWarningEl.classList.add("d-none");
+                                emptyWarningEl.classList.remove("d-flex");
+                            } else {
+                                emptyWarningEl.classList.remove("d-none");
+                                emptyWarningEl.classList.add("d-flex");
+                            }
                         }
 
                         // Toggle simplification badge based on backend flag
