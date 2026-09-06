@@ -548,9 +548,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 localStorage.setItem(getStorageKey('daltonizeFilter'), diagnosedFilter);
 
                 if (diagnosedFilter === 'none') {
+                    document.documentElement.style.filter = '';
                     document.body.style.filter = '';
                 } else {
-                    document.body.style.filter = `url(#daltonize-${diagnosedFilter})`;
+                    document.body.style.filter = '';
+                    document.documentElement.style.filter = `url(#daltonize-${diagnosedFilter})`;
                 }
 
                 resultDiagnosisName.textContent = diagnosisTitle;

@@ -776,8 +776,10 @@
                 window.speechSynthesis.speak(utterance);
             }
         } else if (disability === 'Color Blindness') {
+            document.documentElement.setAttribute('data-color-filter', 'deuteranopia');
             document.body.setAttribute('data-color-filter', 'deuteranopia');
-            document.body.style.filter = "url('#daltonize-deuteranopia')";
+            document.body.style.filter = '';
+            document.documentElement.style.filter = "url('#daltonize-deuteranopia')";
             localStorage.setItem(getStorageKey('daltonizeFilter'), 'deuteranopia');
         }
     }

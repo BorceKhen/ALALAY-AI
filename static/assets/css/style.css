@@ -496,13 +496,16 @@ body[data-line-focus="on"][data-page="quiz_deck"]::after {
     pointer-events: none;
 }
 
-/* Color Blindness Daltonization Filters application */
-body[data-color-filter="protanopia"] {
+/* Color Blindness Daltonization Filters application to root html (preserves position:fixed on mobile navbar) */
+html[data-color-filter="protanopia"],
+:root[data-color-filter="protanopia"] {
     filter: url('#daltonize-protanopia') !important;
 }
-body[data-color-filter="deuteranopia"] {
+html[data-color-filter="deuteranopia"],
+:root[data-color-filter="deuteranopia"] {
     filter: url('#daltonize-deuteranopia') !important;
 }
-body[data-color-filter="tritanopia"] {
+html[data-color-filter="tritanopia"],
+:root[data-color-filter="tritanopia"] {
     filter: url('#daltonize-tritanopia') !important;
 }

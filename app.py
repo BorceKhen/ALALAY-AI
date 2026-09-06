@@ -22,7 +22,8 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-alalay-ai-12345")
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = True
+# Enable Secure cookies only in production HTTPS (e.g. Azure) so local Wi-Fi mobile testing (http://192.168.x.x:5000) is not rejected by mobile browsers
+app.config['SESSION_COOKIE_SECURE'] = bool(os.environ.get("WEBSITE_INSTANCE_ID") or os.environ.get("FLASK_ENV") == "production")
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 604800
 
@@ -39,6 +40,88 @@ T5_ADAPTER_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "t5 squad finetuned", "SQuAD Finetuned", "t5squad_finetuned_sciq"
 )
+
+
+import time
+import threading
+
+# ── In-Memory Resilient Cache for Context Processor & Settings ──
+_USER_PROFILE_CACHE = {}
+_USER_DECKS_CACHE = {}
+_CACHE_LOCK = threading.Lock()
+CACHE_TTL_SECS = 20.0  # 20-second TTL: Instant navigation with guaranteed freshness
+
+
+def invalidate_user_cache(user_id: str, profile: bool = True, decks: bool = True):
+    """Invalidates the in-memory cache for a specific user upon state mutations."""
+    if not user_id:
+        return
+    with _CACHE_LOCK:
+        if profile and user_id in _USER_PROFILE_CACHE:
+            _USER_PROFILE_CACHE.pop(user_id, None)
+        if decks and user_id in _USER_DECKS_CACHE:
+            _USER_DECKS_CACHE.pop(user_id, None)
+
+
+def get_cached_profile(user_id: str, max_age: float = CACHE_TTL_SECS):
+    """Fetches user profile dict from in-memory cache or Firestore with fail-safe fallback."""
+    if not user_id:
+        return {}
+    now = time.time()
+    with _CACHE_LOCK:
+        cached = _USER_PROFILE_CACHE.get(user_id)
+        if cached and (now - cached.get("timestamp", 0)) < max_age:
+            return cached.get("data")
+    
+    db = get_db()
+    if not db:
+        return {}
+    try:
+        profile_ref = db.collection("profiles").document(user_id)
+        doc = profile_ref.get()
+        data = doc.to_dict() if doc.exists else {}
+        with _CACHE_LOCK:
+            _USER_PROFILE_CACHE[user_id] = {"data": data, "timestamp": now}
+            if len(_USER_PROFILE_CACHE) > 50:
+                expired = [uid for uid, item in _USER_PROFILE_CACHE.items() if (now - item.get("timestamp", 0)) > 120]
+                for uid in expired:
+                    _USER_PROFILE_CACHE.pop(uid, None)
+        return data
+    except Exception as e:
+        print(f"[Cache-Warning] Firestore profile fetch error for {user_id}: {e}")
+        with _CACHE_LOCK:
+            cached = _USER_PROFILE_CACHE.get(user_id)
+            if cached:
+                return cached.get("data")
+        return {}
+
+
+def get_cached_decks(user_id: str, max_age: float = CACHE_TTL_SECS):
+    """Fetches user decks from in-memory cache or Firestore with fail-safe fallback."""
+    if not user_id:
+        return []
+    now = time.time()
+    with _CACHE_LOCK:
+        cached = _USER_DECKS_CACHE.get(user_id)
+        if cached and (now - cached.get("timestamp", 0)) < max_age:
+            return cached.get("data")
+            
+    try:
+        decks = load_user_decks(user_id)
+        with _CACHE_LOCK:
+            _USER_DECKS_CACHE[user_id] = {"data": decks, "timestamp": now}
+            if len(_USER_DECKS_CACHE) > 50:
+                expired = [uid for uid, item in _USER_DECKS_CACHE.items() if (now - item.get("timestamp", 0)) > 120]
+                for uid in expired:
+                    _USER_DECKS_CACHE.pop(uid, None)
+        return decks
+    except Exception as e:
+        print(f"[Cache-Warning] Firestore decks fetch error for {user_id}: {e}")
+        with _CACHE_LOCK:
+            cached = _USER_DECKS_CACHE.get(user_id)
+            if cached:
+                return cached.get("data")
+        return []
 
 
 def allowed_file(filename: str) -> bool:
@@ -152,6 +235,7 @@ def save_user_deck(user_id: str, deck: dict):
         deck_name = sanitized_deck['name']
         deck_ref = db.collection("users").document(user_id).collection("decks").document(deck_name)
         deck_ref.set(sanitized_deck)
+        invalidate_user_cache(user_id, profile=False, decks=True)
         print(f"Deck '{deck_name}' saved successfully in Firestore for user {user_id}.")
     except Exception as e:
         print(f"Error saving deck to Firestore: {e}")
@@ -269,47 +353,36 @@ def debug_auth_status():
 
 @app.context_processor
 def inject_user_settings():
-    """Injects user profile accessibility settings globally into all HTML templates."""
+    """Injects user profile accessibility settings globally into all HTML templates using resilient caching."""
     user = session.get("user")
     if not user:
         return {}
         
     user_id = user.get("id")
-    db = get_db()
-    if not db:
+    if not user_id:
         return {}
         
     try:
-        profile_ref = db.collection("profiles").document(user_id)
-        profile_doc = profile_ref.get()
+        profile_data = get_cached_profile(user_id) or {}
+        recommended = profile_data.get("recommended_settings", {}) if isinstance(profile_data, dict) else {}
         
-        # Load user decks for sidebar!
-        decks = load_user_decks(user_id)
-        # Slicing the latest 3 decks
+        decks = get_cached_decks(user_id) or []
         recent_decks = list(reversed(decks))[:3]
         
-        if profile_doc.exists:
-            profile_data = profile_doc.to_dict()
-            recommended = profile_data.get("recommended_settings", {})
-            return {
-                "user_recommended_settings": recommended,
-                "user_profile": profile_data,
-                "sidebar_decks": recent_decks,
-                "user_state": profile_data.get("current_behavioral_state", "Normal")
-            }
-        else:
-            return {
-                "sidebar_decks": recent_decks,
-                "user_state": "Normal"
-            }
+        return {
+            "user_recommended_settings": recommended,
+            "user_profile": profile_data,
+            "sidebar_decks": recent_decks,
+            "user_state": profile_data.get("current_behavioral_state", "Normal") if isinstance(profile_data, dict) else "Normal"
+        }
     except Exception as e:
-        import traceback
-        with open("debug_error.log", "a") as f:
-            f.write(f"Error in context processor: {e}\n")
-            traceback.print_exc(file=f)
-        print(f"[Context Processor] Error: {e}")
-        
-    return {}
+        print(f"[Context Processor] Graceful fallback on error: {e}")
+        return {
+            "user_recommended_settings": {},
+            "user_profile": {},
+            "sidebar_decks": [],
+            "user_state": "Normal"
+        }
 
 
 @app.route('/home')
@@ -904,6 +977,7 @@ def update_profile():
             "email": session.get("user", {}).get("email"),
             "recommended_settings": recommended
         }, merge=True)
+        invalidate_user_cache(user_id, profile=True, decks=False)
 
         return jsonify({"success": True, "message": "Profile updated successfully"})
     except Exception as e:
@@ -945,6 +1019,9 @@ def delete_profile():
             firebase_auth.delete_user(user_id)
         except Exception as auth_err:
             print(f"[Auth-Deletion] Warning: Failed to delete user from Firebase Auth: {auth_err}")
+
+        # Invalidate cache for deleted user
+        invalidate_user_cache(user_id, profile=True, decks=True)
 
         # 6. Clear Flask session
         session.pop("user", None)
@@ -1084,6 +1161,7 @@ def log_telemetry():
         try:
             from models.personalization_engine import update_user_personalization
             update_user_personalization(user_id, latest_log_id=doc_ref.id, latest_log_data=log_doc)
+            invalidate_user_cache(user_id, profile=True, decks=False)
         except Exception as pe:
             import traceback
             with open("telemetry_error.log", "a") as f:
@@ -1116,6 +1194,8 @@ def delete_decks():
             deck_ref = db.collection("users").document(user_id).collection("decks").document(deck_name)
             deck_ref.delete()
 
+        invalidate_user_cache(user_id, profile=False, decks=True)
+
         return jsonify({"success": True, "message": "Decks deleted successfully."})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -1145,6 +1225,7 @@ def update_settings():
                 "tts_playback_rate": float(tts_rate)
             })
         
+        invalidate_user_cache(user_id, profile=True, decks=False)
         return jsonify({"success": True, "message": "Settings synchronized successfully."})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -1195,6 +1276,7 @@ def accept_pending_settings():
         except Exception as opt_err:
             print(f"[Engine-Optimizer] Warning: Optimization triggered from Accept failed: {opt_err}")
         
+        invalidate_user_cache(user_id, profile=True, decks=False)
         return jsonify({"success": True, "message": "Settings accepted successfully"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -1246,6 +1328,7 @@ def decline_pending_settings():
         except Exception as opt_err:
             print(f"[Engine-Optimizer] Warning: Optimization triggered from Decline failed: {opt_err}")
         
+        invalidate_user_cache(user_id, profile=True, decks=False)
         return jsonify({"success": True, "message": "Recommendations declined successfully"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500

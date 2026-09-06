@@ -371,11 +371,20 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (resultsBox) {
                         const totalWords = data.pages.reduce((sum, p) => sum + p.word_count, 0);
                         const firstMethod = data.pages.length > 0 ? data.pages[0].extraction_method : "N/A";
-                        const fullText = data.pages.map(p => p.text).join("\n\n");
+                        const fullText = data.pages.map(p => p.text).join("\n\n").trim();
                         
+                        // Check if document actually has readable text
+                        const hasExtractedText = totalWords > 0 && fullText.length > 0;
+
                         // Use simplified text preview if active
-                        const previewSourceText = data.simplified_text || fullText;
+                        const previewSourceText = (data.simplified_text || fullText).trim();
                         const previewText = previewSourceText.length > 1500 ? previewSourceText.substring(0, 1500) + "..." : previewSourceText;
+
+                        // Empty warning element toggle
+                        const emptyWarningEl = document.getElementById("extractionEmptyWarning");
+                        if (emptyWarningEl) {
+                            emptyWarningEl.style.display = hasExtractedText ? "none" : "flex";
+                        }
 
                         // Toggle simplification badge based on backend flag
                         const simplBadge = document.getElementById("simplificationBadge");
@@ -396,26 +405,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
                         resultsBox.style.display = "block";
 
-                        // Store extraction data for flashcard generation
-                        lastExtractionData = {
-                            filename: data.filename,
-                            extracted_text: data.simplified_text || fullText,
-                            original_extracted_text: data.simplified_text ? fullText : null,
-                            total_pages: data.total_pages,
-                            word_count: totalWords
-                        };
+                        if (hasExtractedText) {
+                            // Store extraction data for flashcard generation
+                            lastExtractionData = {
+                                filename: data.filename,
+                                extracted_text: data.simplified_text || fullText,
+                                original_extracted_text: data.simplified_text ? fullText : null,
+                                total_pages: data.total_pages,
+                                word_count: totalWords
+                            };
 
-                        // Show the Generate Flashcard section
-                        if (generateSection) {
-                            generateSection.style.display = "block";
-                        }
-                        // Reset generate button state
-                        if (generateBtn) {
-                            generateBtn.disabled = false;
-                            generateBtn.innerHTML = `<span style="font-size:1.3rem;">&#9889;</span> Generate Flashcard`;
-                        }
-                        if (generateStatus) {
-                            generateStatus.style.display = "none";
+                            // Show the Generate Flashcard section
+                            if (generateSection) {
+                                generateSection.style.display = "block";
+                            }
+                            // Reset generate button state
+                            if (generateBtn) {
+                                generateBtn.disabled = false;
+                                generateBtn.innerHTML = `<span style="font-size:1.3rem;">&#9889;</span> Generate Flashcard`;
+                            }
+                            if (generateStatus) {
+                                generateStatus.style.display = "none";
+                            }
+                        } else {
+                            // Empty file: Do NOT allow generation
+                            lastExtractionData = null;
+                            if (generateSection) {
+                                generateSection.style.display = "none";
+                            }
+                            if (typeof showToast === "function") {
+                                showToast("The uploaded file contains no readable text to generate flashcards.", "error");
+                            }
                         }
                     }
                 } else {
@@ -459,7 +479,17 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         generateBtn.addEventListener("click", () => {
-            if (!lastExtractionData) return;
+            if (!lastExtractionData || !lastExtractionData.extracted_text || !lastExtractionData.extracted_text.trim()) {
+                if (typeof showToast === "function") {
+                    showToast("Cannot generate flashcards: The uploaded file contains no text.", "error");
+                }
+                return;
+            }
+
+            // Trigger loading modal only when valid content exists
+            if (typeof window.showQuizPopLoading === "function") {
+                window.showQuizPopLoading("Generating Flashcards & Quiz...", "Extracting key concepts & generating 20 questions...");
+            }
 
             // Loading state
             generateBtn.disabled = true;
@@ -489,6 +519,11 @@ document.addEventListener("DOMContentLoaded", () => {
                         window.location.href = "/decks";
                     }, 1500);
                 } else {
+                    // Hide loading modal on error
+                    if (typeof window.hideQuizPopLoading === "function") {
+                        window.hideQuizPopLoading();
+                    }
+
                     // Error
                     generateBtn.disabled = false;
                     generateBtn.innerHTML = `<span style="font-size:1.3rem;">&#9889;</span> Generate Flashcard`;
@@ -499,9 +534,16 @@ document.addEventListener("DOMContentLoaded", () => {
                         generateStatus.style.color = "#dc3545";
                         generateStatus.style.display = "block";
                     }
+                    if (typeof showToast === "function") {
+                        showToast(data.error || "Flashcard generation failed.", "error");
+                    }
                 }
             })
             .catch(err => {
+                if (typeof window.hideQuizPopLoading === "function") {
+                    window.hideQuizPopLoading();
+                }
+
                 generateBtn.disabled = false;
                 generateBtn.innerHTML = `<span style="font-size:1.3rem;">&#9889;</span> Generate Flashcard`;
                 generateBtn.style.background = "#3b49a1";
@@ -510,6 +552,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     generateStatus.textContent = `⚠ Failed: ${err.message}`;
                     generateStatus.style.color = "#dc3545";
                     generateStatus.style.display = "block";
+                }
+                if (typeof showToast === "function") {
+                    showToast("Failed to connect to generation server.", "error");
                 }
                 console.error("[Flashcard Generation Error]", err);
             });
@@ -520,12 +565,15 @@ document.addEventListener("DOMContentLoaded", () => {
     // ── Daltonization Color Filters ─────────────────────────
     const applyDaltonizeFilter = (filterValue) => {
         const val = filterValue || 'none';
+        document.documentElement.setAttribute('data-color-filter', val);
         document.body.setAttribute('data-color-filter', val);
+        // Clear inline filter on body so it doesn't create a transformed containing block that breaks position:fixed
+        document.body.style.filter = '';
         if (val === 'none') {
-            document.body.style.filter = '';
+            document.documentElement.style.filter = '';
         } else {
-            // Apply the SVG filter ID based on the radio value
-            document.body.style.filter = `url(#daltonize-${val})`;
+            // Apply the SVG filter ID to the root html element
+            document.documentElement.style.filter = `url(#daltonize-${val})`;
         }
     };
 

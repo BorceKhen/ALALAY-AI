@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-color-filter="{% if request.endpoint != 'auth' and request.endpoint != 'ishihara_test' and request.endpoint != 'ishihara_prompt' and user_recommended_settings %}{{ user_recommended_settings.color_filter }}{% else %}none{% endif %}">
 
 <head>
     <meta charset="UTF-8">
@@ -460,13 +460,6 @@
 
         // Auto-attach Pop Loading animation to Quiz & Flashcard generation triggers
         document.addEventListener('DOMContentLoaded', () => {
-            const genBtn = document.getElementById('generateFlashcardBtn');
-            if (genBtn) {
-                genBtn.addEventListener('click', () => {
-                    window.showQuizPopLoading("Generating Flashcards & Quiz...", "Extracting key concepts & generating 20 questions...");
-                });
-            }
-
             document.addEventListener('click', (e) => {
                 const quizLink = e.target.closest('a[href*="/quiz/"], .btn-start-quiz, a[href*="quiz_deck"]');
                 if (quizLink) {
