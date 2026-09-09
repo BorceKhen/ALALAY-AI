@@ -34,6 +34,14 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 ALLOWED_EXTENSIONS = {'pdf', 'docx', 'pptx'}
+app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024  # 20 MB ceiling to prevent server lag & memory exhaustion
+
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    return jsonify({
+        'success': False,
+        'error': 'File size exceeds the 20 MB limit. Please upload a smaller document.'
+    }), 413
 
 # ── T5 LoRA adapter path ────────────────────────────────────
 T5_ADAPTER_PATH = os.path.join(
@@ -788,12 +796,26 @@ def upload_file():
 
         # Combine pages to get full extracted text
         full_text = '\n\n'.join([p['text'] for p in result_pages])
+        words_count = len(full_text.strip().split())
+
+        # Enforce minimum word requirement for generating the standard 20-card deck
+        MIN_WORD_COUNT = 300
+        if words_count < MIN_WORD_COUNT:
+            return jsonify({
+                'success': False,
+                'error': f'Document has insufficient text ({words_count} words). At least {MIN_WORD_COUNT} words of readable study text are required.'
+            }), 400
         
+        is_truncated = getattr(engine, 'was_truncated', False)
+        original_total_pages = getattr(engine, 'original_total_pages', len(result_pages))
+
         return jsonify({
             'success': True,
             'filename': file.filename,
             'total_pages': len(result_pages),
             'pages': result_pages,
+            'is_truncated': is_truncated,
+            'original_total_pages': original_total_pages,
             'simplified_text': None
         })
 
@@ -874,12 +896,15 @@ def generate_flashcard():
             except Exception as e:
                 print(f"[Flashcard-Generation] Groq failed: {e}")
 
-        if not cards and os.environ.get("GEMINI_API_KEY"):
+        # If Groq returned fewer than 20 cards (or failed) and Gemini is available, try Gemini to reach the standard 20
+        if len(cards) < 20 and os.environ.get("GEMINI_API_KEY"):
             try:
-                print(f"[Flashcard-Generation] Trying Gemini Flashcard Generator (level={content_level})...")
+                print(f"[Flashcard-Generation] Groq yielded {len(cards)} cards (< 20). Trying Gemini Flashcard Generator (level={content_level})...")
                 from models.gemini_flashcard_generator import GeminiFlashcardGenerator
                 generator = GeminiFlashcardGenerator.get_instance()
-                cards = generator.generate_deck(extracted_text, content_level=content_level)
+                gemini_cards = generator.generate_deck(extracted_text, content_level=content_level)
+                if len(gemini_cards) > len(cards):
+                    cards = gemini_cards
             except Exception as e:
                 print(f"[Flashcard-Generation] Gemini failed: {e}")
             

@@ -47,6 +47,99 @@ class TextSimplifier:
             except Exception as e:
                 print(f"[TextSimplifier] Failed to initialize Gemini client: {e}")
 
+    @staticmethod
+    def _parse_json(text: str):
+        if not text:
+            return None
+        clean = text.strip()
+        try:
+            return json.loads(clean)
+        except Exception:
+            pass
+
+        if "```" in clean:
+            parts = clean.split("```")
+            for p in parts:
+                p_clean = p.strip()
+                if p_clean.startswith("json"):
+                    p_clean = p_clean[4:].strip()
+                try:
+                    return json.loads(p_clean)
+                except Exception:
+                    continue
+
+        start_brace = clean.find('{')
+        end_brace = clean.rfind('}')
+        if start_brace != -1 and end_brace > start_brace:
+            try:
+                return json.loads(clean[start_brace:end_brace+1])
+            except Exception:
+                pass
+
+        start_bracket = clean.find('[')
+        end_bracket = clean.rfind(']')
+        if start_bracket != -1 and end_bracket > start_bracket:
+            try:
+                return json.loads(clean[start_bracket:end_bracket+1])
+            except Exception:
+                pass
+
+        return None
+
+    def _request_groq_json(self, prompt: str, system_prompt: str = None):
+        """
+        Executes a Groq chat completion specifically for JSON output with:
+        1. Explicit system message demanding raw JSON.
+        2. Safe max_tokens allocation (4096).
+        3. Automatic fallback if response_format={'type': 'json_object'} triggers json_validate_failed.
+        4. Primary/backup key failover.
+        """
+        self._init_groq()
+        if not (self.groq_initialized and self.groq_client):
+            return None
+
+        if not system_prompt:
+            system_prompt = (
+                "You are an educational AI assistant that outputs strictly valid JSON only. "
+                "Start your response immediately with '{' and end with '}'. "
+                "Do not include conversational text, introductions, thinking tags, or markdown fences."
+            )
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ]
+
+        def _execute_call(client, use_json_format=True):
+            kwargs = {
+                "model": "openai/gpt-oss-20b",
+                "messages": messages,
+                "max_tokens": 4096,
+                "temperature": 0.3
+            }
+            if use_json_format:
+                kwargs["response_format"] = {"type": "json_object"}
+            return client.chat.completions.create(**kwargs)
+
+        def _try_client(client):
+            try:
+                return _execute_call(client, use_json_format=True)
+            except Exception as call_err:
+                err_str = str(call_err)
+                if "json_validate_failed" in err_str or "400" in err_str:
+                    print(f"[TextSimplifier] Groq strict JSON mode failed ({err_str[:60]}...). Retrying without json_object constraint...")
+                    return _execute_call(client, use_json_format=False)
+                raise
+
+        # 1. Try primary client
+        try:
+            return _try_client(self.groq_client)
+        except Exception as api_err:
+            print(f"[TextSimplifier] Groq primary key failed: {api_err}. Trying backup API key...")
+            from models.groq_helper import get_groq_client, mark_primary_failed
+            mark_primary_failed()
+            self.groq_client, _ = get_groq_client(force_backup=True)
+            return _try_client(self.groq_client)
+
     def simplify(self, text: str) -> str:
         """
         Attempts to simplify the provided text using Groq first, 
@@ -180,34 +273,13 @@ Input JSON cards:
         if self.groq_initialized and self.groq_client:
             try:
                 print("[TextSimplifier] Attempting bulk card simplification via Groq (openai/gpt-oss-20b)...")
-                try:
-                    response = self.groq_client.chat.completions.create(
-                        model="openai/gpt-oss-20b",
-                        messages=[{"role": "user", "content": prompt}],
-                        response_format={"type": "json_object"}
-                    )
-                except Exception as api_err:
-                    print(f"[TextSimplifier] Bulk card simplification primary key failed: {api_err}. Trying backup API key...")
-                    from models.groq_helper import get_groq_client, mark_primary_failed
-                    mark_primary_failed()
-                    self.groq_client, _ = get_groq_client(force_backup=True)
-                    response = self.groq_client.chat.completions.create(
-                        model="openai/gpt-oss-20b",
-                        messages=[{"role": "user", "content": prompt}],
-                        response_format={"type": "json_object"}
-                    )
-                res_content = response.choices[0].message.content
-                if res_content:
-                    text = res_content.strip()
-                    if text.startswith("```"):
-                        text = text.split("```")[1]
-                        if text.startswith("json"):
-                            text = text[4:]
-                    data = json.loads(text.strip())
+                response = self._request_groq_json(prompt)
+                if response and response.choices:
+                    data = self._parse_json(response.choices[0].message.content)
                     if isinstance(data, list):
                         return data
                     elif isinstance(data, dict):
-                        if "cards" in data:
+                        if "cards" in data and isinstance(data["cards"], list):
                             return data["cards"]
                         if "question" in data and "answer" in data:
                             return [data]
@@ -224,16 +296,11 @@ Input JSON cards:
                 print("[TextSimplifier] Attempting bulk card simplification via Gemini...")
                 response = self.gemini_model.generate_content(prompt)
                 if response and response.text:
-                    text = response.text.strip()
-                    if text.startswith("```"):
-                        text = text.split("```")[1]
-                        if text.startswith("json"):
-                            text = text[4:]
-                    data = json.loads(text.strip())
+                    data = self._parse_json(response.text)
                     if isinstance(data, list):
                         return data
                     elif isinstance(data, dict):
-                        if "cards" in data:
+                        if "cards" in data and isinstance(data["cards"], list):
                             return data["cards"]
                         if "question" in data and "answer" in data:
                             return [data]
@@ -309,34 +376,13 @@ Input JSON quiz items:
         if self.groq_initialized and self.groq_client:
             try:
                 print("[TextSimplifier] Attempting bulk quiz simplification via Groq (openai/gpt-oss-20b)...")
-                try:
-                    response = self.groq_client.chat.completions.create(
-                        model="openai/gpt-oss-20b",
-                        messages=[{"role": "user", "content": prompt}],
-                        response_format={"type": "json_object"}
-                    )
-                except Exception as api_err:
-                    print(f"[TextSimplifier] Bulk quiz simplification primary key failed: {api_err}. Trying backup API key...")
-                    from models.groq_helper import get_groq_client, mark_primary_failed
-                    mark_primary_failed()
-                    self.groq_client, _ = get_groq_client(force_backup=True)
-                    response = self.groq_client.chat.completions.create(
-                        model="openai/gpt-oss-20b",
-                        messages=[{"role": "user", "content": prompt}],
-                        response_format={"type": "json_object"}
-                    )
-                res_content = response.choices[0].message.content
-                if res_content:
-                    text = res_content.strip()
-                    if text.startswith("```"):
-                        text = text.split("```")[1]
-                        if text.startswith("json"):
-                            text = text[4:]
-                    data = json.loads(text.strip())
+                response = self._request_groq_json(prompt)
+                if response and response.choices:
+                    data = self._parse_json(response.choices[0].message.content)
                     items = []
                     if isinstance(data, list):
                         items = data
-                    elif isinstance(data, dict) and "quiz_items" in data:
+                    elif isinstance(data, dict) and "quiz_items" in data and isinstance(data["quiz_items"], list):
                         items = data["quiz_items"]
                     elif isinstance(data, dict):
                         lists = [v for v in data.values() if isinstance(v, list)]
@@ -354,16 +400,11 @@ Input JSON quiz items:
                 print("[TextSimplifier] Attempting bulk quiz simplification via Gemini...")
                 response = self.gemini_model.generate_content(prompt)
                 if response and response.text:
-                    text = response.text.strip()
-                    if text.startswith("```"):
-                        text = text.split("```")[1]
-                        if text.startswith("json"):
-                            text = text[4:]
-                    data = json.loads(text.strip())
+                    data = self._parse_json(response.text)
                     items = []
                     if isinstance(data, list):
                         items = data
-                    elif isinstance(data, dict) and "quiz_items" in data:
+                    elif isinstance(data, dict) and "quiz_items" in data and isinstance(data["quiz_items"], list):
                         items = data["quiz_items"]
                     elif isinstance(data, dict):
                         lists = [v for v in data.values() if isinstance(v, list)]
@@ -518,34 +559,13 @@ Input JSON cards:
         if self.groq_initialized and self.groq_client:
             try:
                 print("[TextSimplifier] Attempting bulk card enhancement via Groq (openai/gpt-oss-20b)...")
-                try:
-                    response = self.groq_client.chat.completions.create(
-                        model="openai/gpt-oss-20b",
-                        messages=[{"role": "user", "content": prompt}],
-                        response_format={"type": "json_object"}
-                    )
-                except Exception as api_err:
-                    print(f"[TextSimplifier] Bulk card enhancement primary key failed: {api_err}. Trying backup API key...")
-                    from models.groq_helper import get_groq_client, mark_primary_failed
-                    mark_primary_failed()
-                    self.groq_client, _ = get_groq_client(force_backup=True)
-                    response = self.groq_client.chat.completions.create(
-                        model="openai/gpt-oss-20b",
-                        messages=[{"role": "user", "content": prompt}],
-                        response_format={"type": "json_object"}
-                    )
-                res_content = response.choices[0].message.content
-                if res_content:
-                    text = res_content.strip()
-                    if text.startswith("```"):
-                        text = text.split("```")[1]
-                        if text.startswith("json"):
-                            text = text[4:]
-                    data = json.loads(text.strip())
+                response = self._request_groq_json(prompt)
+                if response and response.choices:
+                    data = self._parse_json(response.choices[0].message.content)
                     if isinstance(data, list):
                         return data
                     elif isinstance(data, dict):
-                        if "cards" in data:
+                        if "cards" in data and isinstance(data["cards"], list):
                             return data["cards"]
                         if "question" in data and "answer" in data:
                             return [data]
@@ -562,16 +582,11 @@ Input JSON cards:
                 print("[TextSimplifier] Attempting bulk card enhancement via Gemini...")
                 response = self.gemini_model.generate_content(prompt)
                 if response and response.text:
-                    text = response.text.strip()
-                    if text.startswith("```"):
-                        text = text.split("```")[1]
-                        if text.startswith("json"):
-                            text = text[4:]
-                    data = json.loads(text.strip())
+                    data = self._parse_json(response.text)
                     if isinstance(data, list):
                         return data
                     elif isinstance(data, dict):
-                        if "cards" in data:
+                        if "cards" in data and isinstance(data["cards"], list):
                             return data["cards"]
                         if "question" in data and "answer" in data:
                             return [data]
@@ -647,34 +662,13 @@ Input JSON quiz items:
         if self.groq_initialized and self.groq_client:
             try:
                 print("[TextSimplifier] Attempting bulk quiz enhancement via Groq (openai/gpt-oss-20b)...")
-                try:
-                    response = self.groq_client.chat.completions.create(
-                        model="openai/gpt-oss-20b",
-                        messages=[{"role": "user", "content": prompt}],
-                        response_format={"type": "json_object"}
-                    )
-                except Exception as api_err:
-                    print(f"[TextSimplifier] Bulk quiz enhancement primary key failed: {api_err}. Trying backup API key...")
-                    from models.groq_helper import get_groq_client, mark_primary_failed
-                    mark_primary_failed()
-                    self.groq_client, _ = get_groq_client(force_backup=True)
-                    response = self.groq_client.chat.completions.create(
-                        model="openai/gpt-oss-20b",
-                        messages=[{"role": "user", "content": prompt}],
-                        response_format={"type": "json_object"}
-                    )
-                res_content = response.choices[0].message.content
-                if res_content:
-                    text = res_content.strip()
-                    if text.startswith("```"):
-                        text = text.split("```")[1]
-                        if text.startswith("json"):
-                            text = text[4:]
-                    data = json.loads(text.strip())
+                response = self._request_groq_json(prompt)
+                if response and response.choices:
+                    data = self._parse_json(response.choices[0].message.content)
                     items = []
                     if isinstance(data, list):
                         items = data
-                    elif isinstance(data, dict) and "quiz_items" in data:
+                    elif isinstance(data, dict) and "quiz_items" in data and isinstance(data["quiz_items"], list):
                         items = data["quiz_items"]
                     elif isinstance(data, dict):
                         lists = [v for v in data.values() if isinstance(v, list)]
@@ -692,16 +686,11 @@ Input JSON quiz items:
                 print("[TextSimplifier] Attempting bulk quiz enhancement via Gemini...")
                 response = self.gemini_model.generate_content(prompt)
                 if response and response.text:
-                    text = response.text.strip()
-                    if text.startswith("```"):
-                        text = text.split("```")[1]
-                        if text.startswith("json"):
-                            text = text[4:]
-                    data = json.loads(text.strip())
+                    data = self._parse_json(response.text)
                     items = []
                     if isinstance(data, list):
                         items = data
-                    elif isinstance(data, dict) and "quiz_items" in data:
+                    elif isinstance(data, dict) and "quiz_items" in data and isinstance(data["quiz_items"], list):
                         items = data["quiz_items"]
                     elif isinstance(data, dict):
                         lists = [v for v in data.values() if isinstance(v, list)]

@@ -132,8 +132,16 @@ Expected JSON output format:
                 if isinstance(data, list):
                     cards = data
                 elif isinstance(data, dict):
-                    lists = [v for v in data.values() if isinstance(v, list)]
-                    cards = lists[0] if lists else []
+                    if "cards" in data and isinstance(data["cards"], list):
+                        cards = data["cards"]
+                    elif "flashcards" in data and isinstance(data["flashcards"], list):
+                        cards = data["flashcards"]
+                    else:
+                        lists = [v for v in data.values() if isinstance(v, list)]
+                        if lists:
+                            cards = lists[0]
+                        else:
+                            cards = [v for v in data.values() if isinstance(v, dict) and "question" in v and "answer" in v]
 
             # If fewer than 20 cards generated, request additional cards to reach 20
             if len(cards) < 20 and extracted_text:
@@ -160,7 +168,21 @@ Output MUST be a JSON array of objects:
                     )
                     if extra_res and extra_res.text:
                         extra_data = json.loads(extra_res.text.strip())
-                        extra_list = extra_data if isinstance(extra_data, list) else ([v for v in extra_data.values() if isinstance(v, list)][0] if [v for v in extra_data.values() if isinstance(v, list)] else [])
+                        if isinstance(extra_data, list):
+                            extra_list = extra_data
+                        elif isinstance(extra_data, dict):
+                            if "cards" in extra_data and isinstance(extra_data["cards"], list):
+                                extra_list = extra_data["cards"]
+                            elif "flashcards" in extra_data and isinstance(extra_data["flashcards"], list):
+                                extra_list = extra_data["flashcards"]
+                            else:
+                                lists = [v for v in extra_data.values() if isinstance(v, list)]
+                                if lists:
+                                    extra_list = lists[0]
+                                else:
+                                    extra_list = [v for v in extra_data.values() if isinstance(v, dict) and "question" in v and "answer" in v]
+                        else:
+                            extra_list = []
                         cards.extend(extra_list)
                 except Exception as extra_err:
                     print(f"[Gemini-FlashGen] Extra card generation warning: {extra_err}")

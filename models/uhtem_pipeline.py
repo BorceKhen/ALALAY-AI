@@ -20,8 +20,17 @@ class UHTEMEngine:
 
     Supports: PDF (digital & scanned), DOCX, PPTX, and image files.
     """
-    def __init__(self, use_gpu: str = "auto", low_resource_mode: bool = True):
+    CLOSING_PHRASES = {
+        "thank you", "thanks for listening", "salamat", "salamat po", 
+        "any questions", "q&a", "questions?", "the end", "references", 
+        "maraming salamat", "maraming salamat po", "end of presentation"
+    }
+
+    def __init__(self, use_gpu: str = "auto", low_resource_mode: bool = True, max_content_pages: int = 25):
         self.low_resource_mode = low_resource_mode
+        self.max_content_pages = max_content_pages
+        self.was_truncated = False
+        self.original_total_pages = 0
         self.paddle_ocr = None
         self.layoutlm_processor = None
         self.layoutlm_model = None
@@ -37,7 +46,17 @@ class UHTEMEngine:
         else:
             self.use_gpu = bool(use_gpu)
 
-        print(f"[UHTEM] Initialized Engine (use_gpu={self.use_gpu}, low_resource_mode={self.low_resource_mode})")
+        print(f"[UHTEM] Initialized Engine (use_gpu={self.use_gpu}, low_resource_mode={self.low_resource_mode}, max_content_pages={self.max_content_pages})")
+
+    @classmethod
+    def is_closing_or_empty_slide(cls, words_list: List[str]) -> bool:
+        """Determines if a slide is merely a title/divider (< 12 words) or a closing/thank-you slide."""
+        if len(words_list) < 12:
+            return True
+        slide_text_lower = " ".join(words_list).lower()
+        if len(words_list) < 25 and any(phrase in slide_text_lower for phrase in cls.CLOSING_PHRASES):
+            return True
+        return False
 
     def warmup(self):
         """Pre-loads PaddleOCR and runs a dummy inference to compile C++ backends."""
@@ -112,20 +131,30 @@ class UHTEMEngine:
     def _extract_digital_pdf(self, pdf_path: str) -> List[Dict[str, Any]]:
         """
         Extracts words, normalized coordinates, and rendered images directly from digital PDF.
-        Highly optimized: 0% GPU utilization, runs purely on CPU in milliseconds.
+        Highly optimized: skips blank/empty pages (< 10 words) before rendering to save memory,
+        and caps extraction at max_content_pages (25) to prevent server lag.
         """
         import fitz  # PyMuPDF
         print(f"[UHTEM-Router] Routing to DIRECT DIGITAL PARSER for: {os.path.basename(pdf_path)}")
         
         doc = fitz.open(pdf_path)
         pages_data = []
+        self.original_total_pages = len(doc)
 
         for page_idx in range(len(doc)):
             page = doc.load_page(page_idx)
+
+            # Fast check (<0.001s): Skip blank pages or empty dividers without rasterizing heavy images
+            raw_text = page.get_text().strip()
+            raw_words_split = raw_text.split()
+            if len(raw_words_split) < 10:
+                print(f"[UHTEM-DigitalPDF] Skipping page {page_idx + 1} (insufficient text: {len(raw_words_split)} words)")
+                continue
+
             width = page.rect.width
             height = page.rect.height
 
-            # Render high-resolution page image for visual features/LayoutLMv3 input
+            # Render high-resolution page image only for content-bearing pages
             pix = page.get_pixmap(dpi=150)
             img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
 
@@ -159,6 +188,13 @@ class UHTEMEngine:
                 "boxes": boxes_list,
                 "device_used": "CPU"
             })
+
+            # Check if standard content page cap (25 pages) has been reached
+            if len(pages_data) >= self.max_content_pages:
+                if page_idx + 1 < len(doc):
+                    self.was_truncated = True
+                    print(f"[UHTEM-DigitalPDF] Reached standard limit of {self.max_content_pages} content pages. Halting extraction to prevent server lag.")
+                break
             
         doc.close()
         return pages_data
@@ -187,7 +223,12 @@ class UHTEMEngine:
         # Step 1: Render PDF pages to images if input is a scanned PDF
         if is_pdf:
             doc = fitz.open(file_path)
-            for i in range(len(doc)):
+            self.original_total_pages = len(doc)
+            num_pages_to_render = min(len(doc), self.max_content_pages)
+            if len(doc) > self.max_content_pages:
+                self.was_truncated = True
+                print(f"[UHTEM-ScannedPDF] Document has {len(doc)} pages. Processing up to {self.max_content_pages} pages to prevent CPU timeout.")
+            for i in range(num_pages_to_render):
                 page = doc.load_page(i)
                 pix = page.get_pixmap(dpi=150)
                 img_path = os.path.join(temp_dir, f"temp_page_{i}.png")
@@ -403,6 +444,13 @@ class UHTEMEngine:
             except OSError:
                 pass
 
+        # Cap DOCX text to MAX_DOCX_WORDS = 6,000 words (~25 double-spaced pages equivalent)
+        MAX_DOCX_WORDS = 6000
+        if len(words_list) > MAX_DOCX_WORDS:
+            self.was_truncated = True
+            print(f"[UHTEM-DOCX] Document exceeds 6,000 words. Capped at {MAX_DOCX_WORDS} words (~25 pages) to prevent server lag.")
+            words_list = words_list[:MAX_DOCX_WORDS]
+
         extraction_method = "python-docx-HybridOCR" if ocr_ran else "python-docx-NativeText"
         device_used = ("GPU" if self.use_gpu else "CPU") if ocr_ran else "CPU"
 
@@ -431,6 +479,7 @@ class UHTEMEngine:
         prs = Presentation(file_path)
         pages_data = []
         temp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uhtem_temp_cache")
+        self.original_total_pages = len(prs.slides)
 
         for slide_idx, slide in enumerate(prs.slides):
             words_list = []
@@ -523,6 +572,11 @@ class UHTEMEngine:
                     except Exception as e:
                         print(f"[WARNING] PPTX shape image extraction failed: {e}")
 
+            # Smart Slide Filtering: Skip blank slides, title/divider slides (< 12 words), and "Thank You" closers
+            if self.is_closing_or_empty_slide(words_list):
+                print(f"[UHTEM-PPTX] Skipping slide {slide_idx + 1} (title, closer, or insufficient text: {len(words_list)} words)")
+                continue
+
             extraction_method = "python-pptx-HybridOCR" if ocr_ran else "python-pptx-NativeText"
             device_used = ("GPU" if self.use_gpu else "CPU") if ocr_ran else "CPU"
 
@@ -536,6 +590,13 @@ class UHTEMEngine:
                 "boxes": [],
                 "device_used": device_used
             })
+
+            # Check if standard content slide cap (25 slides) has been reached
+            if len(pages_data) >= self.max_content_pages:
+                if slide_idx + 1 < len(prs.slides):
+                    self.was_truncated = True
+                    print(f"[UHTEM-PPTX] Reached standard limit of {self.max_content_pages} content slides. Halting extraction to prevent server lag.")
+                break
 
         # Ensure cleanup of temp dir if empty
         try:

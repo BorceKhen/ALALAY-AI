@@ -126,6 +126,54 @@ body {
     outline: none !important;
 }
 
+/* Warning / Invalid Input Box Highlight */
+.auth-input.is-invalid {
+    border: 1.5px solid #EF4444 !important;
+    background-color: #FEF2F2 !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18) !important;
+}
+
+.auth-input.is-invalid:focus,
+.auth-input.is-invalid:focus-visible {
+    border-color: #DC2626 !important;
+    outline: 2px solid #DC2626 !important;
+    outline-offset: 1px !important;
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.25) !important;
+}
+
+.field-error-text {
+    color: #DC2626;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 0.35rem;
+    margin-left: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    animation: fieldErrorFadeIn 0.2s ease-in-out;
+}
+
+@keyframes fieldErrorFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-3px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes inputShake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-4px); }
+    40%, 80% { transform: translateX(4px); }
+}
+
+.auth-input-shake {
+    animation: inputShake 0.35s ease-in-out;
+}
+
 /* Custom styled dropdown menu selects */
 select.auth-input {
     appearance: none;
@@ -297,4 +345,54 @@ input[type="date"].auth-input:valid {
 
 .wizard-step.d-none {
     display: none !important;
+}
+
+/* Password Toggle Input Wrapper and Button */
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.password-input-wrapper .auth-input {
+    width: 100%;
+    padding-right: 3.25rem !important;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    padding: 0.4rem 0.5rem;
+    color: #94A3B8;
+    cursor: pointer;
+    font-size: 1.25rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    transition: color 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
+    z-index: 3;
+}
+
+.password-toggle-btn:hover {
+    color: #475569;
+    background-color: rgba(110, 134, 208, 0.08);
+}
+
+.password-toggle-btn:focus,
+.password-toggle-btn:focus-visible {
+    color: #6E86D0 !important;
+    outline: 2px solid #6E86D0 !important;
+    outline-offset: 2px !important;
+    background-color: rgba(110, 134, 208, 0.12);
+}
+
+.password-toggle-btn:active {
+    transform: translateY(-50%) scale(0.92);
 }

@@ -61,20 +61,24 @@ class GroqFlashcardGenerator:
         # Configure language instruction and matching format example
         if is_tagalog:
             lang_instruction = "LANGUAGE REQUIREMENT: The study text is in Filipino/Tagalog (or Taglish). You MUST generate all questions and answers in Filipino/Tagalog (or Taglish). DO NOT translate to English."
-            json_example = """[
-  {
-    "question": "Ano ang pangunahing ideya ng teksto?",
-    "answer": "Ang pangunahing ideya ay naglalarawan ng kahalagahan ng paksa."
-  }
-]"""
+            json_example = """{
+  "cards": [
+    {
+      "question": "Ano ang pangunahing ideya ng teksto?",
+      "answer": "Ang pangunahing ideya ay naglalarawan ng kahalagahan ng paksa."
+    }
+  ]
+}"""
         else:
             lang_instruction = "LANGUAGE REQUIREMENT: The study text is in English. You MUST generate all questions and answers in English."
-            json_example = """[
-  {
-    "question": "What is the primary concept of the text?",
-    "answer": "The primary concept describes the core meaning of the topic."
-  }
-]"""
+            json_example = """{
+  "cards": [
+    {
+      "question": "What is the primary concept of the text?",
+      "answer": "The primary concept describes the core meaning of the topic."
+    }
+  ]
+}"""
 
         # Set up difficulty/complexity constraints dynamically based on language
         content_level_str = str(content_level or "Medium").strip().lower()
@@ -141,14 +145,23 @@ Expected JSON output format:
                 if isinstance(data, list):
                     cards = data
                 elif isinstance(data, dict):
-                    lists = [v for v in data.values() if isinstance(v, list)]
-                    cards = lists[0] if lists else []
+                    if "cards" in data and isinstance(data["cards"], list):
+                        cards = data["cards"]
+                    elif "flashcards" in data and isinstance(data["flashcards"], list):
+                        cards = data["flashcards"]
+                    else:
+                        lists = [v for v in data.values() if isinstance(v, list)]
+                        if lists:
+                            cards = lists[0]
+                        else:
+                            cards = [v for v in data.values() if isinstance(v, dict) and "question" in v and "answer" in v]
                 
             # If fewer than 20 cards generated, request additional cards to reach 20
             if len(cards) < 20 and extracted_text:
                 needed = 20 - len(cards)
                 print(f"[Groq-FlashGen] Flashcards initial count is {len(cards)}. Requesting {needed} more to reach 20 standard cards...")
-                extra_prompt = f"""
+                try:
+                    extra_prompt = f"""
 Based on the study text below, generate EXACTLY {needed} additional UNIQUE question-answer study flashcard pairs that do NOT repeat any previous cards.
 
 Existing Cards:
@@ -157,12 +170,13 @@ Existing Cards:
 Study Text:
 {extracted_text[:10000]}
 
-Output MUST be a JSON array of objects:
-[
-  {{"question": "Question text...", "answer": "Answer text..."}}
-]
+Output MUST be a JSON object with a "cards" array:
+{{
+  "cards": [
+    {{"question": "Question text...", "answer": "Answer text..."}}
+  ]
+}}
 """
-                try:
                     try:
                         extra_res = self.client.chat.completions.create(
                             model=model_to_use,
@@ -182,7 +196,21 @@ Output MUST be a JSON array of objects:
                     
                     if extra_res and extra_res.choices:
                         extra_data = json.loads(extra_res.choices[0].message.content.strip())
-                        extra_list = extra_data if isinstance(extra_data, list) else ([v for v in extra_data.values() if isinstance(v, list)][0] if [v for v in extra_data.values() if isinstance(v, list)] else [])
+                        if isinstance(extra_data, list):
+                            extra_list = extra_data
+                        elif isinstance(extra_data, dict):
+                            if "cards" in extra_data and isinstance(extra_data["cards"], list):
+                                extra_list = extra_data["cards"]
+                            elif "flashcards" in extra_data and isinstance(extra_data["flashcards"], list):
+                                extra_list = extra_data["flashcards"]
+                            else:
+                                lists = [v for v in extra_data.values() if isinstance(v, list)]
+                                if lists:
+                                    extra_list = lists[0]
+                                else:
+                                    extra_list = [v for v in extra_data.values() if isinstance(v, dict) and "question" in v and "answer" in v]
+                        else:
+                            extra_list = []
                         cards.extend(extra_list)
                 except Exception as extra_err:
                     print(f"[Groq-FlashGen] Extra card generation warning: {extra_err}")

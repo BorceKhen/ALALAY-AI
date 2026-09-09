@@ -88,13 +88,14 @@
                     <div class="mb-3">
                         <label for="signUpEmail" class="visually-hidden">Email Address</label>
                         <input type="email" id="signUpEmail" class="form-control auth-input" placeholder="Email" aria-required="true" required>
+                        <div class="field-error-text d-none" id="signUpEmailError"></div>
                     </div>
 
                     <!-- Gender and Birthdate row -->
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label for="signUpGender" class="visually-hidden">Gender</label>
-                            <select id="signUpGender" class="form-select auth-input" aria-required="false">
+                            <select id="signUpGender" class="form-select auth-input" aria-required="true">
                                 <option value="" disabled selected hidden>Gender</option>
                                 <option value="Male">Male</option>
                                 <option value="Female">Female</option>
@@ -102,22 +103,36 @@
                                 <option value="Prefer not to say">Prefer not to say</option>
                                 <option value="Other">Other</option>
                             </select>
+                            <div class="field-error-text d-none" id="signUpGenderError"></div>
                         </div>
                         <div class="col-md-6">
                             <label for="signUpBirthdate" class="visually-hidden">Birthdate</label>
                             <input type="date" id="signUpBirthdate" class="form-control auth-input" aria-required="true" required title="Birthdate">
+                            <div class="field-error-text d-none" id="signUpBirthdateError"></div>
                         </div>
                     </div>
 
                     <!-- Password Fields -->
                     <div class="mb-3">
                         <label for="signUpPassword" class="visually-hidden">Password</label>
-                        <input type="password" id="signUpPassword" class="form-control auth-input" placeholder="Password" aria-required="true" minlength="8" required>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="signUpPassword" class="form-control auth-input" placeholder="Password" aria-required="true" minlength="8" required>
+                            <button type="button" class="password-toggle-btn" id="toggleSignUpPassword" aria-label="Show password" title="Show password" aria-controls="signUpPassword" aria-pressed="false" tabindex="0">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <div class="field-error-text d-none" id="signUpPasswordError"></div>
                         <small id="passwordHelp" class="form-text text-muted visually-hidden">Password must be at least 8 characters long.</small>
                     </div>
                     <div class="mb-4">
                         <label for="signUpRePassword" class="visually-hidden">Re-enter Password</label>
-                        <input type="password" id="signUpRePassword" class="form-control auth-input" placeholder="Re-enter Password" aria-required="true" required>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="signUpRePassword" class="form-control auth-input" placeholder="Re-enter Password" aria-required="true" required>
+                            <button type="button" class="password-toggle-btn" id="toggleSignUpRePassword" aria-label="Show password" title="Show password" aria-controls="signUpRePassword" aria-pressed="false" tabindex="0">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <div class="field-error-text d-none" id="signUpRePasswordError"></div>
                     </div>
 
                     <div class="d-flex gap-3 mb-4">
@@ -154,7 +169,12 @@
                 <!-- Password Input -->
                 <div class="mb-2">
                     <label for="signInPassword" class="visually-hidden">Password</label>
-                    <input type="password" id="signInPassword" class="form-control auth-input" placeholder="Password" aria-required="true" required>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="signInPassword" class="form-control auth-input" placeholder="Password" aria-required="true" required>
+                        <button type="button" class="password-toggle-btn" id="toggleSignInPassword" aria-label="Show password" title="Show password" aria-controls="signInPassword" aria-pressed="false" tabindex="0">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="d-flex justify-content-end mb-4">
@@ -358,6 +378,7 @@
     // Toggle logic with full WCAG support (ARIA tabs management)
     function setViewState(isSignIn) {
         hideAlert();
+        clearAllSignUpValidation();
         const forgotPasswordView = document.getElementById('forgotPasswordView');
         if (forgotPasswordView) forgotPasswordView.classList.add('d-none');
 
@@ -511,13 +532,16 @@
             'toggleSignInBtn': { text: "Sign In tab. Press left button to switch to Sign Up, or press down button to enter your email.", key: "tab_signin" },
             'signInEmail': { text: "Email address input field. Type your email or press down button to go to password.", key: "input_signin_email" },
             'signInPassword': { text: "Password input field. Type your password or press down button to go to forgot password.", key: "input_signin_password" },
+            'toggleSignInPassword': { text: "Show or hide password button. Press Enter to toggle visibility.", key: "btn_toggle_signin_password" },
             'btnForgotPassword': { text: "Forgot password button. Press Enter to reset your password.", key: "btn_forgot_password" },
             'signInSubmitBtn': { text: "Sign In button. Press Enter to submit your credentials.", key: "btn_signin_submit" },
             'signUpEmail': { text: "Email address input field. Type your email address or press down button to select gender.", key: "input_signup_email" },
             'signUpGender': { text: "Gender dropdown. Press Space to show options, choose your gender, then press Right button to enter birthdate.", key: "select_gender" },
             'signUpBirthdate': { text: "Birthdate input field. ... In: day, ... month, ... and year format. Enter your date of birth, then press Down button to enter password.", key: "input_birthdate" },
             'signUpPassword': { text: "Password input field. Type a secure password of at least 8 characters.", key: "input_signup_password" },
+            'toggleSignUpPassword': { text: "Show or hide password button. Press Enter to toggle visibility.", key: "btn_toggle_password" },
             'signUpRePassword': { text: "Re-enter password. Type your password again to confirm.", key: "input_signup_repassword" },
+            'toggleSignUpRePassword': { text: "Show or hide confirm password button. Press Enter to toggle visibility.", key: "btn_toggle_repassword" },
             'signUpBackBtn': { text: "Back button. Press Enter to return to step 1 accessibility profiles.", key: "btn_back" },
             'signUpSubmitBtn': { text: "Sign up button. Press Enter to register your account.", key: "btn_signup_submit" },
             'signUpNextBtn': { text: "Next: Account details button. Press Enter to proceed to account details.", key: "btn_next" },
@@ -552,13 +576,16 @@
                 'toggleSignInBtn': { text: "Sign In tab. Tap to select, or select Sign Up.", key: "tab_signin_mobile" },
                 'signInEmail': { text: "Email address input field. Tap to type your email.", key: "input_signin_email_mobile" },
                 'signInPassword': { text: "Password input field. Tap to type your password.", key: "input_signin_password_mobile" },
+                'toggleSignInPassword': { text: "Show or hide password button. Tap to toggle visibility.", key: "btn_toggle_signin_password_mobile" },
                 'btnForgotPassword': { text: "Forgot password button. Tap to reset your password.", key: "btn_forgot_password_mobile" },
                 'signInSubmitBtn': { text: "Sign In button. Tap to submit your credentials.", key: "btn_signin_submit_mobile" },
                 'signUpEmail': { text: "Email address input field. Tap to type your email.", key: "input_signup_email_mobile" },
                 'signUpGender': { text: "Gender dropdown. Tap to select your gender.", key: "select_gender_mobile" },
                 'signUpBirthdate': { text: "Birthdate input field. Tap to select your date of birth.", key: "input_birthdate_mobile" },
                 'signUpPassword': { text: "Password input field. Tap to type a secure password.", key: "input_signup_password_mobile" },
+                'toggleSignUpPassword': { text: "Show or hide password button. Tap to toggle visibility.", key: "btn_toggle_password_mobile" },
                 'signUpRePassword': { text: "Re-enter password. Tap to confirm.", key: "input_signup_repassword_mobile" },
+                'toggleSignUpRePassword': { text: "Show or hide confirm password button. Tap to toggle visibility.", key: "btn_toggle_repassword_mobile" },
                 'signUpBackBtn': { text: "Back button. Tap to return to step 1 accessibility profiles.", key: "btn_back_mobile" },
                 'signUpSubmitBtn': { text: "Sign up button. Tap to register your account.", key: "btn_signup_submit_mobile" },
                 'signUpNextBtn': { text: "Next: Account details button. Tap to proceed to account details.", key: "btn_next_mobile" },
@@ -837,6 +864,8 @@
     });
 
     signUpBackBtn.addEventListener('click', () => {
+        clearAllSignUpValidation();
+        hideAlert();
         signUpStep2.classList.add('d-none');
         signUpStep1.classList.remove('d-none');
         if (signUpDivider) signUpDivider.classList.remove('d-none');
@@ -904,6 +933,7 @@
     function setupAuthArrowNavigation() {
         const signInEmail = document.getElementById('signInEmail');
         const signInPassword = document.getElementById('signInPassword');
+        const toggleSignInPassword = document.getElementById('toggleSignInPassword');
         const signInSubmitBtn = document.getElementById('signInSubmitBtn');
         const signInGoogleBtn = document.querySelector('#signInView .google-auth-btn');
 
@@ -915,7 +945,9 @@
         const signUpGender = document.getElementById('signUpGender');
         const signUpBirthdate = document.getElementById('signUpBirthdate');
         const signUpPassword = document.getElementById('signUpPassword');
+        const toggleSignUpPassword = document.getElementById('toggleSignUpPassword');
         const signUpRePassword = document.getElementById('signUpRePassword');
+        const toggleSignUpRePassword = document.getElementById('toggleSignUpRePassword');
         const signUpBackBtn = document.getElementById('signUpBackBtn');
         const signUpSubmitBtn = document.getElementById('signUpSubmitBtn');
 
@@ -1008,6 +1040,20 @@
                     e.stopPropagation();
                     moveTo(signInEmail);
                 } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(btnForgotPassword || signInSubmitBtn);
+                }
+            });
+        }
+
+        if (toggleSignInPassword) {
+            toggleSignInPassword.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signInPassword);
+                } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
                     e.preventDefault();
                     e.stopPropagation();
                     moveTo(btnForgotPassword || signInSubmitBtn);
@@ -1217,6 +1263,20 @@
             });
         }
 
+        if (toggleSignUpPassword) {
+            toggleSignUpPassword.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpPassword);
+                } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpRePassword);
+                }
+            });
+        }
+
         if (signUpRePassword) {
             signUpRePassword.addEventListener('keydown', (e) => {
                 if (e.key === 'ArrowUp') {
@@ -1224,6 +1284,20 @@
                     e.stopPropagation();
                     moveTo(signUpPassword);
                 } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpSubmitBtn);
+                }
+            });
+        }
+
+        if (toggleSignUpRePassword) {
+            toggleSignUpRePassword.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveTo(signUpRePassword);
+                } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
                     e.preventDefault();
                     e.stopPropagation();
                     moveTo(signUpSubmitBtn);
@@ -1385,6 +1459,40 @@
     // Initialize keyboard arrow navigation
     setupAuthArrowNavigation();
 
+    // -------------------------------------------------------------
+    // PASSWORD VISIBILITY TOGGLE CONTROLLER
+    // -------------------------------------------------------------
+    function setupPasswordToggle(toggleBtnId, inputId) {
+        const toggleBtn = document.getElementById(toggleBtnId);
+        const input = document.getElementById(inputId);
+        if (!toggleBtn || !input) return;
+
+        toggleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const willShow = input.type === 'password';
+            input.type = willShow ? 'text' : 'password';
+
+            const icon = toggleBtn.querySelector('i');
+            if (icon) {
+                icon.className = willShow ? 'bi bi-eye-slash' : 'bi bi-eye';
+            }
+
+            const actionLabel = willShow ? 'Hide password' : 'Show password';
+            toggleBtn.setAttribute('aria-label', actionLabel);
+            toggleBtn.setAttribute('title', actionLabel);
+            toggleBtn.setAttribute('aria-pressed', willShow ? 'true' : 'false');
+
+            if (typeof speakWithNarrator === 'function') {
+                speakWithNarrator(willShow ? "Password shown" : "Password hidden");
+            }
+        });
+    }
+
+    setupPasswordToggle('toggleSignUpPassword', 'signUpPassword');
+    setupPasswordToggle('toggleSignUpRePassword', 'signUpRePassword');
+    setupPasswordToggle('toggleSignInPassword', 'signInPassword');
+
     // Native Datepicker styling trick to show placeholder "Birthdate" on non-focused states
     const dateInput = document.getElementById('signUpBirthdate');
     dateInput.addEventListener('focus', () => {
@@ -1401,38 +1509,159 @@
     });
 
     // -------------------------------------------------------------
+    // SIGN UP FIELD VALIDATION & WARNINGS
+    // -------------------------------------------------------------
+    const signUpEmailInput = document.getElementById('signUpEmail');
+    const signUpGenderInput = document.getElementById('signUpGender');
+    const signUpBirthdateInput = document.getElementById('signUpBirthdate');
+    const signUpPasswordInput = document.getElementById('signUpPassword');
+    const signUpRePasswordInput = document.getElementById('signUpRePassword');
+
+    const signUpEmailError = document.getElementById('signUpEmailError');
+    const signUpGenderError = document.getElementById('signUpGenderError');
+    const signUpBirthdateError = document.getElementById('signUpBirthdateError');
+    const signUpPasswordError = document.getElementById('signUpPasswordError');
+    const signUpRePasswordError = document.getElementById('signUpRePasswordError');
+
+    const signUpFields = [
+        { 
+            input: signUpEmailInput, 
+            error: signUpEmailError, 
+            label: "Email", 
+            isEmpty: () => !signUpEmailInput.value.trim(), 
+            emptyMsg: "Email is required." 
+        },
+        { 
+            input: signUpGenderInput, 
+            error: signUpGenderError, 
+            label: "Gender", 
+            isEmpty: () => !signUpGenderInput.value, 
+            emptyMsg: "Please select your gender." 
+        },
+        { 
+            input: signUpBirthdateInput, 
+            error: signUpBirthdateError, 
+            label: "Birthdate", 
+            isEmpty: () => !signUpBirthdateInput.value, 
+            emptyMsg: "Birthdate is required." 
+        },
+        { 
+            input: signUpPasswordInput, 
+            error: signUpPasswordError, 
+            label: "Password", 
+            isEmpty: () => !signUpPasswordInput.value, 
+            emptyMsg: "Password is required." 
+        },
+        { 
+            input: signUpRePasswordInput, 
+            error: signUpRePasswordError, 
+            label: "Re-enter Password", 
+            isEmpty: () => !signUpRePasswordInput.value, 
+            emptyMsg: "Please re-enter your password." 
+        }
+    ];
+
+    function markFieldInvalid(input, errorEl, msg) {
+        if (!input) return;
+        input.classList.add('is-invalid', 'auth-input-shake');
+        input.setAttribute('aria-invalid', 'true');
+        setTimeout(() => input.classList.remove('auth-input-shake'), 400);
+        if (errorEl) {
+            errorEl.textContent = msg;
+            errorEl.classList.remove('d-none');
+        }
+    }
+
+    function clearFieldInvalid(input, errorEl) {
+        if (!input) return;
+        input.classList.remove('is-invalid', 'auth-input-shake');
+        input.removeAttribute('aria-invalid');
+        if (errorEl) {
+            errorEl.classList.add('d-none');
+            errorEl.textContent = '';
+        }
+    }
+
+    function clearAllSignUpValidation() {
+        if (typeof signUpFields !== 'undefined') {
+            signUpFields.forEach(f => {
+                clearFieldInvalid(f.input, f.error);
+            });
+        }
+    }
+
+    // Clear warnings in real-time as the user types or selects
+    signUpFields.forEach(f => {
+        if (!f.input) return;
+        const handleInput = () => {
+            clearFieldInvalid(f.input, f.error);
+            const remainingInvalid = document.querySelector('#signUpStep2 .is-invalid');
+            if (!remainingInvalid) {
+                hideAlert();
+            }
+        };
+        f.input.addEventListener('input', handleInput);
+        f.input.addEventListener('change', handleInput);
+    });
+
+    // -------------------------------------------------------------
     // SIGN UP ACTION HANDLER
     // -------------------------------------------------------------
     document.getElementById('signUpForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         hideAlert();
 
-        const email = document.getElementById('signUpEmail').value.trim();
+        const email = signUpEmailInput.value.trim();
         const disability = document.getElementById('signUpDisability').value;
-        const gender = document.getElementById('signUpGender').value;
-        const birthdate = document.getElementById('signUpBirthdate').value;
-        const password = document.getElementById('signUpPassword').value;
-        const rePassword = document.getElementById('signUpRePassword').value;
+        const gender = signUpGenderInput.value;
+        const birthdate = signUpBirthdateInput.value;
+        const password = signUpPasswordInput.value;
+        const rePassword = signUpRePasswordInput.value;
 
-        // Validation checks
-        if (!email || !birthdate || !password || !rePassword) {
-            showAlert("Please fill in all required fields.");
+        // Validation checks: check each field specifically
+        let missingLabels = [];
+        let firstInvalidEl = null;
+
+        signUpFields.forEach(f => {
+            if (f.isEmpty()) {
+                markFieldInvalid(f.input, f.error, f.emptyMsg);
+                missingLabels.push(f.label);
+                if (!firstInvalidEl) firstInvalidEl = f.input;
+            } else {
+                clearFieldInvalid(f.input, f.error);
+            }
+        });
+
+        // Specific warning for missing fields
+        if (missingLabels.length > 0) {
+            let alertMsg = "";
+            if (missingLabels.length === 1) {
+                alertMsg = `Please enter your ${missingLabels[0]}.`;
+            } else if (missingLabels.length === 2) {
+                alertMsg = `Please fill in: ${missingLabels[0]} and ${missingLabels[1]}.`;
+            } else {
+                alertMsg = `Please fill in: ${missingLabels.slice(0, -1).join(', ')}, and ${missingLabels[missingLabels.length - 1]}.`;
+            }
+            showAlert(alertMsg);
+            if (firstInvalidEl) firstInvalidEl.focus();
             return;
         }
 
+        // Validate password length
         if (password.length < 6) {
+            markFieldInvalid(signUpPasswordInput, signUpPasswordError, "Password must be at least 6 characters.");
             showAlert("Password must be at least 6 characters long for Firebase.");
-            document.getElementById('signUpPassword').focus();
+            signUpPasswordInput.focus();
             return;
         }
 
+        // Validate password confirmation match
         if (password !== rePassword) {
+            markFieldInvalid(signUpRePasswordInput, signUpRePasswordError, "Passwords do not match.");
             showAlert("Passwords do not match. Please recheck password entry.");
-            document.getElementById('signUpRePassword').setAttribute('aria-invalid', 'true');
-            document.getElementById('signUpRePassword').focus();
+            signUpRePasswordInput.focus();
             return;
         }
-        document.getElementById('signUpRePassword').removeAttribute('aria-invalid');
 
         if (!firebaseAuth) {
             showAlert("Firebase client is not configured yet. Redirecting to home...", false);
@@ -1512,6 +1741,7 @@
             const syncData = await syncRes.json();
             if (syncData.success) {
                 showAlert("Registration successful! Redirecting...", false);
+                clearAllSignUpValidation();
                 document.getElementById('signUpForm').reset();
                 if (dateInput) {
                     dateInput.type = 'text';
@@ -1593,7 +1823,14 @@
             }
 
         } catch (err) {
-            showAlert("An error occurred during login: " + err.message);
+            console.error("Sign-in error:", err);
+            if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') {
+                showAlert("Incorrect email or password.");
+            } else if (err.code === 'auth/too-many-requests') {
+                showAlert("Too many attempts. Please try again later.");
+            } else {
+                showAlert("Incorrect email or password.");
+            }
         } finally {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Sign In';

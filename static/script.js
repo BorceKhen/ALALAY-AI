@@ -280,6 +280,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const file = fileInput.files[0];
 
+            // ── Client-side 20 MB File Size Ceiling ──
+            const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
+            if (file.size > MAX_FILE_SIZE) {
+                if (typeof showToast === "function") {
+                    showToast("File size exceeds the 20 MB limit. Please select a smaller document.", "error");
+                } else {
+                    alert("File size exceeds the 20 MB limit. Please select a smaller document.");
+                }
+                fileInput.value = "";
+                return;
+            }
+
             // Show file name on card
             if (fileNameEl) {
                 fileNameEl.textContent = file.name;
@@ -372,6 +384,13 @@ document.addEventListener("DOMContentLoaded", () => {
                         fileNameEl.style.color = "#28a745";
                     }
 
+                    // Inform user if document was gracefully truncated to 25 content pages
+                    if (data.is_truncated) {
+                        if (typeof showToast === "function") {
+                            showToast(`Processed the first ${data.total_pages} content-bearing pages of "${data.filename}" (remaining/blank pages omitted for fast study deck creation).`, "info");
+                        }
+                    }
+
                     // Populate results panel
                     if (resultsBox) {
                         const totalWords = data.pages.reduce((sum, p) => sum + p.word_count, 0);
@@ -454,6 +473,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (fileNameEl) {
                         fileNameEl.textContent = `⚠ Error: ${data.error}`;
                         fileNameEl.style.color = "#dc3545";
+                    }
+                    if (typeof showToast === "function") {
+                        showToast(data.error || "Upload failed. Please check the document.", "error");
                     }
                 }
             })
