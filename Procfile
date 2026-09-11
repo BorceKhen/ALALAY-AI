@@ -1,1 +1,1 @@
-web: gunicorn --bind 0.0.0.0:${PORT:-8000} --chdir /home/site/wwwroot --timeout 600 wsgi:app
+web: PYTHONUNBUFFERED=1 gunicorn --bind 0.0.0.0:${PORT:-8000} --chdir /home/site/wwwroot --timeout 600 wsgi:app

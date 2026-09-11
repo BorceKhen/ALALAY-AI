@@ -603,12 +603,21 @@ def quiz_deck(deck_name):
                 except Exception as e:
                     print(f"[Quiz-Generation] Gemini failed: {e}")
              
-            # Fall back to local T5 if both cloud APIs failed or are not set
+            # Fall back to local T5 only if local pipeline files exist (local machine development)
             if not quiz_items:
-                print("[Quiz-Generation] Cloud APIs failed or keys not set. Falling back to local T5 Quiz Generator...")
-                from models.t5_quiz_generator import T5QuizGenerator
-                generator = T5QuizGenerator.get_instance()
-                quiz_items = generator.generate_quiz(extracted_text, cards, max_questions=20) # T5 uses direct extractive templates
+                qg_dir_local = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "question_generation")
+                if os.path.isdir(qg_dir_local):
+                    try:
+                        print("[Quiz-Generation] Cloud APIs failed or keys not set. Falling back to local T5 Quiz Generator...", flush=True)
+                        from models.t5_quiz_generator import T5QuizGenerator
+                        generator = T5QuizGenerator.get_instance()
+                        quiz_items = generator.generate_quiz(extracted_text, cards, max_questions=20)
+                    except (ImportError, ModuleNotFoundError) as ie:
+                        print(f"[Quiz-Generation] Local T5 dependencies missing: {ie}", flush=True)
+                    except Exception as t5_e:
+                        print(f"[Quiz-Generation] Local T5 quiz generator failed: {t5_e}", flush=True)
+                else:
+                    print("[Quiz-Generation] Cloud APIs produced no quiz and local T5 pipeline is not present on this server.", flush=True)
              
             # Save generated quiz items to deck document in Firestore if successfully generated
             if quiz_items:
@@ -885,35 +894,52 @@ def generate_flashcard():
                 content_level = profile_doc.to_dict().get("recommended_settings", {}).get("content_level", "Medium")
 
     # ── Generate flashcards using Groq, Gemini, or local T5 model ──
+    generation_errors = []
     try:
         cards = []
         if os.environ.get("GROQ_API_KEY"):
             try:
-                print(f"[Flashcard-Generation] Trying Groq Flashcard Generator (level={content_level})...")
+                print(f"[Flashcard-Generation] Trying Groq Flashcard Generator (level={content_level})...", flush=True)
                 from models.groq_flashcard_generator import GroqFlashcardGenerator
                 generator = GroqFlashcardGenerator.get_instance()
                 cards = generator.generate_deck(extracted_text, content_level=content_level)
             except Exception as e:
-                print(f"[Flashcard-Generation] Groq failed: {e}")
+                print(f"[Flashcard-Generation] Groq failed: {e}", flush=True)
+                generation_errors.append(f"Groq: {e}")
+        else:
+            generation_errors.append("GROQ_API_KEY is not configured in Azure Settings")
 
         # If Groq returned fewer than 20 cards (or failed) and Gemini is available, try Gemini to reach the standard 20
         if len(cards) < 20 and os.environ.get("GEMINI_API_KEY"):
             try:
-                print(f"[Flashcard-Generation] Groq yielded {len(cards)} cards (< 20). Trying Gemini Flashcard Generator (level={content_level})...")
+                print(f"[Flashcard-Generation] Groq yielded {len(cards)} cards (< 20). Trying Gemini Flashcard Generator (level={content_level})...", flush=True)
                 from models.gemini_flashcard_generator import GeminiFlashcardGenerator
                 generator = GeminiFlashcardGenerator.get_instance()
                 gemini_cards = generator.generate_deck(extracted_text, content_level=content_level)
                 if len(gemini_cards) > len(cards):
                     cards = gemini_cards
             except Exception as e:
-                print(f"[Flashcard-Generation] Gemini failed: {e}")
+                print(f"[Flashcard-Generation] Gemini failed: {e}", flush=True)
+                generation_errors.append(f"Gemini: {e}")
+        elif len(cards) < 20 and not os.environ.get("GEMINI_API_KEY"):
+            generation_errors.append("GEMINI_API_KEY is not configured in Azure Settings")
             
-        # Fall back to local T5 if both cloud APIs failed or are not set
+        # Fall back to local T5 only if running on a machine where adapter directory exists
         if not cards:
-            print("[Flashcard-Generation] Cloud APIs failed or keys not set. Falling back to local T5 Flashcard Generator...")
-            from models.t5_flashcard_generator import T5FlashcardGenerator
-            generator = T5FlashcardGenerator.get_instance(T5_ADAPTER_PATH)
-            cards = generator.generate_deck(extracted_text)
+            if os.path.isdir(T5_ADAPTER_PATH):
+                try:
+                    print("[Flashcard-Generation] Cloud APIs failed or keys not set. Falling back to local T5 Flashcard Generator...", flush=True)
+                    from models.t5_flashcard_generator import T5FlashcardGenerator
+                    generator = T5FlashcardGenerator.get_instance(T5_ADAPTER_PATH)
+                    cards = generator.generate_deck(extracted_text)
+                except (ImportError, ModuleNotFoundError) as ie:
+                    print(f"[Flashcard-Generation] Local T5 dependencies missing: {ie}", flush=True)
+                    generation_errors.append(f"Local T5 dependencies unavailable ({ie})")
+                except Exception as t5_e:
+                    print(f"[Flashcard-Generation] Local T5 failed: {t5_e}", flush=True)
+                    generation_errors.append(f"Local T5 failed ({t5_e})")
+            else:
+                print(f"[Flashcard-Generation] Cloud APIs produced no cards and local T5 adapter is not present on this server.", flush=True)
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -923,9 +949,10 @@ def generate_flashcard():
         }), 500
 
     if not cards:
+        error_msg = " | ".join(generation_errors) if generation_errors else "API rate limit or quota exceeded."
         return jsonify({
             'success': False,
-            'error': 'Failed to generate flashcards. The generator returned no cards, possibly due to an API rate limit, quota issue, or model failure.'
+            'error': f'Failed to generate flashcards. ({error_msg})'
         }), 500
 
     # Create the new deck entry with generated cards
