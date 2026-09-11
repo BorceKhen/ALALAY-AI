@@ -903,6 +903,8 @@ def generate_flashcard():
                 from models.groq_flashcard_generator import GroqFlashcardGenerator
                 generator = GroqFlashcardGenerator.get_instance()
                 cards = generator.generate_deck(extracted_text, content_level=content_level)
+                if not cards:
+                    generation_errors.append("Groq returned 0 cards")
             except Exception as e:
                 print(f"[Flashcard-Generation] Groq failed: {e}", flush=True)
                 generation_errors.append(f"Groq: {e}")

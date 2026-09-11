@@ -41,10 +41,8 @@ class GroqFlashcardGenerator:
         Queries Groq to generate flashcard pairs from the study text.
         Matches the signature of gemini_flashcard_generator.py for easy drop-in replacement.
         """
-        try:
-            self._init_client()
-        except Exception:
-            return []
+        # Initialize client (will raise if keys missing or package not installed)
+        self._init_client()
 
         if not extracted_text or not extracted_text.strip():
             print("[Groq-FlashGen] Error: No extracted text available for flashcard generation.")
@@ -222,5 +220,5 @@ Output MUST be a JSON object with a "cards" array:
             return []
 
         except Exception as e:
-            print(f"[Groq-FlashGen] Failed to generate flashcard content: {e}")
-            return []
+            print(f"[Groq-FlashGen] Failed to generate flashcard content: {e}", flush=True)
+            raise RuntimeError(f"Groq failed: {e}")

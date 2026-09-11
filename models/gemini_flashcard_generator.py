@@ -47,10 +47,7 @@ class GeminiFlashcardGenerator:
         Queries Gemini to generate flashcard pairs from the study text.
         Matches the signature of t5_flashcard_generator.py for easy drop-in replacement.
         """
-        try:
-            self._init_client()
-        except ImportError:
-            return []
+        self._init_client()
 
         if not extracted_text or not extracted_text.strip():
             print("[Gemini-FlashGen] Error: No extracted text available for flashcard generation.")
@@ -194,5 +191,5 @@ Output MUST be a JSON array of objects:
             return []
 
         except Exception as e:
-            print(f"[Gemini-FlashGen] Failed to generate flashcard content: {e}")
-            return []
+            print(f"[Gemini-FlashGen] Failed to generate flashcard content: {e}", flush=True)
+            raise RuntimeError(f"Gemini failed: {e}")
