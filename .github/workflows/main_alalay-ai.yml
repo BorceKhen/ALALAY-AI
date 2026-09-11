@@ -58,6 +58,5 @@ jobs:
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
-          app-name: 'alalay-ai'
+          app-name: 'alalay-aiv3'
           slot-name: 'Production'
-          
