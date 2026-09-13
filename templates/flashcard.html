@@ -12,9 +12,18 @@
 
 <div class="deck-header-wrapper d-flex align-items-center justify-content-between mb-5 pb-3" style="gap: 20px;">
     <!-- DECK TITLE-->
-    <div class="d-flex align-items-center gap-3" style="min-width: 0;">
+    <div class="d-flex align-items-center gap-3 flex-wrap" style="min-width: 0;">
         <span class="rounded-1 flex-shrink-0 deck-color-badge" style="width: 16px; height: 16px;" data-bg="{{ deck_color }}"></span>
         <h1 class="h2 fw-bold text-dark mb-0 text-truncate" title="{{ deck_name }}">{{ deck_name }}</h1>
+        {% if deck_structure == 'descriptive' %}
+        <span class="badge rounded-pill bg-light text-primary border border-primary-subtle px-3 py-2 fw-medium d-none d-sm-inline-flex align-items-center gap-1" style="font-size: 0.8rem;">
+            <i class="bi bi-card-text"></i> Descriptive Deck
+        </span>
+        {% else %}
+        <span class="badge rounded-pill bg-light text-indigo border border-indigo-subtle px-3 py-2 fw-medium d-none d-sm-inline-flex align-items-center gap-1" style="font-size: 0.8rem; color: #4338ca; background: #eef2ff;">
+            <i class="bi bi-patch-question"></i> Question Deck
+        </span>
+        {% endif %}
     </div>
 
     <!-- BUTTONS COLUMN -->
@@ -30,19 +39,41 @@
 </div>
 <hr class="divider-line">
 <!-- DECK LISTS -->
+{% set tts_enabled = (user_recommended_settings and user_recommended_settings.tts == 'on') %}
 <!-- DECK LIST HEADER WITH AUTOPLAY TRIGGER -->
 <div class="d-flex align-items-center justify-content-between mb-4 mt-5 pb-2 border-bottom">
-    <h2 class="h5 fw-bold mb-0">Decks ({{ card_count }})</h2>
-    <button id="btn-autoplay-tts" class="btn btn-outline-primary rounded-pill px-3 py-1 btn-sm d-flex align-items-center gap-2 btn-autoplay-tts" aria-label="Auto Play TTS">
+    <div class="d-flex align-items-center gap-2">
+        <h2 class="h5 fw-bold mb-0">Decks ({{ card_count }})</h2>
+        {% if deck_structure == 'descriptive' %}
+        <span class="badge rounded-pill bg-light text-primary border border-primary-subtle px-2 py-1 small d-sm-none" style="font-size:0.75rem;">Descriptive</span>
+        {% else %}
+        <span class="badge rounded-pill bg-light text-secondary border px-2 py-1 small d-sm-none" style="font-size:0.75rem;">Questions</span>
+        {% endif %}
+    </div>
+    <button id="btn-autoplay-tts" class="btn btn-outline-primary rounded-pill px-3 py-1 btn-sm align-items-center gap-2 btn-autoplay-tts {% if not tts_enabled %}d-none{% endif %}" aria-label="Auto Play TTS">
         <i class="bi bi-play-circle-fill"></i> <span class="autoplay-text-span">Auto Play TTS</span>
     </button>
 </div>
 <div class="deck-cards-stack">
     {% for card in cards %}
+    {% if deck_structure == 'descriptive' or card.get('type') == 'descriptive' %}
+    <!-- Descriptive Type Card: Single container with NO division -->
+    <div class="flashcard-item rounded-4 mb-3 shadow-sm bg-white overflow-hidden border">
+        <div class="flashcard-panel-descriptive p-4 d-flex align-items-start justify-content-between gap-3">
+            <p class="flashcard-text-body flashcard-text-descriptive mb-0" style="line-height: 1.7; font-size: 1.05rem; color: #1e293b; flex: 1;">
+                {{ card.answer if card.answer else card.question }}
+            </p>
+            <button class="btn btn-sm btn-link text-secondary p-0 tts-trigger flex-shrink-0 mt-1 {% if not tts_enabled %}d-none{% endif %}" data-tts-text="{{ card.answer if card.answer else card.question }}" aria-label="Read Descriptive Text Aloud">
+                <i class="bi bi-volume-up-fill" style="font-size: 1.25rem;"></i>
+            </button>
+        </div>
+    </div>
+    {% else %}
+    <!-- Question Type Card: Divided into Question (top), Divider line, Answer (bottom) -->
     <div class="flashcard-item rounded-4 mb-3 shadow-sm bg-white overflow-hidden border">
         <div class="flashcard-panel-top p-3 d-flex align-items-center justify-content-between">
             <h2 class="flashcard-text-title mb-0">{{ card.question }}</h2>
-            <button class="btn btn-sm btn-link text-secondary p-0 tts-trigger" data-tts-text="{{ card.question }}" aria-label="Read Question Aloud">
+            <button class="btn btn-sm btn-link text-secondary p-0 tts-trigger {% if not tts_enabled %}d-none{% endif %}" data-tts-text="{{ card.question }}" aria-label="Read Question Aloud">
                 <i class="bi bi-volume-up-fill" style="font-size: 1.25rem;"></i>
             </button>
         </div>
@@ -50,12 +81,13 @@
         <div class="flashcard-divider"></div>
         
         <div class="flashcard-panel-bottom p-3 d-flex align-items-center justify-content-between">
-            <p class="flashcard-text-body mb-0">{{ card.answer }}</p>
-            <button class="btn btn-sm btn-link text-secondary p-0 tts-trigger" data-tts-text="{{ card.answer }}" aria-label="Read Answer Aloud">
+            <p class="flashcard-text-body mb-0" style="line-height: 1.6;">{{ card.answer }}</p>
+            <button class="btn btn-sm btn-link text-secondary p-0 tts-trigger {% if not tts_enabled %}d-none{% endif %}" data-tts-text="{{ card.answer }}" aria-label="Read Answer Aloud">
                 <i class="bi bi-volume-up-fill" style="font-size: 1.25rem;"></i>
             </button>
         </div>
     </div>
+    {% endif %}
     {% else %}
     <div class="text-center py-5 text-muted border rounded-4 bg-white">
         <p class="mb-0">No flashcards in this deck yet. Generate some from the home page!</p>
@@ -98,6 +130,12 @@
         
         if (headerBtn && floatingBtn) {
             const observer = new IntersectionObserver((entries) => {
+                const isTtsOn = document.body.getAttribute('data-tts') === 'on';
+                if (!isTtsOn) {
+                    floatingBtn.classList.remove('d-flex');
+                    floatingBtn.classList.add('d-none');
+                    return;
+                }
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         floatingBtn.classList.remove('d-flex');

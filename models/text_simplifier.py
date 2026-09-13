@@ -86,6 +86,26 @@ class TextSimplifier:
 
         return None
 
+    @staticmethod
+    def _finalize_cards(data, is_descriptive: bool) -> list:
+        cards = []
+        if isinstance(data, list):
+            cards = data
+        elif isinstance(data, dict):
+            if "cards" in data and isinstance(data["cards"], list):
+                cards = data["cards"]
+            elif "question" in data and "answer" in data:
+                cards = [data]
+            else:
+                lists = [v for v in data.values() if isinstance(v, list)]
+                if lists:
+                    cards = lists[0]
+        if cards:
+            for c in cards:
+                if isinstance(c, dict):
+                    c['type'] = 'descriptive' if is_descriptive else 'question'
+        return cards
+
     def _request_groq_json(self, prompt: str, system_prompt: str = None):
         """
         Executes a Groq chat completion specifically for JSON output with:
@@ -217,7 +237,7 @@ Study Text to Simplify:
         print("[TextSimplifier] Simplification failed or no API keys set. Returning original text.")
         return text
 
-    def simplify_cards(self, cards: list) -> list:
+    def simplify_cards(self, cards: list, deck_structure: str = "question") -> list:
         """
         Simplifies a list of card dictionaries: [{'question': '...', 'answer': '...'}]
         Returns the simplified card array.
@@ -225,7 +245,8 @@ Study Text to Simplify:
         if not cards:
             return []
 
-        sample_text = " ".join([c.get('question', '') + ' ' + c.get('answer', '') for c in cards[:5]])
+        is_descriptive = (str(deck_structure).strip().lower() == "descriptive" or any(isinstance(c, dict) and c.get('type') == 'descriptive' for c in cards))
+        sample_text = " ".join([c.get('question', '') + ' ' + c.get('answer', '') for c in cards[:5] if isinstance(c, dict)])
         tagalog_keywords = {
             "ang", "mga", "ano", "paano", "bakit", "saan", "kailan", "sa", "ng", "na", "at", "o",
             "isang", "may", "para", "dahil", "wika", "filipino", "pilipino", "ito", "sila", "tayo"
@@ -233,9 +254,51 @@ Study Text to Simplify:
         words = set(sample_text.lower().split())
         is_tagalog = len(words.intersection(tagalog_keywords)) >= 2
 
-        if is_tagalog:
-            lang_instruction = "LANGUAGE REQUIREMENT: The input cards are in Filipino/Tagalog. You MUST simplify them in Filipino/Tagalog. DO NOT translate to English. Keep technical words as they are."
-            json_example = """{
+        if is_descriptive:
+            if is_tagalog:
+                lang_instruction = "LANGUAGE REQUIREMENT: Ang mga kard ay nasa Filipino/Tagalog. Panatilihin ang wikang Filipino/Tagalog gamit ang mga payak at madaling salita."
+                json_example = """{
+  "cards": [
+    {
+      "question": "Photosynthesis",
+      "answer": "Ang photosynthesis ay proseso kung saan ang mga halaman ay gumagawa ng pagkain gamit ang sikat ng araw. Sa loob ng mga dahon, binabago nito ang tubig at hangin upang maging asukal at oxygen.",
+      "type": "descriptive"
+    }
+  ]
+}"""
+            else:
+                lang_instruction = "LANGUAGE REQUIREMENT: The input cards are in English. Simplify them in clear, plain English."
+                json_example = """{
+  "cards": [
+    {
+      "question": "Photosynthesis",
+      "answer": "Photosynthesis is the process where plants make food using sunlight. Inside leaves, they turn water and air into sugar and oxygen.",
+      "type": "descriptive"
+    }
+  ]
+}"""
+            prompt = f"""
+You are an expert educational accessibility assistant. Your task is to simplify the vocabulary of the descriptive flashcards below for users with learning/cognitive difficulties.
+
+Requirements:
+1. {lang_instruction}
+2. Maintain the exact count of cards and the JSON structure.
+3. CRITICAL DESCRIPTIVE STRUCTURE REQUIREMENT: Keep 'question' as the concept name and keep 'answer' as a strict 2-sentence descriptive paragraph:
+   - Sentence 1: Identification & Core Purpose ([Subject] is a [category] that [function]).
+   - Sentence 2: Execution & Significance (By/Inside/Through [mechanism], it [outcome]).
+4. Do NOT convert into questions. Keep the 2-sentence declarative/descriptive paragraph.
+5. Output MUST be strictly valid JSON matching the format below, without markdown wrappers or descriptions.
+
+Expected JSON output format:
+{json_example}
+
+Input JSON cards:
+{json.dumps(cards, indent=2)}
+"""
+        else:
+            if is_tagalog:
+                lang_instruction = "LANGUAGE REQUIREMENT: The input cards are in Filipino/Tagalog. You MUST simplify them in Filipino/Tagalog. DO NOT translate to English. Keep technical words as they are."
+                json_example = """{
   "cards": [
     {
       "question": "Ano ang wika?",
@@ -243,9 +306,9 @@ Study Text to Simplify:
     }
   ]
 }"""
-        else:
-            lang_instruction = "LANGUAGE REQUIREMENT: The input cards are in English. You MUST simplify them in English."
-            json_example = """{
+            else:
+                lang_instruction = "LANGUAGE REQUIREMENT: The input cards are in English. You MUST simplify them in English."
+                json_example = """{
   "cards": [
     {
       "question": "What is language?",
@@ -254,7 +317,7 @@ Study Text to Simplify:
   ]
 }"""
 
-        prompt = f"""
+            prompt = f"""
 You are an expert accessibility assistant. Your task is to simplify the questions and answers of the study flashcards below. Make the vocabulary and sentence structure easy to read for users with learning/cognitive difficulties.
 
 Requirements:
@@ -276,16 +339,9 @@ Input JSON cards:
                 response = self._request_groq_json(prompt)
                 if response and response.choices:
                     data = self._parse_json(response.choices[0].message.content)
-                    if isinstance(data, list):
-                        return data
-                    elif isinstance(data, dict):
-                        if "cards" in data and isinstance(data["cards"], list):
-                            return data["cards"]
-                        if "question" in data and "answer" in data:
-                            return [data]
-                        lists = [v for v in data.values() if isinstance(v, list)]
-                        if lists:
-                            return lists[0]
+                    res = self._finalize_cards(data, is_descriptive)
+                    if res:
+                        return res
             except Exception as e:
                 print(f"[TextSimplifier] Groq bulk card simplification failed: {e}")
 
@@ -297,20 +353,13 @@ Input JSON cards:
                 response = self.gemini_model.generate_content(prompt)
                 if response and response.text:
                     data = self._parse_json(response.text)
-                    if isinstance(data, list):
-                        return data
-                    elif isinstance(data, dict):
-                        if "cards" in data and isinstance(data["cards"], list):
-                            return data["cards"]
-                        if "question" in data and "answer" in data:
-                            return [data]
-                        lists = [v for v in data.values() if isinstance(v, list)]
-                        if lists:
-                            return lists[0]
+                    res = self._finalize_cards(data, is_descriptive)
+                    if res:
+                        return res
             except Exception as e:
                 print(f"[TextSimplifier] Gemini bulk card simplification failed: {e}")
 
-        return cards
+        return self._finalize_cards(cards, is_descriptive)
 
     def simplify_quiz_items(self, quiz_items: list) -> list:
         """
@@ -503,14 +552,15 @@ Input JSON quiz items:
 
         return normalized[:len(original_items)] if normalized else original_items
 
-    def enhance_cards(self, cards: list) -> list:
+    def enhance_cards(self, cards: list, deck_structure: str = "question") -> list:
         """
         Rewrites a list of cards dynamically to be more academically challenging/comprehensive.
         """
         if not cards:
             return []
 
-        sample_text = " ".join([c.get('question', '') + ' ' + c.get('answer', '') for c in cards[:5]])
+        is_descriptive = (str(deck_structure).strip().lower() == "descriptive" or any(isinstance(c, dict) and c.get('type') == 'descriptive' for c in cards))
+        sample_text = " ".join([c.get('question', '') + ' ' + c.get('answer', '') for c in cards[:5] if isinstance(c, dict)])
         tagalog_keywords = {
             "ang", "mga", "ano", "paano", "bakit", "saan", "kailan", "sa", "ng", "na", "at", "o",
             "isang", "may", "para", "dahil", "wika", "filipino", "pilipino", "ito", "sila", "tayo"
@@ -518,9 +568,51 @@ Input JSON quiz items:
         words = set(sample_text.lower().split())
         is_tagalog = len(words.intersection(tagalog_keywords)) >= 2
 
-        if is_tagalog:
-            lang_instruction = "LANGUAGE REQUIREMENT: The input cards are in Filipino/Tagalog. You MUST enhance them in Filipino/Tagalog. DO NOT translate to English. Keep technical words as they are."
-            json_example = """{
+        if is_descriptive:
+            if is_tagalog:
+                lang_instruction = "LANGUAGE REQUIREMENT: Ang mga kard ay nasa Filipino/Tagalog. Panatilihin ang wikang Filipino/Tagalog gamit ang mas malalim at komprehensibong bokabularyo."
+                json_example = """{
+  "cards": [
+    {
+      "question": "Photosynthesis",
+      "answer": "Ang photosynthesis ay ang biyolohikal na proseso kung saan ang mga halaman at iba pang organismo ay nagpapalit ng enerhiya ng araw tungo sa enerhiyang kemikal. Sa pamamagitan ng mga chloroplast, binabago nito ang carbon dioxide at tubig upang makabuo ng glukosa habang naglalabas ng oxygen bilang produkto.",
+      "type": "descriptive"
+    }
+  ]
+}"""
+            else:
+                lang_instruction = "LANGUAGE REQUIREMENT: The input cards are in English. You MUST enhance them in English."
+                json_example = """{
+  "cards": [
+    {
+      "question": "Photosynthesis",
+      "answer": "Photosynthesis is the fundamental biochemical mechanism whereby phototrophic organisms transmute radiant solar energy into durable chemical potential. Through catalytic light-dependent reactions within thylakoid membranes, carbon dioxide and water are synthesized into glucose while releasing oxygen as an essential byproduct.",
+      "type": "descriptive"
+    }
+  ]
+}"""
+            prompt = f"""
+You are an expert educational enhancer. Your task is to increase the academic complexity, depth, and rigorous terminology of the descriptive flashcards below.
+
+Requirements:
+1. {lang_instruction}
+2. Maintain the exact count of cards and the JSON structure.
+3. CRITICAL DESCRIPTIVE STRUCTURE REQUIREMENT: Keep 'question' as the concept name and keep 'answer' as a strict 2-sentence descriptive paragraph:
+   - Sentence 1: Identification & Core Purpose ([Subject] is a [category] that [function]).
+   - Sentence 2: Execution & Significance (Through/By/Inside [mechanism], it [outcome]).
+4. Do NOT convert into questions. Keep the 2-sentence declarative/descriptive paragraph.
+5. Output MUST be strictly valid JSON matching the format below, without markdown wrappers or descriptions.
+
+Expected JSON output format:
+{json_example}
+
+Input JSON cards:
+{json.dumps(cards, indent=2)}
+"""
+        else:
+            if is_tagalog:
+                lang_instruction = "LANGUAGE REQUIREMENT: The input cards are in Filipino/Tagalog. You MUST enhance them in Filipino/Tagalog. DO NOT translate to English. Keep technical words as they are."
+                json_example = """{
   "cards": [
     {
       "question": "Ano ang mas malalim at komprehensibong kahalagahan ng wika?",
@@ -528,9 +620,9 @@ Input JSON quiz items:
     }
   ]
 }"""
-        else:
-            lang_instruction = "LANGUAGE REQUIREMENT: The input cards are in English. You MUST enhance them in English."
-            json_example = """{
+            else:
+                lang_instruction = "LANGUAGE REQUIREMENT: The input cards are in English. You MUST enhance them in English."
+                json_example = """{
   "cards": [
     {
       "question": "What is the comprehensive academic significance of language?",
@@ -539,7 +631,7 @@ Input JSON quiz items:
   ]
 }"""
 
-        prompt = f"""
+            prompt = f"""
 You are an expert educational enhancer. Your task is to increase the academic complexity, difficulty, and depth of the study flashcards below.
 Enhance the vocabulary, require critical thinking/analysis, and make definitions more comprehensive, without changing the core factual correctness.
 
@@ -562,16 +654,9 @@ Input JSON cards:
                 response = self._request_groq_json(prompt)
                 if response and response.choices:
                     data = self._parse_json(response.choices[0].message.content)
-                    if isinstance(data, list):
-                        return data
-                    elif isinstance(data, dict):
-                        if "cards" in data and isinstance(data["cards"], list):
-                            return data["cards"]
-                        if "question" in data and "answer" in data:
-                            return [data]
-                        lists = [v for v in data.values() if isinstance(v, list)]
-                        if lists:
-                            return lists[0]
+                    res = self._finalize_cards(data, is_descriptive)
+                    if res:
+                        return res
             except Exception as e:
                 print(f"[TextSimplifier] Groq bulk card enhancement failed: {e}")
 
@@ -583,20 +668,13 @@ Input JSON cards:
                 response = self.gemini_model.generate_content(prompt)
                 if response and response.text:
                     data = self._parse_json(response.text)
-                    if isinstance(data, list):
-                        return data
-                    elif isinstance(data, dict):
-                        if "cards" in data and isinstance(data["cards"], list):
-                            return data["cards"]
-                        if "question" in data and "answer" in data:
-                            return [data]
-                        lists = [v for v in data.values() if isinstance(v, list)]
-                        if lists:
-                            return lists[0]
+                    res = self._finalize_cards(data, is_descriptive)
+                    if res:
+                        return res
             except Exception as e:
                 print(f"[TextSimplifier] Gemini bulk card enhancement failed: {e}")
 
-        return cards
+        return self._finalize_cards(cards, is_descriptive)
 
     def enhance_quiz_items(self, quiz_items: list) -> list:
         """

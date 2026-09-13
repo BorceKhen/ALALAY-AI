@@ -1,5 +1,6 @@
 import os
 import json
+import re
 import threading
 from datetime import datetime, timezone
 import numpy as np
@@ -189,13 +190,23 @@ def update_user_personalization(user_id, latest_log_id=None, latest_log_data=Non
                 "user_state": user_state
             })
 
-            # Also save root profile fields
+            # Also save root profile fields and latest session summary
             db.collection("profiles").document(user_id).set({
                 "current_behavioral_state": user_state,
                 "latest_cli_score": round(cli, 4),
                 "latest_nfi_score": round(nfi, 4),
                 "latest_di_score": round(di, 4),
-                "last_updated": datetime.now(timezone.utc).isoformat()
+                "last_updated": datetime.now(timezone.utc).isoformat(),
+                "latest_session": {
+                    "deck_name": latest_log.get("deck_name", "General Review"),
+                    "session_type": latest_log.get("session_type", "Flashcard Study"),
+                    "user_state": user_state,
+                    "cli_score": round(cli, 4),
+                    "di_score": round(di, 4),
+                    "nfi_score": round(nfi, 4),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "log_id": latest_doc_id
+                }
             }, merge=True)
 
         cli_flagged = (cli > 0.45 or n_reg >= 0.8)
@@ -372,9 +383,16 @@ def update_user_personalization(user_id, latest_log_id=None, latest_log_data=Non
                 "user_state_transition": f"{prev_log.get('user_state') if total_sessions > 1 else 'None'} -> {user_state}"
             }
             
-            # Log transition to Firestore
-            db.collection("mdp_transitions").add(mdp_doc)
-            print(f"[Engine-MDP] Logged MDP transition for user {user_id} with reward: {round(reward, 4)}")
+            # Log transition to Firestore with formatted readable ID
+            timestamp_str = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
+            user_prefix = user_id[:8]
+            if profile.get("email"):
+                email_part = re.sub(r'[^a-zA-Z0-9_]', '', profile["email"].split("@")[0])
+                if email_part:
+                    user_prefix = f"{email_part}_{user_id[:4]}"
+            mdp_doc_id = f"{timestamp_str}_{user_prefix}_engine_transition"
+            db.collection("mdp_transitions").document(mdp_doc_id).set(mdp_doc)
+            print(f"[Engine-MDP] Logged MDP transition ({mdp_doc_id}) with reward: {round(reward, 4)}")
             
         except Exception as mdp_err:
             print(f"[Engine-MDP] Warning: Failed to compute or log MDP transition: {mdp_err}")

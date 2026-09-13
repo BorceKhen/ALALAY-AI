@@ -77,6 +77,92 @@ document.addEventListener("DOMContentLoaded", () => {
     syncDatabaseToLocalStorage();
     syncLocalStorageToBody();
 
+    // Dynamically show or hide all TTS triggers, Auto Play buttons, and quiz buttons based on active TTS setting
+    function applyTtsVisibility() {
+        const isTtsOn = document.body.getAttribute('data-tts') === 'on' || localStorage.getItem(getStorageKey('access_tts')) === '1';
+        const ttsElements = document.querySelectorAll('.tts-trigger, #btn-autoplay-tts, #btn-autoplay-tts-floating, .btn-autoplay-tts, #btn-quiz-tts');
+        ttsElements.forEach(el => {
+            if (isTtsOn) {
+                el.style.removeProperty('display');
+                if (el.id === 'btn-autoplay-tts') {
+                    el.classList.add('d-flex');
+                    el.classList.remove('d-none');
+                }
+            } else {
+                el.style.setProperty('display', 'none', 'important');
+                el.classList.remove('d-flex');
+                el.classList.add('d-none');
+            }
+        });
+    }
+    // ── Screen Reader Active State & Immediate Speech Dispatcher ──
+    window.isScreenReaderActive = function() {
+        const key = getStorageKey('access_screen_reader');
+        const stored = localStorage.getItem(key);
+        const bodyAttr = document.body.getAttribute('data-screen-reader');
+        const htmlAttr = document.documentElement.getAttribute('data-screen-reader');
+        return stored === '1' || bodyAttr === 'on' || htmlAttr === 'on';
+    };
+
+    let screenReaderTimer = null;
+    window.speakScreenReader = function(text) {
+        if (!window.isScreenReaderActive() || !window.speechSynthesis) return;
+        if (!text || !text.trim()) return;
+
+        if (screenReaderTimer) {
+            clearTimeout(screenReaderTimer);
+            screenReaderTimer = null;
+        }
+
+        // Clean up text & expand abbreviations
+        const cleaned = text
+            .replace(/switch\s*tts/gi, 'Text-to-Speech button')
+            .replace(/\bswitch\b/gi, 'button')
+            .replace(/\btts\b/gi, 'Text-to-Speech')
+            .replace(/\b(down|up|left|right)\s+arrow(s?)\b/gi, (match, direction, plural) => {
+                const isCapital = direction[0] === direction[0].toUpperCase();
+                const btnWord = plural ? "buttons" : "button";
+                return (isCapital ? direction : direction.toLowerCase()) + " " + btnWord;
+            })
+            .replace(/\b(arrow)(s?)\b/gi, (match, p1, p2) => {
+                const isCapital = p1[0] === 'A';
+                return (isCapital ? 'Ar-row' : 'ar-row') + p2;
+            })
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        try {
+            window.speechSynthesis.cancel();
+            if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+        } catch (e) {
+            console.warn("[ScreenReader Cancel Error]", e);
+        }
+
+        const utterance = new SpeechSynthesisUtterance(cleaned);
+        utterance.lang = 'en-US';
+        utterance.rate = parseFloat(localStorage.getItem(getStorageKey('ttsPlaybackRate'))) || 1.0;
+
+        const voices = window.speechSynthesis.getVoices();
+        if (voices && voices.length > 0) {
+            const chosen = voices.find(v => v.name.includes('Zira') || (v.lang === 'en-US' && !v.name.includes('David')))
+                        || voices.find(v => v.lang.startsWith('en-US'))
+                        || voices.find(v => v.lang.startsWith('en'))
+                        || voices[0];
+            if (chosen) utterance.voice = chosen;
+        }
+
+        utterance.onend = () => {};
+        utterance.onerror = (err) => {
+            console.warn("[ScreenReader Speech Error]", err);
+        };
+
+        // Micro-delay guarantees Chromium speech IPC completes previous cancel before speaking
+        screenReaderTimer = setTimeout(() => {
+            if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+            window.speechSynthesis.speak(utterance);
+        }, 15);
+    };
+
     // Helper to get from localStorage (populated once on load from DB)
     const getOrInitStorage = (key, defaultAttr) => {
         const fullKey = getStorageKey(key);
@@ -261,8 +347,29 @@ document.addEventListener("DOMContentLoaded", () => {
     let lastExtractionData = null;
 
     if (importCard && fileInput) {
-        // Click the card → open the hidden file picker
-        importCard.addEventListener("click", () => fileInput.click());
+        const triggerImport = (e) => {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            if (typeof window.speakScreenReader === "function") {
+                window.speakScreenReader("Opening file browser to import a file. Supports PDF, DOCX, and PPTX.");
+            }
+
+            // Direct synchronous call preserves browser User Activation so native file picker opens
+            fileInput.click();
+        };
+
+        // Click the card → announce immediately & open the hidden file picker
+        importCard.addEventListener("click", triggerImport);
+
+        // Keyboard navigation: Enter or Space triggers file picker
+        importCard.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+                triggerImport(e);
+            }
+        });
 
         // Hover lift effect
         importCard.addEventListener("mouseenter", () => {
@@ -280,9 +387,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const file = fileInput.files[0];
 
+            if (typeof window.speakScreenReader === "function") {
+                window.speakScreenReader(`File selected: ${file.name}. Starting extraction. Please wait.`);
+            }
+
             // ── Client-side 20 MB File Size Ceiling ──
             const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
             if (file.size > MAX_FILE_SIZE) {
+                if (typeof window.speakScreenReader === "function") {
+                    window.speakScreenReader("File size exceeds 20 megabytes limit. Please select a smaller document.");
+                }
                 if (typeof showToast === "function") {
                     showToast("File size exceeds the 20 MB limit. Please select a smaller document.", "error");
                 } else {
@@ -445,6 +559,10 @@ document.addEventListener("DOMContentLoaded", () => {
                                 word_count: totalWords
                             };
 
+                            if (typeof window.speakScreenReader === "function") {
+                                window.speakScreenReader(`Extraction complete for ${data.filename}. ${totalWords.toLocaleString()} words extracted across ${data.total_pages} pages. Ready to generate flashcards.`);
+                            }
+
                             // Show the Generate Flashcard section
                             if (generateSection) {
                                 generateSection.style.display = "block";
@@ -460,6 +578,9 @@ document.addEventListener("DOMContentLoaded", () => {
                         } else {
                             // Empty file: Do NOT allow generation
                             lastExtractionData = null;
+                            if (typeof window.speakScreenReader === "function") {
+                                window.speakScreenReader(`Extraction finished, but no readable text was detected in ${data.filename}. Please select another document.`);
+                            }
                             if (generateSection) {
                                 generateSection.style.display = "none";
                             }
@@ -473,6 +594,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (fileNameEl) {
                         fileNameEl.textContent = `⚠ Error: ${data.error}`;
                         fileNameEl.style.color = "#dc3545";
+                    }
+                    if (typeof window.speakScreenReader === "function") {
+                        window.speakScreenReader(`Extraction error: ${data.error || 'Upload failed. Please check the document.'}`);
                     }
                     if (typeof showToast === "function") {
                         showToast(data.error || "Upload failed. Please check the document.", "error");
@@ -490,6 +614,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     fileNameEl.textContent = `⚠ Upload failed: ${err.message}`;
                     fileNameEl.style.color = "#dc3545";
                 }
+                if (typeof window.speakScreenReader === "function") {
+                    window.speakScreenReader(`Upload failed: ${err.message}`);
+                }
                 console.error("[UHTEM Upload Error]", err);
             })
             .finally(() => {
@@ -499,7 +626,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // ── Generate Flashcard button ───────────────────────────
+    // ── Generate Flashcard button & Structure Modal ───────────────────────────
     if (generateBtn) {
         // Hover effect
         generateBtn.addEventListener("mouseenter", () => {
@@ -511,28 +638,126 @@ document.addEventListener("DOMContentLoaded", () => {
             generateBtn.style.boxShadow  = "";
         });
 
-        generateBtn.addEventListener("click", () => {
+        const deckStructureModalEl = document.getElementById("deckStructureModal");
+        const cardDescriptive      = document.getElementById("structureCardDescriptive");
+        const cardQuestion         = document.getElementById("structureCardQuestion");
+        const btnConfirmGenDeck    = document.getElementById("btnConfirmGenerateDeck");
+
+        let selectedStructure = "descriptive"; // Default to descriptive
+
+        const selectStructure = (type) => {
+            selectedStructure = type;
+            if (cardDescriptive && cardQuestion) {
+                if (type === "descriptive") {
+                    cardDescriptive.style.borderColor = "#3b49a1";
+                    cardDescriptive.style.background = "#f4f6fd";
+                    cardDescriptive.setAttribute("aria-checked", "true");
+                    const check1 = cardDescriptive.querySelector(".structure-check-icon");
+                    if (check1) check1.innerHTML = '<i class="bi bi-check-circle-fill fs-5" style="color: #3b49a1;"></i>';
+
+                    cardQuestion.style.borderColor = "#e2e8f0";
+                    cardQuestion.style.background = "#ffffff";
+                    cardQuestion.setAttribute("aria-checked", "false");
+                    const check2 = cardQuestion.querySelector(".structure-check-icon");
+                    if (check2) check2.innerHTML = '<i class="bi bi-circle fs-5 text-muted"></i>';
+
+                    if (typeof window.speakScreenReader === "function") {
+                        window.speakScreenReader("Descriptive Type selected. Formatted in 2-sentence paragraphs.");
+                    }
+                } else {
+                    cardQuestion.style.borderColor = "#6366f1";
+                    cardQuestion.style.background = "#f5f6ff";
+                    cardQuestion.setAttribute("aria-checked", "true");
+                    const check2 = cardQuestion.querySelector(".structure-check-icon");
+                    if (check2) check2.innerHTML = '<i class="bi bi-check-circle-fill fs-5" style="color: #6366f1;"></i>';
+
+                    cardDescriptive.style.borderColor = "#e2e8f0";
+                    cardDescriptive.style.background = "#ffffff";
+                    cardDescriptive.setAttribute("aria-checked", "false");
+                    const check1 = cardDescriptive.querySelector(".structure-check-icon");
+                    if (check1) check1.innerHTML = '<i class="bi bi-circle fs-5 text-muted"></i>';
+
+                    if (typeof window.speakScreenReader === "function") {
+                        window.speakScreenReader("Question Type selected. Active recall question and answer pairs.");
+                    }
+                }
+            }
+        };
+
+        if (cardDescriptive) {
+            cardDescriptive.addEventListener("click", (e) => {
+                if (e) e.stopPropagation();
+                selectStructure("descriptive");
+            });
+            cardDescriptive.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    if (e) e.stopPropagation();
+                    selectStructure("descriptive");
+                }
+            });
+        }
+        if (cardQuestion) {
+            cardQuestion.addEventListener("click", (e) => {
+                if (e) e.stopPropagation();
+                selectStructure("question");
+            });
+            cardQuestion.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    if (e) e.stopPropagation();
+                    selectStructure("question");
+                }
+            });
+        }
+
+        const executeDeckGeneration = () => {
             if (!lastExtractionData || !lastExtractionData.extracted_text || !lastExtractionData.extracted_text.trim()) {
+                if (typeof window.speakScreenReader === "function") {
+                    window.speakScreenReader("Cannot generate flashcards: No extracted text available.");
+                }
                 if (typeof showToast === "function") {
                     showToast("Cannot generate flashcards: The uploaded file contains no text.", "error");
                 }
                 return;
             }
 
-            // Trigger loading modal only when valid content exists
-            if (typeof window.showQuizPopLoading === "function") {
-                window.showQuizPopLoading("Generating Flashcards & Quiz...", "Extracting key concepts & generating 20 questions...");
+            // Close the modal if open
+            if (deckStructureModalEl && typeof bootstrap !== "undefined") {
+                const modalInstance = bootstrap.Modal.getInstance(deckStructureModalEl);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
             }
 
-            // Loading state
+            // Trigger loading modal only when valid content exists
+            const loadingSubtext = selectedStructure === "descriptive"
+                ? "Formulating 2-sentence descriptive paragraphs & quiz items..."
+                : "Extracting key concepts & generating question pairs...";
+
+            if (typeof window.speakScreenReader === "function") {
+                const typeText = selectedStructure === "descriptive" ? "descriptive" : "question";
+                window.speakScreenReader(`Generating ${typeText} flashcards and study quiz. Please wait.`);
+            }
+
+            if (typeof window.showQuizPopLoading === "function") {
+                window.showQuizPopLoading("Generating Flashcards & Quiz...", loadingSubtext);
+            }
+
+            // Loading state on trigger button
             generateBtn.disabled = true;
             generateBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status"></span> Generating...`;
             if (generateStatus) generateStatus.style.display = "none";
 
+            const payload = {
+                ...lastExtractionData,
+                deck_structure: selectedStructure
+            };
+
             fetch("/generate-flashcard", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(lastExtractionData)
+                body: JSON.stringify(payload)
             })
             .then(res => res.json())
             .then(data => {
@@ -540,6 +765,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     // Success state
                     generateBtn.innerHTML = `<span style="font-size:1.3rem;">✔</span> Deck Created!`;
                     generateBtn.style.background = "#28a745";
+
+                    if (typeof window.speakScreenReader === "function") {
+                        window.speakScreenReader(`Flashcard deck "${data.deck_name}" created successfully with ${data.card_count} cards. Loading your deck.`);
+                    }
 
                     if (generateStatus) {
                         generateStatus.textContent = `"${data.deck_name}" added to My Decks`;
@@ -562,6 +791,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     generateBtn.innerHTML = `<span style="font-size:1.3rem;">&#9889;</span> Generate Flashcard`;
                     generateBtn.style.background = "#3b49a1";
 
+                    if (typeof window.speakScreenReader === "function") {
+                        window.speakScreenReader(`Generation failed: ${data.error || 'Please try again.'}`);
+                    }
+
                     if (generateStatus) {
                         generateStatus.textContent = `⚠ ${data.error}`;
                         generateStatus.style.color = "#dc3545";
@@ -581,16 +814,53 @@ document.addEventListener("DOMContentLoaded", () => {
                 generateBtn.innerHTML = `<span style="font-size:1.3rem;">&#9889;</span> Generate Flashcard`;
                 generateBtn.style.background = "#3b49a1";
 
+                if (typeof window.speakScreenReader === "function") {
+                    window.speakScreenReader(`Generation error: ${err.message}`);
+                }
+
                 if (generateStatus) {
-                    generateStatus.textContent = `⚠ Failed: ${err.message}`;
+                    generateStatus.textContent = `⚠ Generation failed: ${err.message}`;
                     generateStatus.style.color = "#dc3545";
                     generateStatus.style.display = "block";
                 }
                 if (typeof showToast === "function") {
-                    showToast("Failed to connect to generation server.", "error");
+                    showToast(`Generation failed: ${err.message}`, "error");
                 }
                 console.error("[Flashcard Generation Error]", err);
             });
+        };
+
+        if (btnConfirmGenDeck) {
+            btnConfirmGenDeck.addEventListener("click", (e) => {
+                if (e) e.stopPropagation();
+                executeDeckGeneration();
+            });
+        }
+
+        generateBtn.addEventListener("click", (e) => {
+            if (e) e.stopPropagation();
+            if (!lastExtractionData || !lastExtractionData.extracted_text || !lastExtractionData.extracted_text.trim()) {
+                if (typeof window.speakScreenReader === "function") {
+                    window.speakScreenReader("Cannot generate flashcards: No extracted text available.");
+                }
+                if (typeof showToast === "function") {
+                    showToast("Cannot generate flashcards: The uploaded file contains no text.", "error");
+                }
+                return;
+            }
+
+            if (typeof window.speakScreenReader === "function") {
+                window.speakScreenReader("Choose deck structure. Select Descriptive type or Question type, then click Generate Deck.");
+            }
+
+            // Open the Deck Structure Selection Modal
+            if (deckStructureModalEl && typeof bootstrap !== "undefined") {
+                const modalInstance = bootstrap.Modal.getOrCreateInstance(deckStructureModalEl);
+                modalInstance.show();
+            } else {
+                // Fallback to direct generation if modal is missing
+                executeDeckGeneration();
+            }
         });
     }
 
@@ -877,6 +1147,7 @@ document.addEventListener("DOMContentLoaded", () => {
             localStorage.setItem(getStorageKey('access_tts'), e.target.checked ? '1' : '0');
             document.body.setAttribute('data-tts', e.target.checked ? 'on' : 'off');
             toggleSpeedContainer(e.target.checked);
+            applyTtsVisibility();
             
             // Stop active speech playback if toggled off
             if (!e.target.checked) {
@@ -1450,9 +1721,9 @@ document.addEventListener("DOMContentLoaded", () => {
         // Resolve target text element for phonetic highlighting
         let targetTextEl = null;
         if (btnElement) {
-            const panel = btnElement.closest(".flashcard-panel-top, .flashcard-panel-bottom");
+            const panel = btnElement.closest(".flashcard-panel-top, .flashcard-panel-bottom, .flashcard-panel-descriptive");
             if (panel) {
-                targetTextEl = panel.querySelector(".flashcard-text-title, .flashcard-text-body");
+                targetTextEl = panel.querySelector(".flashcard-text-title, .flashcard-text-body, .flashcard-text-descriptive");
             } else if (btnElement.id === 'btn-quiz-tts') {
                 targetTextEl = document.getElementById('question-text');
             }
@@ -1766,6 +2037,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         if (sw) {
                             sw.checked = (val === '1');
                         }
+                        applyTtsVisibility();
                     }
 
                     if (pending.content_level) {
@@ -2411,9 +2683,25 @@ document.addEventListener("DOMContentLoaded", () => {
             return `${heading}, ${state}. ${desc}`.trim();
         }
 
-        // 6. Standard Buttons & Links
+        // 6. Specific Interactive Cards (Import Card, Structure Options)
+        const importEl = target.id === 'importCard' ? target : target.closest('#importCard');
+        if (importEl) {
+            return "Import a File button. Supports PDF, DOCX, and PPTX. Click or press Enter to choose a file.";
+        }
+        const descEl = target.id === 'structureCardDescriptive' ? target : target.closest('#structureCardDescriptive');
+        if (descEl) {
+            const isChecked = descEl.getAttribute('aria-checked') === 'true';
+            return `Descriptive Type option, ${isChecked ? 'Selected' : 'Not selected'}. Formats concepts in 2-sentence paragraphs.`;
+        }
+        const questEl = target.id === 'structureCardQuestion' ? target : target.closest('#structureCardQuestion');
+        if (questEl) {
+            const isChecked = questEl.getAttribute('aria-checked') === 'true';
+            return `Question Type option, ${isChecked ? 'Selected' : 'Not selected'}. Active Recall question and answer pairs.`;
+        }
+
+        // 7. Standard Buttons & Links
         let directText = target.getAttribute('aria-label') || target.title || target.innerText || target.placeholder || "";
-        if (target.tagName === 'BUTTON' || target.classList.contains('btn')) {
+        if (target.tagName === 'BUTTON' || target.classList.contains('btn') || target.getAttribute('role') === 'button') {
             return `Button: ${directText || "Action"}`.trim();
         }
         if (target.tagName === 'A' || target.classList.contains('nav-link')) {
@@ -2424,75 +2712,43 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     document.addEventListener('focusin', (e) => {
-        const isScreenReaderEnabled = localStorage.getItem(getStorageKey('access_screen_reader')) === '1';
-        if (isScreenReaderEnabled && window.speechSynthesis) {
-            const target = e.target;
-            let textToSpeak = getAccessibleNarration(target);
-            
-            // Clean up text & expand abbreviations (TTS -> Text-to-Speech)
-            textToSpeak = textToSpeak
-                .replace(/switch\s*tts/gi, 'Text-to-Speech button')
-                .replace(/\bswitch\b/gi, 'button')
-                .replace(/\btts\b/gi, 'Text-to-Speech')
-                .replace(/\b(down|up|left|right)\s+arrow(s?)\b/gi, (match, direction, plural) => {
-                    const isCapital = direction[0] === direction[0].toUpperCase();
-                    const btnWord = plural ? "buttons" : "button";
-                    return (isCapital ? direction : direction.toLowerCase()) + " " + btnWord;
-                })
-                .replace(/\b(arrow)(s?)\b/gi, (match, p1, p2) => {
-                    const isCapital = p1[0] === 'A';
-                    return (isCapital ? 'Ar-row' : 'ar-row') + p2;
-                })
-                .replace(/\s+/g, ' ')
-                .trim();
-            
-            if (textToSpeak) {
-                window.speechSynthesis.cancel();
-                if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-
-                const utterance = new SpeechSynthesisUtterance(textToSpeak);
-                utterance.lang = 'en-US';
-                utterance.rate = parseFloat(localStorage.getItem(getStorageKey('ttsPlaybackRate'))) || 1.0;
-                
-                const voices = window.speechSynthesis.getVoices();
-                if (voices && voices.length > 0) {
-                    const chosen = voices.find(v => v.name.includes('Zira') || (v.lang === 'en-US' && !v.name.includes('David')))
-                                || voices.find(v => v.lang.startsWith('en-US'))
-                                || voices.find(v => v.lang.startsWith('en'))
-                                || voices[0];
-                    if (chosen) utterance.voice = chosen;
-                }
-
-                setTimeout(() => {
-                    window.speechSynthesis.speak(utterance);
-                }, 10);
-            }
+        if (typeof window.isScreenReaderActive === "function" && !window.isScreenReaderActive()) return;
+        const target = e.target;
+        const textToSpeak = getAccessibleNarration(target);
+        if (textToSpeak && typeof window.speakScreenReader === "function") {
+            window.speakScreenReader(textToSpeak);
         }
     });
 
-    // ── Single-Click Focus & Speak, Double-Click Execute ──
+    // ── Single-Click Focus & Speak, Double-Click Execute (TalkBack / VoiceOver Accessibility Standard) ──
     let lastClickedElement = null;
-
-    document.addEventListener('focusout', () => {
-        lastClickedElement = null;
-    });
+    let lastClickTimestamp = 0;
 
     document.addEventListener('click', (e) => {
-        const isScreenReaderEnabled = localStorage.getItem(getStorageKey('access_screen_reader')) === '1';
-        if (!isScreenReaderEnabled) return;
+        if (typeof window.isScreenReaderActive === "function" && !window.isScreenReaderActive()) return;
 
-        const interactive = e.target.closest('a, button, input, [role="button"], [role="switch"], .btn, .custom-switch');
-        if (!interactive) return;
+        const interactive = e.target.closest('a, button, input, [role="button"], [role="switch"], [role="radio"], .btn, .custom-switch, #importCard');
+        if (!interactive) {
+            lastClickedElement = null;
+            lastClickTimestamp = 0;
+            return;
+        }
 
-        // If this element was not the last clicked one, prevent default and focus it
-        if (lastClickedElement !== interactive) {
+        const now = Date.now();
+        const isSame = (lastClickedElement === interactive) || (document.activeElement === interactive);
+        const isRecent = (now - lastClickTimestamp) < 3000;
+
+        // If this element was not previously focused/clicked or click is outside double-tap window:
+        if (!isSame || !isRecent) {
             e.preventDefault();
             e.stopPropagation();
             lastClickedElement = interactive;
+            lastClickTimestamp = now;
             interactive.focus();
         } else {
-            // Second click: Reset state and let the click action proceed normally
+            // Second click on the same element: allow immediate action execution and reset state
             lastClickedElement = null;
+            lastClickTimestamp = 0;
         }
     }, true);
 

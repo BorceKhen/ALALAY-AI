@@ -42,16 +42,18 @@ class GeminiFlashcardGenerator:
             print("[Gemini-FlashGen] Please run: pip install google-generativeai")
             raise
 
-    def generate_deck(self, extracted_text: str, content_level: str = "Medium") -> List[Dict[str, str]]:
+    def generate_deck(self, extracted_text: str, content_level: str = "Medium", deck_structure: str = "question") -> List[Dict[str, str]]:
         """
         Queries Gemini to generate flashcard pairs from the study text.
-        Matches the signature of t5_flashcard_generator.py for easy drop-in replacement.
+        Supports both Question-Answer and Descriptive 2-Sentence Paragraph structures.
         """
         self._init_client()
 
         if not extracted_text or not extracted_text.strip():
             print("[Gemini-FlashGen] Error: No extracted text available for flashcard generation.")
             return []
+
+        is_descriptive = (str(deck_structure or "question").strip().lower() == "descriptive")
 
         # Simple Tagalog keyword matching
         tagalog_keywords = {
@@ -62,17 +64,51 @@ class GeminiFlashcardGenerator:
         is_tagalog = len(words.intersection(tagalog_keywords)) >= 3
 
         # Configure language instruction and matching format example
-        if is_tagalog:
-            lang_instruction = "LANGUAGE REQUIREMENT: The study text is in Filipino/Tagalog (or Taglish). You MUST generate all questions and answers in Filipino/Tagalog (or Taglish). DO NOT translate to English."
-            json_example = """[
+        if is_descriptive:
+            if is_tagalog:
+                lang_instruction = "LANGUAGE REQUIREMENT: The study text is in Filipino/Tagalog (or Taglish). You MUST generate all concepts and descriptions in Filipino/Tagalog (or Taglish). DO NOT translate to English."
+                format_instruction = """CRITICAL STRUCTURE REQUIREMENT — DESCRIPTIVE DECLARATIVE FORMAT (TALATA):
+Format bawat flashcard bilang structured descriptive concept na may eksaktong DALAWANG PANGUNGUSAP sa sagot:
+- "question": Ang tiyak na Paksa o Pangalan ng Konsepto (hal. "Photosynthesis").
+- "answer": Isang talata na may eksaktong DALAWANG PANGUNGUSAP gamit ang sumusunod na pormula:
+  * Pangungusap 1 (Pagkakakilanlan at Pangunahing Layunin): [Paksa] ay isang [mas malawak na kategorya] na [pangunahing gamit, depinisyon, o pagkilos]. (Sinasagot: Ano ito at ano ang layunin nito?)
+  * Pangungusap 2 (Paraan ng Pagsasagawa at Kahalagahan): Sa pamamagitan ng [pangunahing mekanismo, pamamaraan, o sangkap], ito ay [pangunahing resulta, epekto, o gamit sa totoong buhay]. (Sinasagot: Paano ito gumagana at ano ang resulta?)
+Pagsamahin ang dalawang pangungusap sa isang maayos na talata. Huwag gumamit ng bullet points o numbering sa sagot."""
+                json_example = """[
+  {
+    "question": "Photosynthesis",
+    "answer": "Ang photosynthesis ay ang proseso kung saan ang mga halaman at ilang bakterya ay nagko-convert ng sikat ng araw tungo sa kemikal na enerhiya. Sa pamamagitan ng pagbabago ng carbon dioxide at tubig sa loob ng chloroplasts, lumilikha ito ng glucose para sa enerhiya habang naglalabas ng oxygen bilang byproduct."
+  }
+]"""
+            else:
+                lang_instruction = "LANGUAGE REQUIREMENT: The study text is in English. You MUST generate all concepts and descriptions in English."
+                format_instruction = """CRITICAL DESCRIPTIVE STRUCTURE REQUIREMENT (2-SENTENCE PARAGRAPH):
+Format every flashcard as a structured descriptive concept with an EXACT TWO-SENTENCE paragraph for the answer:
+- "question": The exact Subject or Concept name (e.g., "Photosynthesis").
+- "answer": A strict TWO-SENTENCE descriptive paragraph following this EXACT formula:
+  * Sentence 1 (Identification & Core Purpose): [Subject] is a [broader category] that [primary function, definition, or primary action]. Answers: What is it, and what is its main goal?
+  * Sentence 2 (Execution & Significance): By [key mechanism, method, or components], it [key outcome, consequence, or real-world application]. (Or starting with 'Inside/By/Through [key mechanism]...'). Answers: How does it work, and what is the outcome?
+Both sentences MUST combine smoothly into a single coherent paragraph. Do NOT use bullet points or numbering in the answer."""
+                json_example = """[
+  {
+    "question": "Photosynthesis",
+    "answer": "Photosynthesis is the process where plants, algae, and certain bacteria convert sunlight into chemical energy. Inside chloroplasts, they transform carbon dioxide and water into glucose for fuel, releasing oxygen as a byproduct."
+  }
+]"""
+        else:
+            if is_tagalog:
+                lang_instruction = "LANGUAGE REQUIREMENT: The study text is in Filipino/Tagalog (or Taglish). You MUST generate all questions and answers in Filipino/Tagalog (or Taglish). DO NOT translate to English."
+                format_instruction = "Format each flashcard as a question-answer pair. Keep questions clear and answers concise."
+                json_example = """[
   {
     "question": "Ano ang pangunahing ideya ng teksto?",
     "answer": "Ang pangunahing ideya ay naglalarawan ng kahalagahan ng paksa."
   }
 ]"""
-        else:
-            lang_instruction = "LANGUAGE REQUIREMENT: The study text is in English. You MUST generate all questions and answers in English."
-            json_example = """[
+            else:
+                lang_instruction = "LANGUAGE REQUIREMENT: The study text is in English. You MUST generate all questions and answers in English."
+                format_instruction = "Format each flashcard as a question-answer pair. Keep questions clear and answers concise."
+                json_example = """[
   {
     "question": "What is the primary concept of the text?",
     "answer": "The primary concept describes the core meaning of the topic."
@@ -83,18 +119,18 @@ class GeminiFlashcardGenerator:
         content_level_str = str(content_level or "Medium").strip().lower()
         if is_tagalog:
             if content_level_str == "easy":
-                level_instruction = "Siguraduhing napakasimple ng mga tanong at ang mga sagot ay nakasulat gamit ang mga payak at madaling maunawaang salita (in Filipino/Tagalog)."
+                level_instruction = "Siguraduhing napakasimple ng mga salita at ang mga paliwanag ay nakasulat gamit ang mga payak at madaling maunawaang salita (in Filipino/Tagalog)."
             elif content_level_str == "hard":
-                level_instruction = "Siguraduhing ang mga tanong ay nangangailangan ng kritikal na pag-iisip at pagsusuri, at ang mga sagot ay komprehensibo (in Filipino/Tagalog)."
+                level_instruction = "Siguraduhing ang mga paliwanag ay nangangailangan ng masusing pagsusuri at komprehensibo (in Filipino/Tagalog)."
             else:
-                level_instruction = "Siguraduhing ang mga tanong at sagot ay malinaw, maikli, at balanse (in Filipino/Tagalog)."
+                level_instruction = "Siguraduhing ang mga paliwanag ay malinaw, maikli, at balanse (in Filipino/Tagalog)."
         else:
             if content_level_str == "easy":
-                level_instruction = "Ensure questions are VERY SIMPLE and answers are written using straightforward, plain-language definitions and easy-to-understand words."
+                level_instruction = "Ensure content is written using straightforward, plain-language definitions and easy-to-understand words."
             elif content_level_str == "hard":
-                level_instruction = "Ensure questions demand critical thinking and analytical application, and answers are comprehensive."
+                level_instruction = "Ensure content is rigorous, detailed, and comprehensive."
             else:
-                level_instruction = "Ensure questions and answers are clear, concise, and balanced."
+                level_instruction = "Ensure content is clear, concise, and balanced."
 
         prompt = f"""
 You are an expert educational assistant. Your task is to generate high-quality study flashcards based on the study text provided below.
@@ -106,8 +142,8 @@ Study Text:
 
 Requirements:
 1. {lang_instruction}
-2. CRITICAL QUANTITY REQUIREMENT: You MUST generate EXACTLY 20 distinct flashcard question-answer pairs covering every main idea, detail, vocabulary, concept, and sub-point in the study text. Do not stop until you have created 20 cards.
-3. Format each flashcard as a question-answer pair. Keep questions clear and answers concise.
+2. CRITICAL QUANTITY REQUIREMENT: You MUST generate EXACTLY 20 distinct flashcards covering every main idea, detail, vocabulary, concept, and sub-point in the study text. Do not stop until you have created 20 cards.
+3. {format_instruction}
 4. {level_instruction}
 5. Output must be strictly valid JSON matching the format below, without markdown wrappers or descriptions.
 6. CRITICAL SPELLING ACCURACY: You must preserve the EXACT spelling of all concepts, terms, vocabulary, names, and key definitions from the Study Text. Do not translate, paraphrase, correct, or change the spelling of these key terms.
@@ -117,7 +153,7 @@ Expected JSON output format:
 """
 
         try:
-            print("[Gemini-FlashGen] Requesting flashcards from Gemini...")
+            print(f"[Gemini-FlashGen] Requesting flashcards from Gemini (structure={deck_structure})...")
             response = self.model.generate_content(
                 prompt,
                 generation_config={"response_mime_type": "application/json"}
@@ -144,8 +180,14 @@ Expected JSON output format:
             if len(cards) < 20 and extracted_text:
                 needed = 20 - len(cards)
                 print(f"[Gemini-FlashGen] Flashcards initial count is {len(cards)}. Requesting {needed} more to reach 20 standard cards...")
+                if is_descriptive:
+                    extra_rule = "Each card MUST have 'question' (Subject Name) and 'answer' (exact 2-sentence descriptive paragraph: Sentence 1 = Identification/Purpose, Sentence 2 = Execution/Significance)."
+                else:
+                    extra_rule = "Each card MUST have 'question' (clear inquiry) and 'answer' (concise target answer)."
+
                 extra_prompt = f"""
-Based on the study text below, generate EXACTLY {needed} additional UNIQUE question-answer study flashcard pairs that do NOT repeat any previous cards.
+Based on the study text below, generate EXACTLY {needed} additional UNIQUE study flashcards that do NOT repeat any previous cards.
+{extra_rule}
 
 Existing Cards:
 {json.dumps([c.get('question', '') for c in cards if isinstance(c, dict)], ensure_ascii=False)}
@@ -154,9 +196,7 @@ Study Text:
 {extracted_text[:10000]}
 
 Output MUST be a JSON array of objects:
-[
-  {{"question": "Question text...", "answer": "Answer text..."}}
-]
+{json_example}
 """
                 try:
                     extra_res = self.model.generate_content(
@@ -183,6 +223,11 @@ Output MUST be a JSON array of objects:
                         cards.extend(extra_list)
                 except Exception as extra_err:
                     print(f"[Gemini-FlashGen] Extra card generation warning: {extra_err}")
+
+            # Tag cards with structure type
+            for c in cards:
+                if isinstance(c, dict):
+                    c['type'] = 'descriptive' if is_descriptive else 'question'
 
             print(f"[Gemini-FlashGen] Flashcards generated successfully with {len(cards[:20])} cards.")
             return cards[:20]

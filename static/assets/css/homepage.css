@@ -287,6 +287,20 @@ DECK PAGE
     line-height: 1.4;
 }
 
+/* Descriptive Deck Single-Container Layout */
+.flashcard-panel-descriptive {
+    background-color: #ffffff;
+    transition: background-color 0.15s ease;
+}
+
+.flashcard-text-descriptive {
+    font-family: var(--secondary-font);
+    font-size: 1.05rem;
+    color: #1e293b;
+    line-height: 1.7;
+    letter-spacing: 0.01em;
+}
+
 /*
 ---------------------------------------------
 Dashboard Layout Lock & Scrollable Panels

@@ -102,6 +102,34 @@ body {
     letter-spacing: -0.025em;
 }
 
+/* Form field labels with required indicator */
+.auth-label {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0.45rem;
+    padding-left: 0.25rem;
+    user-select: none;
+}
+
+.auth-label-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.required-star {
+    color: #EF4444;
+    font-weight: 700;
+    font-size: 1rem;
+    line-height: 1;
+    display: inline-block;
+    vertical-align: middle;
+}
+
 /* Form input fields styling matching mockups */
 .auth-input {
     background-color: var(--primary-white) !important;
@@ -112,7 +140,7 @@ body {
     font-family: var(--secondary-font);
     font-size: 0.95rem;
     color: var(--primary-text);
-    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.2s ease;
 }
 
 .auth-input::placeholder {
@@ -126,9 +154,9 @@ body {
     outline: none !important;
 }
 
-/* Warning / Invalid Input Box Highlight */
+/* Warning / Invalid Input Box Highlight ("Indicate where mali") */
 .auth-input.is-invalid {
-    border: 1.5px solid #EF4444 !important;
+    border: 2px solid #EF4444 !important;
     background-color: #FEF2F2 !important;
     box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18) !important;
 }
@@ -143,14 +171,20 @@ body {
 
 .field-error-text {
     color: #DC2626;
-    font-size: 0.8rem;
+    font-size: 0.825rem;
     font-weight: 600;
-    margin-top: 0.35rem;
+    margin-top: 0.4rem;
     margin-left: 0.5rem;
     display: flex;
     align-items: center;
     gap: 0.35rem;
+    line-height: 1.3;
     animation: fieldErrorFadeIn 0.2s ease-in-out;
+}
+
+.field-error-text i {
+    font-size: 0.9rem;
+    flex-shrink: 0;
 }
 
 @keyframes fieldErrorFadeIn {

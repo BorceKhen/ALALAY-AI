@@ -121,7 +121,7 @@ class T5FlashcardGenerator:
 
         return clean_text, "No distinct answer generated."
 
-    def generate_deck(self, text: str, num_cards: int = None) -> List[Dict[str, str]]:
+    def generate_deck(self, text: str, num_cards: int = None, content_level: str = "Medium", deck_structure: str = "question", **kwargs) -> List[Dict[str, str]]:
         """
         Orchestrates chunking + batch generation to produce a full flashcard deck.
         If num_cards is None, generates one card per chunk (full coverage).

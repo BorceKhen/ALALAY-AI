@@ -86,17 +86,21 @@
                     
                     <!-- Email Input -->
                     <div class="mb-3">
-                        <label for="signUpEmail" class="visually-hidden">Email Address</label>
-                        <input type="email" id="signUpEmail" class="form-control auth-input" placeholder="Email" aria-required="true" required>
+                        <label for="signUpEmail" class="auth-label">
+                            <span class="auth-label-text">Email Address <span class="required-star" aria-hidden="true" title="Required">*</span></span>
+                        </label>
+                        <input type="email" id="signUpEmail" class="form-control auth-input" placeholder="Enter your email" aria-required="true" required>
                         <div class="field-error-text d-none" id="signUpEmailError"></div>
                     </div>
 
                     <!-- Gender and Birthdate row -->
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label for="signUpGender" class="visually-hidden">Gender</label>
-                            <select id="signUpGender" class="form-select auth-input" aria-required="true">
-                                <option value="" disabled selected hidden>Gender</option>
+                            <label for="signUpGender" class="auth-label">
+                                <span class="auth-label-text">Gender <span class="required-star" aria-hidden="true" title="Required">*</span></span>
+                            </label>
+                            <select id="signUpGender" class="form-select auth-input" aria-required="true" required>
+                                <option value="" disabled selected hidden>Select Gender</option>
                                 <option value="Male">Male</option>
                                 <option value="Female">Female</option>
                                 <option value="Non-binary">Non-binary</option>
@@ -106,7 +110,9 @@
                             <div class="field-error-text d-none" id="signUpGenderError"></div>
                         </div>
                         <div class="col-md-6">
-                            <label for="signUpBirthdate" class="visually-hidden">Birthdate</label>
+                            <label for="signUpBirthdate" class="auth-label">
+                                <span class="auth-label-text">Birthdate <span class="required-star" aria-hidden="true" title="Required">*</span></span>
+                            </label>
                             <input type="date" id="signUpBirthdate" class="form-control auth-input" aria-required="true" required title="Birthdate">
                             <div class="field-error-text d-none" id="signUpBirthdateError"></div>
                         </div>
@@ -114,9 +120,11 @@
 
                     <!-- Password Fields -->
                     <div class="mb-3">
-                        <label for="signUpPassword" class="visually-hidden">Password</label>
+                        <label for="signUpPassword" class="auth-label">
+                            <span class="auth-label-text">Password <span class="required-star" aria-hidden="true" title="Required">*</span></span>
+                        </label>
                         <div class="password-input-wrapper">
-                            <input type="password" id="signUpPassword" class="form-control auth-input" placeholder="Password" aria-required="true" minlength="8" required>
+                            <input type="password" id="signUpPassword" class="form-control auth-input" placeholder="Create password (min. 8 characters)" aria-required="true" minlength="8" required>
                             <button type="button" class="password-toggle-btn" id="toggleSignUpPassword" aria-label="Show password" title="Show password" aria-controls="signUpPassword" aria-pressed="false" tabindex="0">
                                 <i class="bi bi-eye"></i>
                             </button>
@@ -125,9 +133,11 @@
                         <small id="passwordHelp" class="form-text text-muted visually-hidden">Password must be at least 8 characters long.</small>
                     </div>
                     <div class="mb-4">
-                        <label for="signUpRePassword" class="visually-hidden">Re-enter Password</label>
+                        <label for="signUpRePassword" class="auth-label">
+                            <span class="auth-label-text">Re-enter Password <span class="required-star" aria-hidden="true" title="Required">*</span></span>
+                        </label>
                         <div class="password-input-wrapper">
-                            <input type="password" id="signUpRePassword" class="form-control auth-input" placeholder="Re-enter Password" aria-required="true" required>
+                            <input type="password" id="signUpRePassword" class="form-control auth-input" placeholder="Confirm your password" aria-required="true" required>
                             <button type="button" class="password-toggle-btn" id="toggleSignUpRePassword" aria-label="Show password" title="Show password" aria-controls="signUpRePassword" aria-pressed="false" tabindex="0">
                                 <i class="bi bi-eye"></i>
                             </button>
@@ -162,19 +172,25 @@
             <form id="signInForm" novalidate>
                 <!-- Email Input -->
                 <div class="mb-3">
-                    <label for="signInEmail" class="visually-hidden">Email Address</label>
-                    <input type="email" id="signInEmail" class="form-control auth-input" placeholder="Email" aria-required="true" required>
+                    <label for="signInEmail" class="auth-label">
+                        <span class="auth-label-text">Email Address <span class="required-star" aria-hidden="true" title="Required">*</span></span>
+                    </label>
+                    <input type="email" id="signInEmail" class="form-control auth-input" placeholder="Enter your email" aria-required="true" required>
+                    <div class="field-error-text d-none" id="signInEmailError"></div>
                 </div>
 
                 <!-- Password Input -->
                 <div class="mb-2">
-                    <label for="signInPassword" class="visually-hidden">Password</label>
+                    <label for="signInPassword" class="auth-label">
+                        <span class="auth-label-text">Password <span class="required-star" aria-hidden="true" title="Required">*</span></span>
+                    </label>
                     <div class="password-input-wrapper">
-                        <input type="password" id="signInPassword" class="form-control auth-input" placeholder="Password" aria-required="true" required>
+                        <input type="password" id="signInPassword" class="form-control auth-input" placeholder="Enter your password" aria-required="true" required>
                         <button type="button" class="password-toggle-btn" id="toggleSignInPassword" aria-label="Show password" title="Show password" aria-controls="signInPassword" aria-pressed="false" tabindex="0">
                             <i class="bi bi-eye"></i>
                         </button>
                     </div>
+                    <div class="field-error-text d-none" id="signInPasswordError"></div>
                 </div>
 
                 <div class="d-flex justify-content-end mb-4">
@@ -205,8 +221,11 @@
             
             <form id="forgotPasswordForm" novalidate>
                 <div class="mb-4">
-                    <label for="forgotEmail" class="visually-hidden">Email Address</label>
-                    <input type="email" id="forgotEmail" class="form-control auth-input" placeholder="Email" aria-required="true" required>
+                    <label for="forgotEmail" class="auth-label">
+                        <span class="auth-label-text">Email Address <span class="required-star" aria-hidden="true" title="Required">*</span></span>
+                    </label>
+                    <input type="email" id="forgotEmail" class="form-control auth-input" placeholder="Enter your email" aria-required="true" required>
+                    <div class="field-error-text d-none" id="forgotEmailError"></div>
                 </div>
                 
                 <button type="submit" id="forgotSubmitBtn" class="btn btn-auth-primary w-100 mb-3">Send Reset Link</button>
@@ -280,21 +299,27 @@
                     
                     <!-- Gender Input -->
                     <div class="mb-3">
-                        <label for="completeGender" class="visually-hidden">Gender</label>
+                        <label for="completeGender" class="auth-label">
+                            <span class="auth-label-text">Gender <span class="required-star" aria-hidden="true" title="Required">*</span></span>
+                        </label>
                         <select id="completeGender" class="form-select auth-input" aria-required="true" required>
-                            <option value="" disabled selected hidden>Gender</option>
+                            <option value="" disabled selected hidden>Select Gender</option>
                             <option value="Male">Male</option>
                             <option value="Female">Female</option>
                             <option value="Non-binary">Non-binary</option>
                             <option value="Prefer not to say">Prefer not to say</option>
                             <option value="Other">Other</option>
                         </select>
+                        <div class="field-error-text d-none" id="completeGenderError"></div>
                     </div>
 
                     <!-- Birthdate Picker -->
                     <div class="mb-4">
-                        <label for="completeBirthdate" class="visually-hidden">Birthdate</label>
+                        <label for="completeBirthdate" class="auth-label">
+                            <span class="auth-label-text">Birthdate <span class="required-star" aria-hidden="true" title="Required">*</span></span>
+                        </label>
                         <input type="date" id="completeBirthdate" class="form-control auth-input" aria-required="true" required title="Birthdate">
+                        <div class="field-error-text d-none" id="completeBirthdateError"></div>
                     </div>
                     
                     <div class="d-flex gap-3">
@@ -379,6 +404,8 @@
     function setViewState(isSignIn) {
         hideAlert();
         clearAllSignUpValidation();
+        if (typeof clearAllSignInValidation === 'function') clearAllSignInValidation();
+        if (typeof clearForgotPasswordValidation === 'function') clearForgotPasswordValidation();
         const forgotPasswordView = document.getElementById('forgotPasswordView');
         if (forgotPasswordView) forgotPasswordView.classList.add('d-none');
 
@@ -727,7 +754,12 @@
         const userId = document.body.getAttribute('data-user-id') || '';
         const getStorageKey = (key) => userId ? `${userId}_${key}` : key;
 
-        // Reset baseline settings
+        // Reset root html element color filters completely
+        document.documentElement.setAttribute('data-color-filter', 'none');
+        document.documentElement.style.filter = '';
+        document.documentElement.style.removeProperty('filter');
+
+        // Reset baseline settings on body
         document.body.setAttribute('data-text-size', 'medium');
         document.body.setAttribute('data-contrast-theme', 'none');
         document.body.setAttribute('data-dyslexia-font', 'off');
@@ -746,6 +778,7 @@
             'contrast-theme-light', 'contrast-theme-dark'
         );
         document.body.style.filter = '';
+        document.body.style.removeProperty('filter');
 
         // Reset screen reader state and cancel any active speech
         isScreenReaderActive = false;
@@ -767,6 +800,7 @@
         localStorage.setItem(getStorageKey('fontStyle'), 'default');
         localStorage.setItem(getStorageKey('lineFocus'), 'off');
         localStorage.setItem(getStorageKey('daltonizeFilter'), 'none');
+        localStorage.setItem('daltonizeFilter', 'none');
         localStorage.setItem(getStorageKey('letterSpacing'), 'normal');
         localStorage.setItem(getStorageKey('lineSpacing'), 'normal');
         localStorage.setItem(getStorageKey('screenReader'), 'off');
@@ -808,6 +842,7 @@
             document.body.style.filter = '';
             document.documentElement.style.filter = "url('#daltonize-deuteranopia')";
             localStorage.setItem(getStorageKey('daltonizeFilter'), 'deuteranopia');
+            localStorage.setItem('daltonizeFilter', 'deuteranopia');
         }
     }
 
@@ -819,6 +854,18 @@
     signUpCards.forEach(cardEl => {
         const selectCard = () => {
             const val = cardEl.getAttribute('data-value');
+            const isCurrentlySelected = cardEl.classList.contains('selected');
+
+            if (isCurrentlySelected) {
+                // Clicking already selected card unselects / deselects it
+                cardEl.classList.remove('selected');
+                cardEl.setAttribute('aria-checked', 'false');
+                signUpDisabilityInput.value = '';
+                applyAccessibilitySettings('None');
+                signUpNextBtn.disabled = true;
+                return;
+            }
+
             signUpDisabilityInput.value = val;
             
             signUpCards.forEach(c => {
@@ -881,6 +928,18 @@
     completeCards.forEach(cardEl => {
         const selectCard = () => {
             const val = cardEl.getAttribute('data-value');
+            const isCurrentlySelected = cardEl.classList.contains('selected');
+
+            if (isCurrentlySelected) {
+                // Clicking already selected card unselects / deselects it
+                cardEl.classList.remove('selected');
+                cardEl.setAttribute('aria-checked', 'false');
+                completeDisabilityInput.value = '';
+                applyAccessibilitySettings('None');
+                completeNextBtn.disabled = true;
+                return;
+            }
+
             completeDisabilityInput.value = val;
             
             completeCards.forEach(c => {
@@ -1567,7 +1626,7 @@
         input.setAttribute('aria-invalid', 'true');
         setTimeout(() => input.classList.remove('auth-input-shake'), 400);
         if (errorEl) {
-            errorEl.textContent = msg;
+            errorEl.innerHTML = `<i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i> <span>${msg}</span>`;
             errorEl.classList.remove('d-none');
         }
     }
@@ -1578,7 +1637,7 @@
         input.removeAttribute('aria-invalid');
         if (errorEl) {
             errorEl.classList.add('d-none');
-            errorEl.textContent = '';
+            errorEl.innerHTML = '';
         }
     }
 
@@ -1716,12 +1775,25 @@
             // Save profile metadata directly in Firestore
             await firebaseDb.collection("profiles").doc(user.uid).set({
                 email: email,
+                name: (typeof fullName !== 'undefined' && fullName) ? fullName : (email ? email.split('@')[0] : 'Student'),
                 disability_type: disability || 'None',
                 gender: gender || 'Not Specified',
                 birthdate: birthdate,
                 recommended_settings: initialRecs,
                 created_at: firebase.firestore.FieldValue.serverTimestamp()
             });
+
+            // Also ensure parent document exists in users collection (prevents italicized ghost document)
+            try {
+                await firebaseDb.collection("users").doc(user.uid).set({
+                    email: email,
+                    name: (typeof fullName !== 'undefined' && fullName) ? fullName : (email ? email.split('@')[0] : 'Student'),
+                    created_at: firebase.firestore.FieldValue.serverTimestamp(),
+                    last_active: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            } catch (uErr) {
+                console.warn("[Firestore] Could not write parent user doc immediately:", uErr);
+            }
 
             // Get user token to sync backend session
             const idToken = await user.getIdToken();
@@ -1767,17 +1839,92 @@
     });
 
     // -------------------------------------------------------------
+    // -------------------------------------------------------------
+    // SIGN IN FIELD VALIDATION & WARNINGS ("Indicate where mali")
+    // -------------------------------------------------------------
+    const signInEmailInput = document.getElementById('signInEmail');
+    const signInPasswordInput = document.getElementById('signInPassword');
+    const signInEmailError = document.getElementById('signInEmailError');
+    const signInPasswordError = document.getElementById('signInPasswordError');
+
+    const signInFields = [
+        {
+            input: signInEmailInput,
+            error: signInEmailError,
+            label: "Email Address",
+            isEmpty: () => !signInEmailInput.value.trim(),
+            emptyMsg: "Email address is required."
+        },
+        {
+            input: signInPasswordInput,
+            error: signInPasswordError,
+            label: "Password",
+            isEmpty: () => !signInPasswordInput.value,
+            emptyMsg: "Password is required."
+        }
+    ];
+
+    function clearAllSignInValidation() {
+        if (typeof signInFields !== 'undefined') {
+            signInFields.forEach(f => {
+                if (f.input) clearFieldInvalid(f.input, f.error);
+            });
+        }
+    }
+
+    // Clear warnings in real-time as user types in sign-in fields
+    signInFields.forEach(f => {
+        if (!f.input) return;
+        const handleSignInInput = () => {
+            clearFieldInvalid(f.input, f.error);
+            const remainingInvalid = document.querySelector('#signInView .is-invalid');
+            if (!remainingInvalid) {
+                hideAlert();
+            }
+        };
+        f.input.addEventListener('input', handleSignInInput);
+        f.input.addEventListener('change', handleSignInInput);
+    });
+
+    // -------------------------------------------------------------
     // SIGN IN ACTION HANDLER
     // -------------------------------------------------------------
     document.getElementById('signInForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         hideAlert();
 
-        const email = document.getElementById('signInEmail').value.trim();
-        const password = document.getElementById('signInPassword').value;
+        const email = signInEmailInput.value.trim();
+        const password = signInPasswordInput.value;
 
-        if (!email || !password) {
-            showAlert("Please enter your email and password.");
+        // Check required fields specifically
+        let missingLabels = [];
+        let firstInvalidEl = null;
+
+        signInFields.forEach(f => {
+            if (f.isEmpty()) {
+                markFieldInvalid(f.input, f.error, f.emptyMsg);
+                missingLabels.push(f.label);
+                if (!firstInvalidEl) firstInvalidEl = f.input;
+            } else {
+                clearFieldInvalid(f.input, f.error);
+            }
+        });
+
+        if (missingLabels.length > 0) {
+            let alertMsg = missingLabels.length === 1 
+                ? `Please enter your ${missingLabels[0]}.` 
+                : `Please enter your ${missingLabels.join(' and ')}.`;
+            showAlert(alertMsg);
+            if (firstInvalidEl) firstInvalidEl.focus();
+            return;
+        }
+
+        // Email format validation
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailPattern.test(email)) {
+            markFieldInvalid(signInEmailInput, signInEmailError, "Please enter a valid email address (e.g. name@example.com).");
+            showAlert("Please enter a valid email address.");
+            signInEmailInput.focus();
             return;
         }
 
@@ -1815,6 +1962,7 @@
             const syncData = await syncRes.json();
             if (syncData.success) {
                 showAlert("Login successful! Redirecting...", false);
+                clearAllSignInValidation();
                 setTimeout(() => {
                     window.location.href = '/home';
                 }, 1000);
@@ -1824,12 +1972,34 @@
 
         } catch (err) {
             console.error("Sign-in error:", err);
-            if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') {
+            // Clearly indicate WHERE it is wrong ("where mali")
+            if (err.code === 'auth/invalid-email') {
+                markFieldInvalid(signInEmailInput, signInEmailError, "Invalid email address.");
+                showAlert("The email address is badly formatted.");
+                signInEmailInput.focus();
+            } else if (err.code === 'auth/user-not-found') {
+                markFieldInvalid(signInEmailInput, signInEmailError, "No account found with this email.");
+                showAlert("No account found with this email address.");
+                signInEmailInput.focus();
+            } else if (err.code === 'auth/wrong-password') {
+                markFieldInvalid(signInPasswordInput, signInPasswordError, "Incorrect password. Please try again.");
+                showAlert("Incorrect password. Please check your spelling.");
+                signInPasswordInput.focus();
+            } else if (err.code === 'auth/invalid-credential') {
+                // Both credentials failed - highlight both fields distinctly so user sees where mali
+                markFieldInvalid(signInEmailInput, signInEmailError, "Check your email address or registered account.");
+                markFieldInvalid(signInPasswordInput, signInPasswordError, "Incorrect password or email.");
                 showAlert("Incorrect email or password.");
+                signInPasswordInput.focus();
             } else if (err.code === 'auth/too-many-requests') {
-                showAlert("Too many attempts. Please try again later.");
+                markFieldInvalid(signInEmailInput, signInEmailError, "Temporarily disabled due to repeated attempts.");
+                markFieldInvalid(signInPasswordInput, signInPasswordError, "Please wait a moment or reset your password.");
+                showAlert("Too many failed attempts. Access temporarily disabled.");
             } else {
+                markFieldInvalid(signInEmailInput, signInEmailError, "Check your email.");
+                markFieldInvalid(signInPasswordInput, signInPasswordError, "Incorrect email or password.");
                 showAlert("Incorrect email or password.");
+                signInPasswordInput.focus();
             }
         } finally {
             submitBtn.disabled = false;
@@ -1844,13 +2014,31 @@
     const btnForgotPassword = document.getElementById('btnForgotPassword');
     const forgotBackBtn = document.getElementById('forgotBackBtn');
     const forgotEmail = document.getElementById('forgotEmail');
+    const forgotEmailError = document.getElementById('forgotEmailError');
+
+    function clearForgotPasswordValidation() {
+        if (forgotEmail) {
+            clearFieldInvalid(forgotEmail, forgotEmailError);
+        }
+    }
+
+    if (forgotEmail) {
+        const handleForgotInput = () => {
+            clearFieldInvalid(forgotEmail, forgotEmailError);
+            hideAlert();
+        };
+        forgotEmail.addEventListener('input', handleForgotInput);
+        forgotEmail.addEventListener('change', handleForgotInput);
+    }
 
     if (btnForgotPassword) {
         btnForgotPassword.addEventListener('click', () => {
             hideAlert();
+            clearAllSignInValidation();
+            clearForgotPasswordValidation();
             signInView.classList.add('d-none');
             forgotPasswordView.classList.remove('d-none');
-            const currentEmail = document.getElementById('signInEmail').value.trim();
+            const currentEmail = signInEmailInput ? signInEmailInput.value.trim() : '';
             if (currentEmail && forgotEmail) {
                 forgotEmail.value = currentEmail;
             }
@@ -1862,13 +2050,14 @@
     if (forgotBackBtn) {
         forgotBackBtn.addEventListener('click', () => {
             hideAlert();
+            clearForgotPasswordValidation();
             forgotPasswordView.classList.add('d-none');
             signInView.classList.remove('d-none');
             const currentEmail = forgotEmail ? forgotEmail.value.trim() : '';
-            if (currentEmail) {
-                document.getElementById('signInEmail').value = currentEmail;
+            if (currentEmail && signInEmailInput) {
+                signInEmailInput.value = currentEmail;
             }
-            document.getElementById('signInEmail').focus();
+            if (signInEmailInput) signInEmailInput.focus();
             speakWithNarrator("Sign In view. Email address input field.");
         });
     }
@@ -1878,11 +2067,23 @@
         forgotPasswordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             hideAlert();
-            const email = forgotEmail.value.trim();
+            const email = forgotEmail ? forgotEmail.value.trim() : '';
             if (!email) {
+                markFieldInvalid(forgotEmail, forgotEmailError, "Email address is required.");
                 showAlert("Please enter your registered email address.");
+                if (forgotEmail) forgotEmail.focus();
                 return;
             }
+
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailPattern.test(email)) {
+                markFieldInvalid(forgotEmail, forgotEmailError, "Please enter a valid email address (e.g. name@example.com).");
+                showAlert("Please enter a valid email address.");
+                if (forgotEmail) forgotEmail.focus();
+                return;
+            }
+
+            clearFieldInvalid(forgotEmail, forgotEmailError);
 
             if (!firebaseAuth) {
                 showAlert("Firebase authentication is not configured yet.", false);
@@ -1900,12 +2101,23 @@
                 setTimeout(() => {
                     forgotPasswordView.classList.add('d-none');
                     signInView.classList.remove('d-none');
-                    document.getElementById('signInEmail').value = email;
-                    document.getElementById('signInPassword').focus();
+                    if (signInEmailInput) signInEmailInput.value = email;
+                    if (signInPasswordInput) signInPasswordInput.focus();
                 }, 3500);
             } catch (err) {
-                showAlert("Error sending reset email: " + err.message);
+                console.error("Forgot password error:", err);
+                if (err.code === 'auth/user-not-found') {
+                    markFieldInvalid(forgotEmail, forgotEmailError, "No account registered with this email address.");
+                    showAlert("No account registered with this email address.");
+                } else if (err.code === 'auth/invalid-email') {
+                    markFieldInvalid(forgotEmail, forgotEmailError, "Invalid email address format.");
+                    showAlert("The email address is invalid.");
+                } else {
+                    markFieldInvalid(forgotEmail, forgotEmailError, err.message);
+                    showAlert("Error sending reset email: " + err.message);
+                }
                 speakWithNarrator("Error sending reset email: " + err.message);
+                if (forgotEmail) forgotEmail.focus();
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Send Reset Link';
@@ -2007,16 +2219,68 @@
         });
     }
 
+    const completeGenderInput = document.getElementById('completeGender');
+    const completeBirthdateInput = document.getElementById('completeBirthdate');
+    const completeGenderError = document.getElementById('completeGenderError');
+    const completeBirthdateError = document.getElementById('completeBirthdateError');
+
+    const completeFields = [
+        {
+            input: completeGenderInput,
+            error: completeGenderError,
+            label: "Gender",
+            isEmpty: () => !completeGenderInput || !completeGenderInput.value,
+            emptyMsg: "Please select your gender."
+        },
+        {
+            input: completeBirthdateInput,
+            error: completeBirthdateError,
+            label: "Birthdate",
+            isEmpty: () => !completeBirthdateInput || !completeBirthdateInput.value,
+            emptyMsg: "Birthdate is required."
+        }
+    ];
+
+    completeFields.forEach(f => {
+        if (!f.input) return;
+        const handleCompleteInput = () => {
+            clearFieldInvalid(f.input, f.error);
+            const remaining = document.querySelector('#completeStep2 .is-invalid');
+            if (!remaining) hideAlert();
+        };
+        f.input.addEventListener('input', handleCompleteInput);
+        f.input.addEventListener('change', handleCompleteInput);
+    });
+
     document.getElementById('completeProfileForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         hideAlert();
 
         const disability = document.getElementById('completeDisability').value;
-        const gender = document.getElementById('completeGender').value;
-        const birthdate = document.getElementById('completeBirthdate').value;
+        const gender = completeGenderInput ? completeGenderInput.value : '';
+        const birthdate = completeBirthdateInput ? completeBirthdateInput.value : '';
 
-        if (!disability || !gender || !birthdate) {
-            showAlert("Please fill in all profile fields.");
+        if (!disability) {
+            showAlert("Please choose an accessibility profile from Step 1.");
+            return;
+        }
+
+        let completeHasError = false;
+        let completeFirstInvalid = null;
+
+        completeFields.forEach(f => {
+            if (f.isEmpty()) {
+                markFieldInvalid(f.input, f.error, f.emptyMsg);
+                if (!completeFirstInvalid) completeFirstInvalid = f.input;
+                completeHasError = true;
+            } else {
+                clearFieldInvalid(f.input, f.error);
+            }
+        });
+
+        if (completeHasError) {
+            showAlert("Please fill in all required profile fields.");
+            if (completeFirstInvalid) completeFirstInvalid.focus();
             return;
         }
 
@@ -2072,7 +2336,18 @@
                 birthdate: birthdate,
                 recommended_settings: initialRecs,
                 created_at: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            }, { merge: true });
+
+            // Also ensure parent document exists in users collection (prevents italicized ghost document)
+            try {
+                await firebaseDb.collection("users").doc(user.uid).set({
+                    email: user.email,
+                    last_active: firebase.firestore.FieldValue.serverTimestamp(),
+                    updated_at: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            } catch (uErr) {
+                console.warn("[Firestore] Could not write parent user doc:", uErr);
+            }
 
             // Get user token to sync backend session
             const idToken = await user.getIdToken();
@@ -2115,5 +2390,8 @@
             submitBtn.textContent = 'Save Profile';
         }
     });
+
+    // Ensure clean accessibility baseline on authentication page load
+    applyAccessibilitySettings('None');
 </script>
 {% endblock %}

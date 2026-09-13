@@ -84,7 +84,18 @@
                 <!-- DECK DETAILS -->
                 <h5 class="fw-semibold" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
                     title="{{ deck.original_filename }}">{{ deck.name }}</h5>
-                <p class="text-muted mb-0">{{ deck.card_count }} cards</p>
+                <div class="d-flex align-items-center justify-content-between mt-2">
+                    <p class="text-muted mb-0 small">{{ deck.card_count }} cards</p>
+                    {% if deck.deck_structure == 'descriptive' %}
+                    <span class="badge rounded-pill bg-light text-primary border border-primary-subtle px-2 py-1" style="font-size: 0.7rem;">
+                        <i class="bi bi-card-text"></i> Descriptive
+                    </span>
+                    {% else %}
+                    <span class="badge rounded-pill bg-light text-secondary border px-2 py-1" style="font-size: 0.7rem;">
+                        <i class="bi bi-patch-question"></i> Question
+                    </span>
+                    {% endif %}
+                </div>
             </div>
         </a>
     </div>

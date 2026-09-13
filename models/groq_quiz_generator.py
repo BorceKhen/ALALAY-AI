@@ -41,11 +41,13 @@ class GroqQuizGenerator:
         extracted_text: str,
         flashcard_pairs: List[Dict[str, str]],
         max_questions: int = 20,
-        content_level: str = "Medium"
+        content_level: str = "Medium",
+        deck_structure: str = "question"
     ) -> List[Dict]:
         """
         Generates multiple-choice quiz questions strictly focused on the content of the provided flashcards.
         Guarantees 100% topic alignment and prevents any duplicate questions.
+        Supports both Question and Descriptive deck structures.
         """
         try:
             self._init_client()
@@ -55,6 +57,22 @@ class GroqQuizGenerator:
         if not flashcard_pairs:
             print("[Groq-QuizGen] Error: No flashcards available for quiz generation.")
             return []
+
+        # Detect if deck is descriptive (explicit flag, card type tag, or declarative structure)
+        is_descriptive = (str(deck_structure or "question").strip().lower() == "descriptive")
+        if not is_descriptive:
+            is_descriptive = any(c.get('type') == 'descriptive' for c in flashcard_pairs if isinstance(c, dict))
+            if not is_descriptive and flashcard_pairs:
+                sample = [c for c in flashcard_pairs[:5] if isinstance(c, dict)]
+                if sample and all(not c.get('question', '').strip().endswith('?') and len(c.get('question', '').split()) <= 6 and len(c.get('answer', '').split()) >= 12 for c in sample):
+                    is_descriptive = True
+
+        if is_descriptive:
+            print(f"[Groq-QuizGen] Descriptive deck detected. Generating contextual multiple-choice quiz...")
+            quiz_data = self._generate_descriptive_quiz_questions(extracted_text, flashcard_pairs, needed=max_questions, content_level=content_level)
+            if quiz_data:
+                print(f"[Groq-QuizGen] Descriptive quiz generated successfully with {len(quiz_data)} questions.")
+                return quiz_data[:max_questions]
 
         # Deduplicate flashcards by question text to prevent duplicate/rephrased questions
         import re
@@ -146,6 +164,121 @@ class GroqQuizGenerator:
 
         print(f"[Groq-QuizGen] Quiz generated successfully with {len(quiz_data[:max_questions])} questions.")
         return quiz_data[:max_questions]
+
+    def _generate_descriptive_quiz_questions(self, text: str, flashcards: List[Dict], needed: int = 20, content_level: str = "Medium") -> List[Dict]:
+        """
+        Generates high-quality multiple-choice questions directly from descriptive flashcards.
+        Tests concept identification (from definition/purpose) and mechanisms/outcomes (from Sentence 2).
+        """
+        try:
+            self._init_client()
+            if not self.client:
+                return []
+
+            # Format descriptive cards as clear study concepts
+            concept_snippets = []
+            for i, c in enumerate(flashcards[:25]):
+                if not isinstance(c, dict):
+                    continue
+                subj = c.get('question', '').strip()
+                desc = c.get('answer', '').strip()
+                if subj and desc:
+                    concept_snippets.append(f"Concept {i+1}: {subj}\nExplanation: {desc}")
+
+            context_str = "\n\n".join(concept_snippets)
+            if not context_str:
+                context_str = text[:10000]
+
+            prompt = f"""
+You are an expert educational quiz creator. Generate exactly {needed} unique, high-quality multiple-choice questions based STRICTLY on the concepts and details in the study flashcards below.
+
+Study Flashcards (Concepts & Explanations):
+{context_str}
+
+Study Text Context:
+{text[:6000]}
+
+CRITICAL QUIZ GENERATION REQUIREMENTS:
+1. Generate exactly {needed} unique multiple-choice questions.
+2. The questions MUST directly test the student's knowledge of the flashcard concepts:
+   - Formulate questions that test identification of the concept based on its core purpose or definition (e.g., "Which biological process allows plants to convert sunlight into chemical energy?" -> "Photosynthesis").
+   - Formulate questions that test specific mechanisms, components, fuels, and outcomes described in Sentence 2 of the flashcards (e.g., "Where inside plant cells does the transformation of carbon dioxide and water into glucose take place?" -> "Chloroplasts").
+3. Multiple Choice Choices:
+   - Every question must have EXACTLY 4 options (1 correct answer, 3 plausible, category-matched distractors).
+   - Keep answers and distractors concise and direct (do NOT use long paragraphs as options).
+   - Category Matching: Distractors must belong to the same topic/entity category as the correct answer.
+4. Keep the exact same language (Filipino/Tagalog or English) as the study flashcards.
+5. Output MUST be a strictly valid JSON object without markdown wrappers:
+{{
+  "questions": [
+    {{
+      "question": "Clear question text here...",
+      "correct_answer": "Concise correct answer here...",
+      "options": [
+        {{"text": "Option 1", "is_correct": false}},
+        {{"text": "Concise correct answer here...", "is_correct": true}},
+        {{"text": "Option 3", "is_correct": false}},
+        {{"text": "Option 4", "is_correct": false}}
+      ]
+    }}
+  ]
+}}
+"""
+            model_to_use = "openai/gpt-oss-20b"
+            try:
+                response = self.client.chat.completions.create(
+                    model=model_to_use,
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"}
+                )
+            except Exception as api_err:
+                print(f"[Groq-QuizGen] Descriptive quiz primary key failed: {api_err}. Trying backup API key...")
+                from models.groq_helper import get_groq_client, mark_primary_failed
+                mark_primary_failed()
+                self.client, _ = get_groq_client(force_backup=True)
+                response = self.client.chat.completions.create(
+                    model=model_to_use,
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"}
+                )
+
+            quiz_items = []
+            if response and response.choices:
+                raw_json = response.choices[0].message.content.strip()
+                res_data = json.loads(raw_json)
+                if isinstance(res_data, list):
+                    quiz_items = res_data
+                elif isinstance(res_data, dict):
+                    if "questions" in res_data and isinstance(res_data["questions"], list):
+                        quiz_items = res_data["questions"]
+                    elif "quiz" in res_data and isinstance(res_data["quiz"], list):
+                        quiz_items = res_data["quiz"]
+                    else:
+                        lists = [v for v in res_data.values() if isinstance(v, list)]
+                        quiz_items = lists[0] if lists else []
+
+            # Normalize and validate each item
+            answer_pool = [c.get('question', '').strip() for c in flashcards if isinstance(c, dict) and c.get('question')]
+            normalized = []
+            for item in quiz_items:
+                norm = self._normalize_quiz_item(item, answer_pool, content_level=content_level)
+                if norm:
+                    normalized.append(norm)
+
+            # If still fewer than needed, generate remaining extra questions
+            if len(normalized) < needed:
+                rem = needed - len(normalized)
+                print(f"[Groq-QuizGen] Descriptive quiz generated {len(normalized)} items. Requesting {rem} more...")
+                extra = self._generate_extra_quiz_questions(text, flashcards, needed=rem, content_level=content_level)
+                for ex in extra:
+                    norm = self._normalize_quiz_item(ex, answer_pool, content_level=content_level)
+                    if norm:
+                        normalized.append(norm)
+
+            return normalized[:needed]
+        except Exception as e:
+            print(f"[Groq-QuizGen] Failed to generate descriptive quiz: {e}")
+            return []
 
     def _generate_extra_quiz_questions(self, text: str, flashcards: List[Dict], needed: int = 17, content_level: str = "Medium") -> List[Dict]:
         """

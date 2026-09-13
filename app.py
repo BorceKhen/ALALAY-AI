@@ -2,6 +2,8 @@ from flask import Flask, render_template, redirect, url_for, request, jsonify, s
 import os
 import json
 import re
+import threading
+from datetime import datetime, timezone
 from auth_helper import login_required, fetch_user_profile, get_db, get_firebase_status
 
 # Load local environment variables from .env file securely
@@ -132,6 +134,45 @@ def get_cached_decks(user_id: str, max_age: float = CACHE_TTL_SECS):
         return []
 
 
+def sync_existing_users_to_parent_docs():
+    """Startup background worker that checks existing documents in profiles
+    and ensures each corresponding parent document in users/{userId} exists with
+    email, name, and last_active. This automatically eliminates italicized 'ghost'
+    documents in the Firestore Console."""
+    try:
+        import time
+        time.sleep(2)  # Give Firebase admin a moment to initialize
+        db = get_db()
+        if not db:
+            return
+        profiles_stream = db.collection("profiles").stream()
+        synced_count = 0
+        for p in profiles_stream:
+            uid = p.id
+            p_data = p.to_dict() or {}
+            email = p_data.get("email")
+            name = p_data.get("name") or (email.split("@")[0] if email else "Student")
+            if email:
+                u_ref = db.collection("users").document(uid)
+                u_doc = u_ref.get()
+                if not u_doc.exists or not u_doc.to_dict().get("email"):
+                    u_ref.set({
+                        "uid": uid,
+                        "email": email,
+                        "name": name,
+                        "last_active": p_data.get("last_updated") or datetime.now(timezone.utc).isoformat(),
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }, merge=True)
+                    synced_count += 1
+        if synced_count > 0:
+            print(f"[Firestore-Sync] Successfully synchronized {synced_count} user parent documents (ghost documents eliminated).")
+    except Exception as e:
+        print(f"[Firestore-Sync] Startup sync completed with note: {e}")
+
+# Launch background sync on startup so it never blocks web requests
+threading.Thread(target=sync_existing_users_to_parent_docs, daemon=True).start()
+
+
 def allowed_file(filename: str) -> bool:
     """Check if the uploaded file has an allowed extension."""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -241,10 +282,22 @@ def save_user_deck(user_id: str, deck: dict):
             sanitized_deck['quiz_items'] = cleaned_quiz
 
         deck_name = sanitized_deck['name']
-        deck_ref = db.collection("users").document(user_id).collection("decks").document(deck_name)
+        safe_doc_id = re.sub(r'[/\\#?]', '-', deck_name).strip()
+        sanitized_deck['name'] = deck_name  # Preserve original display name
+
+        # Ensure parent document in users/{user_id} exists with active timestamp
+        try:
+            db.collection("users").document(user_id).set({
+                "last_active": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }, merge=True)
+        except Exception as pe:
+            print(f"[Firestore] Note on parent user update: {pe}")
+
+        deck_ref = db.collection("users").document(user_id).collection("decks").document(safe_doc_id)
         deck_ref.set(sanitized_deck)
         invalidate_user_cache(user_id, profile=False, decks=True)
-        print(f"Deck '{deck_name}' saved successfully in Firestore for user {user_id}.")
+        print(f"Deck '{deck_name}' saved successfully in Firestore for user {user_id} (doc_id: {safe_doc_id}).")
     except Exception as e:
         print(f"Error saving deck to Firestore: {e}")
 
@@ -316,9 +369,41 @@ def login():
     try:
         data = request.get_json() or {}
         user_data = data.get("user")
+        id_token = data.get("idToken")
+
+        # Verify idToken with Firebase Admin SDK if token is provided
+        if id_token:
+            from firebase_admin import auth as fb_auth
+            try:
+                decoded = fb_auth.verify_id_token(id_token)
+                if user_data:
+                    user_data["id"] = decoded.get("uid", user_data.get("id"))
+                    if decoded.get("email"):
+                        user_data["email"] = decoded.get("email")
+            except Exception as token_err:
+                print(f"[Auth-Token] Verification note: {token_err}")
+
         if user_data:
             session.permanent = True
             session["user"] = user_data
+
+            # Populate parent users/{user_id} document to eliminate ghost document
+            user_id = user_data.get("id")
+            if user_id:
+                try:
+                    db = get_db()
+                    if db:
+                        user_parent = db.collection("users").document(user_id)
+                        user_parent.set({
+                            "uid": user_id,
+                            "email": user_data.get("email", ""),
+                            "name": user_data.get("displayName") or user_data.get("name") or (user_data.get("email", "").split("@")[0] if user_data.get("email") else "Student"),
+                            "last_active": datetime.now(timezone.utc).isoformat(),
+                            "updated_at": datetime.now(timezone.utc).isoformat()
+                        }, merge=True)
+                except Exception as sync_err:
+                    print(f"[Firestore] Warning on parent doc sync during login: {sync_err}")
+
             return jsonify({"success": True})
         return jsonify({"success": False, "error": "No user payload"}), 400
     except Exception as e:
@@ -448,6 +533,13 @@ def flashcard_deck(deck_name):
         except Exception as pe:
             print(f"[Flashcard-Route] Failed to load user preference: {pe}")
 
+    deck_structure = deck.get('deck_structure')
+    if not deck_structure:
+        if cards and any(isinstance(c, dict) and c.get('type') == 'descriptive' for c in cards):
+            deck_structure = 'descriptive'
+        else:
+            deck_structure = 'question'
+
     if content_level.lower() == "easy" and cards:
         simplified_cards = deck.get('cards_simplified')
         if simplified_cards and cards:
@@ -464,7 +556,7 @@ def flashcard_deck(deck_name):
             try:
                 from models.text_simplifier import TextSimplifier
                 simplifier = TextSimplifier.get_instance()
-                simplified_cards = simplifier.simplify_cards(cards)
+                simplified_cards = simplifier.simplify_cards(cards, deck_structure=deck_structure)
                 if simplified_cards:
                     # Update cache in Firestore
                     doc_id = deck.get('doc_id')
@@ -493,7 +585,7 @@ def flashcard_deck(deck_name):
             try:
                 from models.text_simplifier import TextSimplifier
                 simplifier = TextSimplifier.get_instance()
-                hard_cards = simplifier.enhance_cards(cards)
+                hard_cards = simplifier.enhance_cards(cards, deck_structure=deck_structure)
                 if hard_cards:
                     # Update cache in Firestore
                     doc_id = deck.get('doc_id')
@@ -511,7 +603,8 @@ def flashcard_deck(deck_name):
                            deck_name=deck['name'],
                            deck_color=deck.get('color', '#D8C8FF'),
                            cards=cards,
-                           card_count=len(cards))
+                           card_count=len(cards),
+                           deck_structure=deck_structure)
 
 @app.route('/quiz')
 @login_required
@@ -584,22 +677,23 @@ def quiz_deck(deck_name):
         # Generate quiz using Groq, Gemini, or local T5 with adaptive content level complexity
         try:
             quiz_items = []
+            deck_structure = deck.get('deck_structure', 'question')
             
             if os.environ.get("GROQ_API_KEY"):
                 try:
-                    print(f"[Quiz-Generation] Trying Groq Quiz Generator (level={content_level})...")
+                    print(f"[Quiz-Generation] Trying Groq Quiz Generator (level={content_level}, structure={deck_structure})...")
                     from models.groq_quiz_generator import GroqQuizGenerator
                     generator = GroqQuizGenerator.get_instance()
-                    quiz_items = generator.generate_quiz(extracted_text, cards, max_questions=20, content_level=content_level)
+                    quiz_items = generator.generate_quiz(extracted_text, cards, max_questions=20, content_level=content_level, deck_structure=deck_structure)
                 except Exception as e:
                     print(f"[Quiz-Generation] Groq failed: {e}")
  
             if not quiz_items and os.environ.get("GEMINI_API_KEY"):
                 try:
-                    print(f"[Quiz-Generation] Trying Gemini Quiz Generator (level={content_level})...")
+                    print(f"[Quiz-Generation] Trying Gemini Quiz Generator (level={content_level}, structure={deck_structure})...")
                     from models.gemini_quiz_generator import GeminiQuizGenerator
                     generator = GeminiQuizGenerator.get_instance()
-                    quiz_items = generator.generate_quiz(extracted_text, cards, max_questions=20, content_level=content_level)
+                    quiz_items = generator.generate_quiz(extracted_text, cards, max_questions=20, content_level=content_level, deck_structure=deck_structure)
                 except Exception as e:
                     print(f"[Quiz-Generation] Gemini failed: {e}")
              
@@ -858,6 +952,9 @@ def generate_flashcard():
     original_extracted_text = data.get('original_extracted_text', '')
     total_pages = data.get('total_pages', 1)
     word_count = data.get('word_count', 0)
+    deck_structure = str(data.get('deck_structure') or 'question').strip().lower()
+    if deck_structure not in ('descriptive', 'question'):
+        deck_structure = 'question'
 
     if not filename:
         return jsonify({'success': False, 'error': 'No filename provided.'}), 400
@@ -869,20 +966,28 @@ def generate_flashcard():
     user_id = session.get("user", {}).get("id")
 
     # Simplify the filename into a clean deck name
-    deck_name = simplify_deck_name(filename)
+    base_deck_name = simplify_deck_name(filename)
 
     # Assign a color from the palette
     decks = load_user_decks(user_id)
     color_index = len(decks) % len(DECK_COLORS)
     deck_color = DECK_COLORS[color_index]
 
-    # Check if a deck with the same name already exists
-    for existing_deck in decks:
-        if existing_deck.get('name') == deck_name:
-            return jsonify({
-                'success': False,
-                'error': f'A deck named "{deck_name}" already exists.'
-            }), 409
+    existing_names = {d.get('name') for d in decks if d.get('name')}
+
+    # If deck_structure is descriptive and base_deck_name already exists, or for general collisions,
+    # auto-disambiguate so users are never blocked by 409 errors
+    if deck_structure == 'descriptive' and base_deck_name in existing_names:
+        candidate_name = f"{base_deck_name} (Descriptive)"
+    else:
+        candidate_name = base_deck_name
+
+    deck_name = candidate_name
+    if deck_name in existing_names:
+        counter = 2
+        while f"{candidate_name} {counter}" in existing_names:
+            counter += 1
+        deck_name = f"{candidate_name} {counter}"
 
     # Fetch user recommended content level from Firestore profile document
     content_level = "Medium"
@@ -899,10 +1004,10 @@ def generate_flashcard():
         cards = []
         if os.environ.get("GROQ_API_KEY"):
             try:
-                print(f"[Flashcard-Generation] Trying Groq Flashcard Generator (level={content_level})...", flush=True)
+                print(f"[Flashcard-Generation] Trying Groq Flashcard Generator (level={content_level}, structure={deck_structure})...", flush=True)
                 from models.groq_flashcard_generator import GroqFlashcardGenerator
                 generator = GroqFlashcardGenerator.get_instance()
-                cards = generator.generate_deck(extracted_text, content_level=content_level)
+                cards = generator.generate_deck(extracted_text, content_level=content_level, deck_structure=deck_structure)
                 if not cards:
                     generation_errors.append("Groq returned 0 cards")
             except Exception as e:
@@ -914,10 +1019,10 @@ def generate_flashcard():
         # If Groq returned fewer than 20 cards (or failed) and Gemini is available, try Gemini to reach the standard 20
         if len(cards) < 20 and os.environ.get("GEMINI_API_KEY"):
             try:
-                print(f"[Flashcard-Generation] Groq yielded {len(cards)} cards (< 20). Trying Gemini Flashcard Generator (level={content_level})...", flush=True)
+                print(f"[Flashcard-Generation] Groq yielded {len(cards)} cards (< 20). Trying Gemini Flashcard Generator (level={content_level}, structure={deck_structure})...", flush=True)
                 from models.gemini_flashcard_generator import GeminiFlashcardGenerator
                 generator = GeminiFlashcardGenerator.get_instance()
-                gemini_cards = generator.generate_deck(extracted_text, content_level=content_level)
+                gemini_cards = generator.generate_deck(extracted_text, content_level=content_level, deck_structure=deck_structure)
                 if len(gemini_cards) > len(cards):
                     cards = gemini_cards
             except Exception as e:
@@ -930,10 +1035,10 @@ def generate_flashcard():
         if not cards:
             if os.path.isdir(T5_ADAPTER_PATH):
                 try:
-                    print("[Flashcard-Generation] Cloud APIs failed or keys not set. Falling back to local T5 Flashcard Generator...", flush=True)
+                    print(f"[Flashcard-Generation] Cloud APIs failed or keys not set. Falling back to local T5 Flashcard Generator (structure={deck_structure})...", flush=True)
                     from models.t5_flashcard_generator import T5FlashcardGenerator
                     generator = T5FlashcardGenerator.get_instance(T5_ADAPTER_PATH)
-                    cards = generator.generate_deck(extracted_text)
+                    cards = generator.generate_deck(extracted_text, content_level=content_level, deck_structure=deck_structure)
                 except (ImportError, ModuleNotFoundError) as ie:
                     print(f"[Flashcard-Generation] Local T5 dependencies missing: {ie}", flush=True)
                     generation_errors.append(f"Local T5 dependencies unavailable ({ie})")
@@ -964,6 +1069,7 @@ def generate_flashcard():
         'color': deck_color,
         'card_count': len(cards),
         'cards': cards,
+        'deck_structure': deck_structure,
         'extracted_text': extracted_text[:10000],  # Store up to 10k chars (simplified if active)
         'original_extracted_text': original_extracted_text[:10000] if original_extracted_text else None,
         'total_pages': total_pages,
@@ -976,8 +1082,9 @@ def generate_flashcard():
     return jsonify({
         'success': True,
         'deck_name': deck_name,
+        'deck_structure': deck_structure,
         'card_count': len(cards),
-        'message': f'Flashcard deck "{deck_name}" created with {len(cards)} cards!'
+        'message': f'Flashcard deck "{deck_name}" ({deck_structure.capitalize()} type) created with {len(cards)} cards!'
     })
 
 
@@ -1050,24 +1157,43 @@ def delete_profile():
         if not db:
             return jsonify({"success": False, "error": "Database connection failed"}), 500
 
+        # Use Batched Writes for atomic deletion across all collections
+        batch = db.batch()
+        batch_count = 0
+
+        def add_batch_delete(ref):
+            nonlocal batch, batch_count
+            batch.delete(ref)
+            batch_count += 1
+            if batch_count >= 400:
+                batch.commit()
+                batch = db.batch()
+                batch_count = 0
+
         # 1. Delete all decks in users/{user_id}/decks subcollection
         decks_ref = db.collection("users").document(user_id).collection("decks")
-        decks = decks_ref.stream()
-        for deck in decks:
-            deck.reference.delete()
+        for deck in decks_ref.stream():
+            add_batch_delete(deck.reference)
 
-        # 2. Delete the parent users/{user_id} document itself
-        db.collection("users").document(user_id).delete()
+        # 2. Delete parent users/{user_id} document
+        add_batch_delete(db.collection("users").document(user_id))
 
         # 3. Delete user document in profiles
-        db.collection("profiles").document(user_id).delete()
+        add_batch_delete(db.collection("profiles").document(user_id))
 
         # 4. Delete all logs in behavioral_logs where user_id == user_id
-        logs_ref = db.collection("behavioral_logs").where("user_id", "==", user_id).stream()
-        for log in logs_ref:
-            log.reference.delete()
+        for log in db.collection("behavioral_logs").where("user_id", "==", user_id).stream():
+            add_batch_delete(log.reference)
 
-        # 5. Delete from Firebase Authentication
+        # 5. Delete all MDP transitions in mdp_transitions where user_id == user_id (prevents orphan data)
+        for mdp in db.collection("mdp_transitions").where("user_id", "==", user_id).stream():
+            add_batch_delete(mdp.reference)
+
+        # Commit remaining deletions
+        if batch_count > 0:
+            batch.commit()
+
+        # 6. Delete from Firebase Authentication
         from firebase_admin import auth as firebase_auth
         try:
             firebase_auth.delete_user(user_id)
@@ -1077,10 +1203,10 @@ def delete_profile():
         # Invalidate cache for deleted user
         invalidate_user_cache(user_id, profile=True, decks=True)
 
-        # 6. Clear Flask session
+        # 7. Clear Flask session
         session.pop("user", None)
 
-        return jsonify({"success": True, "message": "Account deleted permanently"})
+        return jsonify({"success": True, "message": "Account and all associated records deleted permanently"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -1207,14 +1333,25 @@ def log_telemetry():
             "revisit_frequency": int(revisit_frequency)
         }
         
-        # Save to behavioral_logs Firestore collection
-        res = db.collection("behavioral_logs").add(log_doc)
-        doc_ref = res[1] if isinstance(res, tuple) else res
+        # Generate clean, human-readable, chronologically sorted document ID
+        timestamp_dt = datetime.now(timezone.utc)
+        timestamp_str = timestamp_dt.strftime("%Y-%m-%d_%H-%M-%S")
+        user_prefix = user_id[:8]
+        user_email = session.get("user", {}).get("email", "")
+        if user_email:
+            email_slug = re.sub(r'[^a-zA-Z0-9_]', '', user_email.split("@")[0])
+            if email_slug:
+                user_prefix = f"{email_slug}_{user_id[:4]}"
+        safe_deck = re.sub(r'[^a-zA-Z0-9_]', '_', deck_name)[:25].strip('_')
+        doc_id = f"{timestamp_str}_{user_prefix}_{safe_deck}"
+        
+        # Save to behavioral_logs Firestore collection with formatted readable doc ID
+        db.collection("behavioral_logs").document(doc_id).set(log_doc)
         
         # Trigger the PyTorch Personalization Engine to calculate indices and update recommendations
         try:
             from models.personalization_engine import update_user_personalization
-            update_user_personalization(user_id, latest_log_id=doc_ref.id, latest_log_data=log_doc)
+            update_user_personalization(user_id, latest_log_id=doc_id, latest_log_data=log_doc)
             invalidate_user_cache(user_id, profile=True, decks=False)
         except Exception as pe:
             import traceback
@@ -1223,7 +1360,7 @@ def log_telemetry():
                 traceback.print_exc(file=f)
             print(f"[Telemetry] Failed to trigger personalization engine: {pe}")
             
-        return jsonify({"success": True, "message": "Telemetry logged successfully", "revisit_frequency": revisit_frequency})
+        return jsonify({"success": True, "message": "Telemetry logged successfully", "revisit_frequency": revisit_frequency, "log_id": doc_id})
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -1245,8 +1382,11 @@ def delete_decks():
             return jsonify({"success": False, "error": "Database connection failed"}), 500
 
         for deck_name in deck_names:
-            deck_ref = db.collection("users").document(user_id).collection("decks").document(deck_name)
-            deck_ref.delete()
+            safe_doc_id = re.sub(r'[/\\#?]', '-', deck_name).strip()
+            # Try deleting both raw and sanitized document IDs for complete backward compatibility
+            db.collection("users").document(user_id).collection("decks").document(safe_doc_id).delete()
+            if safe_doc_id != deck_name:
+                db.collection("users").document(user_id).collection("decks").document(deck_name).delete()
 
         invalidate_user_cache(user_id, profile=False, decks=True)
 
@@ -1321,7 +1461,15 @@ def accept_pending_settings():
             "action": pending,
             "reward": 1.0  # High positive reward for user confirmation
         }
-        db.collection("mdp_transitions").add(mdp_doc)
+        timestamp_str = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
+        user_prefix = user_id[:8]
+        user_email = session.get("user", {}).get("email") or profile_data.get("email", "")
+        if user_email:
+            email_slug = re.sub(r'[^a-zA-Z0-9_]', '', user_email.split("@")[0])
+            if email_slug:
+                user_prefix = f"{email_slug}_{user_id[:4]}"
+        mdp_doc_id = f"{timestamp_str}_{user_prefix}_accept"
+        db.collection("mdp_transitions").document(mdp_doc_id).set(mdp_doc)
         
         # ── Trigger Live Neural Net Backpropagation Optimization (MLE) ──
         try:
@@ -1369,7 +1517,15 @@ def decline_pending_settings():
             "action": pending or {},
             "reward": -1.0  # High negative reward for user rejection
         }
-        db.collection("mdp_transitions").add(mdp_doc)
+        timestamp_str = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
+        user_prefix = user_id[:8]
+        user_email = session.get("user", {}).get("email") or profile_data.get("email", "")
+        if user_email:
+            email_slug = re.sub(r'[^a-zA-Z0-9_]', '', user_email.split("@")[0])
+            if email_slug:
+                user_prefix = f"{email_slug}_{user_id[:4]}"
+        mdp_doc_id = f"{timestamp_str}_{user_prefix}_decline"
+        db.collection("mdp_transitions").document(mdp_doc_id).set(mdp_doc)
 
         # ── Trigger Live Neural Net Backpropagation Optimization (MLE) ──
         # Since they declined the recommendation, we train the model to target their ACTUAL active settings

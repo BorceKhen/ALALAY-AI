@@ -406,8 +406,16 @@ body.contrast-theme-light .nav-link:focus-visible {
     outline-offset: 2px !important;
 }
 
-/* Hide manual TTS volume triggers if Text-to-Speech accessibility option is OFF */
+/* Hide all TTS controls (Auto Play TTS, speaker triggers, quiz audio) if Text-to-Speech is NOT enabled */
+body:not([data-tts="on"]) .tts-trigger,
+body:not([data-tts="on"]) #btn-autoplay-tts,
+body:not([data-tts="on"]) #btn-autoplay-tts-floating,
+body:not([data-tts="on"]) .btn-autoplay-tts,
+body:not([data-tts="on"]) #btn-quiz-tts,
 body[data-tts="off"] .tts-trigger,
+body[data-tts="off"] #btn-autoplay-tts,
+body[data-tts="off"] #btn-autoplay-tts-floating,
+body[data-tts="off"] .btn-autoplay-tts,
 body[data-tts="off"] #btn-quiz-tts {
     display: none !important;
 }
@@ -497,6 +505,10 @@ body[data-line-focus="on"][data-page="quiz_deck"]::after {
 }
 
 /* Color Blindness Daltonization Filters application to root html (preserves position:fixed on mobile navbar) */
+html[data-color-filter="none"],
+:root[data-color-filter="none"] {
+    filter: none !important;
+}
 html[data-color-filter="protanopia"],
 :root[data-color-filter="protanopia"] {
     filter: url('#daltonize-protanopia') !important;
@@ -508,4 +520,17 @@ html[data-color-filter="deuteranopia"],
 html[data-color-filter="tritanopia"],
 :root[data-color-filter="tritanopia"] {
     filter: url('#daltonize-tritanopia') !important;
+}
+
+/* ── Modal Backdrop & Layering Fix ── */
+.modal-backdrop {
+    --bs-backdrop-opacity: 0.35 !important;
+    background-color: #0b132b !important;
+    z-index: 1050 !important;
+}
+.modal-backdrop.show {
+    opacity: 0.35 !important;
+}
+.modal {
+    z-index: 1060 !important;
 }
