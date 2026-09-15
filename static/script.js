@@ -1194,10 +1194,11 @@ document.addEventListener("DOMContentLoaded", () => {
             { value: "en-US-ChristopherNeural", text: "Christopher (Male - Active)" }
         ],
         elevenlabs: [
-            { value: "2mjoFhAXQxxi6hlzpupi", text: "Miguel (Male - Dynamic)" },
+            { value: "Xb7hH8MSUJpSbSDYk0k2", text: "Alice (Female - Clear)" },
+            { value: "EXAVITQu4vr4xnSDxMaL", text: "Sarah (Female - Professional)" },
             { value: "jz3ZhMqlkCVI6zGzELGw", text: "Maya (Female - Expressive)" },
-            { value: "wewocdDkjSLm9ZwjO7TD", text: "Belle (Female - Smooth)" },
-            { value: "U9VgC8Xinl7nnNsyDd3J", text: "Rachel (Female - Clear)" }
+            { value: "2mjoFhAXQxxi6hlzpupi", text: "Miguel (Male - Dynamic)" },
+            { value: "TX3LPaxmHKxFdv7VOQHJ", text: "Liam (Male - Conversational)" }
         ],
         gtts: [
             { value: "default", text: "Default System Voice" }

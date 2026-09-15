@@ -11,7 +11,7 @@ _env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
 if os.path.exists(_env_path):
     try:
         from dotenv import load_dotenv
-        load_dotenv()
+        load_dotenv(_env_path, override=True)
     except ImportError:
         with open(_env_path, "r", encoding="utf-8") as _f:
             for _line in _f:
@@ -1679,19 +1679,19 @@ def text_to_speech_api():
 
         # Map new Azure IDs or default settings back to standard ElevenLabs voice ID
         voice_map_el = {
-            "en-US-AvaNeural": "21m00Tcm4TlvDq8ikWAM",
+            "en-US-AvaNeural": "Xb7hH8MSUJpSbSDYk0k2",
             "en-US-EmmaNeural": "EXAVITQu4vr4xnSDxMaL",
             "en-US-JennyNeural": "EXAVITQu4vr4xnSDxMaL",
-            "en-US-AndrewNeural": "pNInz6obpgfrhhF2EwM3",
-            "en-US-SteffanNeural": "pNInz6obpgfrhhF2EwM3",
-            "en-US-ChristopherNeural": "TxGE277ZNo3A4vRMvIMw",
-            "en-US-BrianNeural": "ErXwobaYiN019ALwOOzi",
-            "en-US-AnaNeural": "21m00Tcm4TlvDq8ikWAM"
+            "en-US-AndrewNeural": "TX3LPaxmHKxFdv7VOQHJ",
+            "en-US-SteffanNeural": "TX3LPaxmHKxFdv7VOQHJ",
+            "en-US-ChristopherNeural": "JBFqnCBsd6RMkjVDRZzb",
+            "en-US-BrianNeural": "2mjoFhAXQxxi6hlzpupi",
+            "en-US-AnaNeural": "jz3ZhMqlkCVI6zGzELGw"
         }
         
         voice_name = voice_map_el.get(voice_id, voice_id)
         if not voice_name or voice_name == "default":
-            voice_name = "pNInz6obpgfrhhF2EwM3" # Adam default
+            voice_name = os.environ.get("ELEVENLABS_VOICE_ID", "Xb7hH8MSUJpSbSDYk0k2") # Alice default
 
         for idx, key in enumerate(eleven_keys):
             try:

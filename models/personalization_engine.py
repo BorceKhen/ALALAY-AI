@@ -111,8 +111,9 @@ def update_user_personalization(user_id, latest_log_id=None, latest_log_data=Non
         profile_doc = profile_ref.get()
         disability_type = "None"
         active_settings = {}
+        profile_data = {}
         if profile_doc.exists:
-            profile_data = profile_doc.to_dict()
+            profile_data = profile_doc.to_dict() or {}
             disability_type = profile_data.get("disability_type", "None")
             active_settings = profile_data.get("current_accessibility_configurations") or {}
 
@@ -386,8 +387,8 @@ def update_user_personalization(user_id, latest_log_id=None, latest_log_data=Non
             # Log transition to Firestore with formatted readable ID
             timestamp_str = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
             user_prefix = user_id[:8]
-            if profile.get("email"):
-                email_part = re.sub(r'[^a-zA-Z0-9_]', '', profile["email"].split("@")[0])
+            if profile_data.get("email"):
+                email_part = re.sub(r'[^a-zA-Z0-9_]', '', profile_data["email"].split("@")[0])
                 if email_part:
                     user_prefix = f"{email_part}_{user_id[:4]}"
             mdp_doc_id = f"{timestamp_str}_{user_prefix}_engine_transition"
