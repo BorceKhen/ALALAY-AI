@@ -95,56 +95,50 @@
                 profile.get('gender', 'Not Specified') }} | Birthdate: {{ profile.get('birthdate', 'N/A') }}</p>
 
             {% if profile.get('recommended_settings') %}
-            <div class="d-flex flex-wrap gap-2 mt-2 align-items-center" id="ai-recommendations-list">
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace"
+            <div class="d-flex align-items-center gap-2 mt-3 mb-2">
+                <img src="{{ url_for('static', filename='assets/Circle Icon.png') }}" alt="AI Recommendation" style="width: 22px; height: 22px; object-fit: contain;">
+                <span class="fw-bold text-dark small text-uppercase" style="letter-spacing: 0.5px;">AI Recommended Adaptations</span>
+            </div>
+            <div class="d-flex flex-wrap gap-2 align-items-center" id="ai-recommendations-list">
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1"
                     style="font-size: 0.85rem;">
-                    Text Size: <strong class="text-primary">{{ profile.recommended_settings.get('text_size', 'medium') |
-                        capitalize }}</strong>
+                    <i class="bi bi-type text-primary me-1"></i> Text Size: <strong class="text-primary">{{ profile.recommended_settings.get('text_size', 'medium') | capitalize }}</strong>
                 </span>
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace"
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1"
                     style="font-size: 0.85rem;">
-                    Content Level: <strong class="text-primary">{{ profile.recommended_settings.get('content_level',
-                        'Medium') }}</strong>
+                    <i class="bi bi-mortarboard text-primary me-1"></i> Content Level: <strong class="text-primary">{{ profile.recommended_settings.get('content_level', 'Medium') }}</strong>
                 </span>
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace"
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1"
                     style="font-size: 0.85rem;">
-                    Screen Reader: <strong class="text-primary">{{ profile.recommended_settings.get('screen_reader',
-                        'off') | upper }}</strong>
+                    <i class="bi bi-volume-up text-primary me-1"></i> Screen Reader: <strong class="text-primary">{{ profile.recommended_settings.get('screen_reader', 'off') | upper }}</strong>
                 </span>
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace"
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1"
                     style="font-size: 0.85rem;">
-                    Line Focus: <strong class="text-primary">{{ profile.recommended_settings.get('line_focus', 'off') |
-                        upper }}</strong>
+                    <i class="bi bi-distribute-vertical text-primary me-1"></i> Line Focus: <strong class="text-primary">{{ profile.recommended_settings.get('line_focus', 'off') | upper }}</strong>
                 </span>
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace"
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1"
                     style="font-size: 0.85rem;">
-                    Auto Scroll: <strong class="text-primary">{{ profile.recommended_settings.get('auto_scroll', 'off')
-                        | upper }}</strong>
+                    <i class="bi bi-arrow-down-circle text-primary me-1"></i> Auto Scroll: <strong class="text-primary">{{ profile.recommended_settings.get('auto_scroll', 'off') | upper }}</strong>
                 </span>
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace"
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1"
                     style="font-size: 0.85rem;">
-                    Dyslexia Font: <strong class="text-primary">{{ profile.recommended_settings.get('dyslexia_font',
-                        'off') | upper }}</strong>
+                    <i class="bi bi-fonts text-primary me-1"></i> Dyslexia Font: <strong class="text-primary">{{ profile.recommended_settings.get('dyslexia_font', 'off') | upper }}</strong>
                 </span>
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace"
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1"
                     style="font-size: 0.85rem;">
-                    Letter Spacing: <strong class="text-primary">{{ profile.recommended_settings.get('letter_spacing',
-                        'normal') | capitalize }}</strong>
+                    <i class="bi bi-arrows-expand text-primary me-1"></i> Letter Spacing: <strong class="text-primary">{{ profile.recommended_settings.get('letter_spacing', 'normal') | capitalize }}</strong>
                 </span>
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace"
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1"
                     style="font-size: 0.85rem;">
-                    Line Spacing: <strong class="text-primary">{{ profile.recommended_settings.get('line_spacing',
-                        'normal') | capitalize }}</strong>
+                    <i class="bi bi-arrows-vertical text-primary me-1"></i> Line Spacing: <strong class="text-primary">{{ profile.recommended_settings.get('line_spacing', 'normal') | capitalize }}</strong>
                 </span>
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace"
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1"
                     style="font-size: 0.85rem;">
-                    Color Filter: <strong class="text-primary">{{ profile.recommended_settings.get('color_filter',
-                        'none') | capitalize }}</strong>
+                    <i class="bi bi-palette text-primary me-1"></i> Color Filter: <strong class="text-primary">{{ profile.recommended_settings.get('color_filter', 'none') | capitalize }}</strong>
                 </span>
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace"
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1"
                     style="font-size: 0.85rem;">
-                    Contrast Theme: <strong class="text-primary">{{ profile.recommended_settings.get('contrast_theme',
-                        'none') | capitalize }}</strong>
+                    <i class="bi bi-circle-half text-primary me-1"></i> Contrast Theme: <strong class="text-primary">{{ profile.recommended_settings.get('contrast_theme', 'none') | capitalize }}</strong>
                 </span>
             </div>
             {% else %}
@@ -262,9 +256,12 @@
 
 <!-- Personalized Recommendation Tips -->
 <div class="mt-4 p-3 bg-light rounded-3 border-start border-primary border-3">
-    <h6 class="fw-bold mb-1" style="font-size: 1rem;">
-        Smart Accessibility Recommendations:
-    </h6>
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <img src="{{ url_for('static', filename='assets/Circle Icon.png') }}" alt="AI Recommendation" style="width: 22px; height: 22px; object-fit: contain;">
+        <h6 class="fw-bold mb-0" style="font-size: 1rem;">
+            Smart Accessibility Recommendations:
+        </h6>
+    </div>
     <p class="mb-0 text-secondary" style="font-size: 0.95rem; line-height: 1.5;">
         {% if state == 'Struggling' %}
         Our engine detected navigation friction or high cognitive strain. We recommend trying out the Dyslexia Font,

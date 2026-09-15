@@ -20,7 +20,7 @@
             <i class="bi bi-card-text"></i> Descriptive Deck
         </span>
         {% else %}
-        <span class="badge rounded-pill bg-light text-indigo border border-indigo-subtle px-3 py-2 fw-medium d-none d-sm-inline-flex align-items-center gap-1" style="font-size: 0.8rem; color: #4338ca; background: #eef2ff;">
+        <span class="badge rounded-pill bg-light text-primary border border-primary-subtle px-3 py-2 fw-medium d-none d-sm-inline-flex align-items-center gap-1" style="font-size: 0.8rem;">
             <i class="bi bi-patch-question"></i> Question Deck
         </span>
         {% endif %}
@@ -40,19 +40,24 @@
 <hr class="divider-line">
 <!-- DECK LISTS -->
 {% set tts_enabled = (user_recommended_settings and user_recommended_settings.tts == 'on') %}
-<!-- DECK LIST HEADER WITH AUTOPLAY TRIGGER -->
-<div class="d-flex align-items-center justify-content-between mb-4 mt-5 pb-2 border-bottom">
+<!-- DECK LIST HEADER WITH AUTOPLAY & SHUFFLE TRIGGERS -->
+<div class="d-flex align-items-center justify-content-between mb-4 mt-5 pb-2 border-bottom flex-wrap gap-2">
     <div class="d-flex align-items-center gap-2">
         <h2 class="h5 fw-bold mb-0">Decks ({{ card_count }})</h2>
         {% if deck_structure == 'descriptive' %}
         <span class="badge rounded-pill bg-light text-primary border border-primary-subtle px-2 py-1 small d-sm-none" style="font-size:0.75rem;">Descriptive</span>
         {% else %}
-        <span class="badge rounded-pill bg-light text-secondary border px-2 py-1 small d-sm-none" style="font-size:0.75rem;">Questions</span>
+        <span class="badge rounded-pill bg-light text-primary border border-primary-subtle px-2 py-1 small d-sm-none" style="font-size:0.75rem;">Questions</span>
         {% endif %}
     </div>
-    <button id="btn-autoplay-tts" class="btn btn-outline-primary rounded-pill px-3 py-1 btn-sm align-items-center gap-2 btn-autoplay-tts {% if not tts_enabled %}d-none{% endif %}" aria-label="Auto Play TTS">
-        <i class="bi bi-play-circle-fill"></i> <span class="autoplay-text-span">Auto Play TTS</span>
-    </button>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <button id="btn-shuffle-cards" class="btn btn-outline-secondary rounded-pill px-3 py-1 btn-sm d-inline-flex align-items-center gap-2" aria-label="Shuffle Flashcards" title="Shuffle flashcards order">
+            <i class="bi bi-shuffle"></i> <span>Shuffle Cards</span>
+        </button>
+        <button id="btn-autoplay-tts" class="btn btn-outline-primary rounded-pill px-3 py-1 btn-sm align-items-center gap-2 btn-autoplay-tts {% if not tts_enabled %}d-none{% endif %}" aria-label="Auto Play TTS">
+            <i class="bi bi-play-circle-fill"></i> <span class="autoplay-text-span">Auto Play TTS</span>
+        </button>
+    </div>
 </div>
 <div class="deck-cards-stack">
     {% for card in cards %}
@@ -156,6 +161,43 @@
             };
             headerBtn.addEventListener('click', handleToggle);
             floatingBtn.addEventListener('click', handleToggle);
+        }
+
+        // Shuffle Flashcards on User Click (0 API tokens consumed)
+        const btnShuffleCards = document.getElementById('btn-shuffle-cards');
+        if (btnShuffleCards) {
+            btnShuffleCards.addEventListener('click', function() {
+                const stack = document.querySelector('.deck-cards-stack');
+                if (!stack) return;
+                const cards = Array.from(stack.querySelectorAll('.flashcard-item'));
+                if (cards.length <= 1) return;
+
+                // Stop active TTS autoplay if running to prevent misalignment
+                if (window.isAutoplayActive && window.stopAutoplay) {
+                    window.stopAutoplay();
+                }
+
+                // Subtle visual feedback
+                stack.style.opacity = '0.35';
+                stack.style.transition = 'opacity 0.2s ease';
+                btnShuffleCards.disabled = true;
+
+                setTimeout(() => {
+                    // Fisher-Yates shuffle
+                    for (let i = cards.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [cards[i], cards[j]] = [cards[j], cards[i]];
+                    }
+                    // Re-append cards in new order
+                    cards.forEach(card => stack.appendChild(card));
+                    stack.style.opacity = '1';
+                    btnShuffleCards.disabled = false;
+
+                    if (window.speakScreenReader) {
+                        window.speakScreenReader("Flashcards shuffled.");
+                    }
+                }, 200);
+            });
         }
     });
 </script>

@@ -192,7 +192,8 @@ document.addEventListener("DOMContentLoaded", () => {
         focus_up: 'ArrowUp',
         focus_down: 'ArrowDown',
         focus_left: 'ArrowLeft',
-        focus_right: 'ArrowRight'
+        focus_right: 'ArrowRight',
+        toggle_pause: 'Alt+k'
     };
 
     const getActiveHotkeyMap = () => {
@@ -1502,29 +1503,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Autoplay TTS state
     let isAutoplayActive = false;
+    let isAutoplayPaused = false;
     let autoplayTriggers = [];
     let autoplayIndex = -1;
     let autoplayTimeoutId = null;
 
-    // Helper: Wrap text node words in span elements
+    Object.defineProperty(window, 'isAutoplayActive', {
+        get: () => isAutoplayActive,
+        set: (v) => { isAutoplayActive = v; },
+        configurable: true
+    });
+    Object.defineProperty(window, 'isAutoplayPaused', {
+        get: () => isAutoplayPaused,
+        set: (v) => { isAutoplayPaused = v; },
+        configurable: true
+    });
+
+    // Helper: Wrap text node words in span elements with clean word indexing
     function wrapTextInWords(element) {
         if (!element || element.getAttribute('data-original-html')) return;
         
         element.setAttribute('data-original-html', element.innerHTML);
         const text = element.textContent;
-        const words = text.split(/(\s+)/);
-        let charCount = 0;
+        const tokens = text.split(/(\s+)/);
+        let wordIdx = 0;
 
-        const wrappedHTML = words.map(word => {
-            const wordLength = word.length;
-            if (word.trim() === '') {
-                charCount += wordLength;
-                return word;
+        const wrappedHTML = tokens.map(token => {
+            if (token.trim() === '') {
+                return token;
             }
-            const start = charCount;
-            const end = charCount + wordLength;
-            charCount += wordLength;
-            return `<span class="tts-word" data-start="${start}" data-end="${end}">${word}</span>`;
+            return `<span class="tts-word" data-word-idx="${wordIdx++}">${token}</span>`;
         }).join('');
 
         element.innerHTML = wrappedHTML;
@@ -1532,6 +1540,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Helper: Restore text to original structure
     function restoreOriginalText(element) {
+        if (highlightAnimationFrameId) {
+            cancelAnimationFrame(highlightAnimationFrameId);
+            highlightAnimationFrameId = null;
+        }
         if (!element) return;
         const originalHTML = element.getAttribute('data-original-html');
         if (originalHTML) {
@@ -1540,49 +1552,141 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Helper: Animation loop tracking currentTime and highlighting matching word
+    // Calibrated natural speech timing model (weights syllables, stopwords, and punctuation pauses)
+    function computeWordTimings(words, totalDuration, timeOffset = 0, timeSpan = totalDuration) {
+        const stopwords = new Set([
+            'a', 'an', 'the', 'in', 'on', 'at', 'to', 'of', 'for', 'with', 'and', 'or', 'is', 'are', 'was', 'were',
+            'that', 'this', 'it', 'its', 'as', 'by', 'from', 'be', 'he', 'she', 'they', 'we', 'i', 'you', 'not', 'can',
+            'ang', 'mga', 'sa', 'ng', 'na', 'ay', 'si', 'ni', 'din', 'rin', 'ito', 'at', 'o', 'kung', 'pag', 'mas', 'may', 'ko', 'mo'
+        ]);
+
+        const weights = [];
+        words.forEach(el => {
+            const raw = el.textContent.trim();
+            const clean = raw.toLowerCase().replace(/[^a-z0-9\u00C0-\u024F\u1E00-\u1EFF]/g, '');
+            let weight = 1.0;
+            if (stopwords.has(clean)) {
+                weight = 0.75 + clean.length * 0.08;
+            } else {
+                weight = 1.0 + clean.length * 0.12;
+            }
+
+            // Punctuation pauses (sentence-ending pauses take ~500ms, commas/clauses take ~250ms)
+            if (/[.!?]$/.test(raw)) {
+                weight += 1.6;
+            } else if (/[,;:\u2014-]$/.test(raw)) {
+                weight += 0.8;
+            }
+            weights.push(weight);
+        });
+
+        const totalWeight = weights.reduce((acc, w) => acc + w, 0) || 1;
+        const leadSilence = 0.04;
+        const effectiveDuration = Math.max(0.1, timeSpan - leadSilence);
+
+        let curTime = timeOffset + leadSilence;
+        const intervals = [];
+        for (let i = 0; i < words.length; i++) {
+            const dur = (weights[i] / totalWeight) * effectiveDuration;
+            intervals.push({
+                start: curTime,
+                end: curTime + dur
+            });
+            curTime += dur;
+        }
+        return intervals;
+    }
+
+    // Helper: Ultra-responsive 60fps animation loop tracking currentTime with calibrated phonetic word timings
     function startHighlightLoop(audio, element, spokenText) {
         if (!audio || !element) return;
-        const words = element.querySelectorAll('.tts-word');
-        const totalChars = element.textContent.length;
-
-        // Calculate ratio of element text length to total spoken text length
-        const elText = element.textContent.trim().toLowerCase();
-        const fullText = (spokenText || "").trim().toLowerCase();
-        let ratio = 1.0;
-        const cleanEl = elText.replace(/[^a-z0-9]/g, "");
-        const cleanFull = fullText.replace(/[^a-z0-9]/g, "");
-        if (cleanFull.length > 0 && cleanFull.startsWith(cleanEl) && cleanFull.length > cleanEl.length) {
-            ratio = cleanEl.length / cleanFull.length;
+        if (highlightAnimationFrameId) {
+            cancelAnimationFrame(highlightAnimationFrameId);
+            highlightAnimationFrameId = null;
         }
+
+        const words = Array.from(element.querySelectorAll('.tts-word'));
+        if (!words.length) return;
+
+        // Sub-phrase ratio calculation (e.g. for quiz where only the question portion is highlighted)
+        let timeOffsetRatio = 0;
+        let timeSpanRatio = 1.0;
+        const elClean = element.textContent.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+        const fullClean = (spokenText || "").trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (fullClean.length > 0 && elClean.length > 0 && fullClean !== elClean) {
+            const matchIdx = fullClean.indexOf(elClean);
+            if (matchIdx !== -1) {
+                timeOffsetRatio = matchIdx / fullClean.length;
+                timeSpanRatio = elClean.length / fullClean.length;
+            }
+        }
+
+        // Clear any stale highlights in the container before starting loop
+        element.querySelectorAll('.tts-highlight').forEach(el => {
+            el.classList.remove('tts-highlight');
+        });
+
+        let intervals = null;
+        let activeIdx = -1;
+        let lastHighlightedEl = null;
 
         function updateHighlight() {
             if (audio.paused || audio.ended) {
+                if (audio.ended) {
+                    element.querySelectorAll('.tts-highlight').forEach(el => {
+                        el.classList.remove('tts-highlight');
+                    });
+                    lastHighlightedEl = null;
+                }
                 cancelAnimationFrame(highlightAnimationFrameId);
+                highlightAnimationFrameId = null;
                 return;
             }
 
             const duration = audio.duration;
-            if (duration) {
-                const currentTime = audio.currentTime;
-                // standard head & tail silence offsets for gTTS
-                const startOffset = 0.15;
-                const endOffset = 0.25;
-                const speechDuration = Math.max(0.1, duration - startOffset - endOffset);
-                const speechTime = Math.max(0, currentTime - startOffset);
-                const activeChar = Math.min(totalChars, (speechTime / (speechDuration * ratio)) * totalChars);
+            const currentTime = audio.currentTime;
 
-                words.forEach(word => {
-                    const start = parseInt(word.getAttribute('data-start'));
-                    const end = parseInt(word.getAttribute('data-end'));
+            if (duration && !isNaN(duration) && duration > 0) {
+                if (!intervals) {
+                    const spanDuration = duration * timeSpanRatio;
+                    const offsetDuration = duration * timeOffsetRatio;
+                    intervals = computeWordTimings(words, duration, offsetDuration, spanDuration);
+                }
 
-                    if (activeChar >= start && activeChar < end) {
-                        word.classList.add('tts-highlight');
-                    } else {
-                        word.classList.remove('tts-highlight');
+                let currentIdx = -1;
+                for (let i = 0; i < intervals.length; i++) {
+                    if (currentTime >= intervals[i].start && currentTime < intervals[i].end) {
+                        currentIdx = i;
+                        break;
                     }
-                });
+                }
+
+                // If audio just started (within initial ~50ms lead), highlight word 0 immediately (zero latency)
+                if (currentIdx === -1 && currentTime > 0 && currentTime < intervals[0].start) {
+                    currentIdx = 0;
+                }
+
+                // If audio is at the end of the text segment, keep the last word highlighted until pause/end
+                if (currentIdx === -1 && intervals.length > 0 && currentTime >= intervals[intervals.length - 1].start && currentTime <= duration) {
+                    currentIdx = intervals.length - 1;
+                }
+
+                if (currentIdx !== activeIdx) {
+                    // Strictly purge all existing highlights in the element to prevent any left-behind spans
+                    element.querySelectorAll('.tts-highlight').forEach(el => {
+                        el.classList.remove('tts-highlight');
+                    });
+
+                    if (currentIdx >= 0 && currentIdx < words.length) {
+                        words[currentIdx].classList.add('tts-highlight');
+                        lastHighlightedEl = words[currentIdx];
+                    } else {
+                        lastHighlightedEl = null;
+                    }
+                    activeIdx = currentIdx;
+                }
             }
+
             highlightAnimationFrameId = requestAnimationFrame(updateHighlight);
         }
 
@@ -1591,9 +1695,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Autoplay TTS functionality
     function triggerNextAutoplay() {
-        if (!isAutoplayActive) return;
+        if (!isAutoplayActive || isAutoplayPaused) return;
 
         autoplayIndex++;
+        autoplayTriggers = Array.from(document.querySelectorAll('.tts-trigger'));
         if (autoplayIndex >= autoplayTriggers.length) {
             window.stopAutoplay();
             return;
@@ -1609,20 +1714,89 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        window.speakText(text, nextTrigger);
+        window.speakText(text, nextTrigger, true);
+    }
+
+    function speakCurrentAutoplayCard() {
+        if (!isAutoplayActive || isAutoplayPaused) return;
+
+        autoplayTriggers = Array.from(document.querySelectorAll('.tts-trigger'));
+        if (autoplayIndex < 0 || autoplayIndex >= autoplayTriggers.length) {
+            autoplayIndex = 0;
+        }
+        if (autoplayIndex >= autoplayTriggers.length) {
+            window.stopAutoplay();
+            return;
+        }
+
+        const currentTrigger = autoplayTriggers[autoplayIndex];
+        const text = currentTrigger.getAttribute('data-tts-text') || '';
+        window.speakText(text, currentTrigger, true);
     }
 
     window.startAutoplay = function() {
         isAutoplayActive = true;
-        autoplayIndex = -1;
+        isAutoplayPaused = false;
         autoplayTriggers = Array.from(document.querySelectorAll('.tts-trigger'));
-        
-        updateAutoplayUI(true);
-        triggerNextAutoplay();
+        if (autoplayTriggers.length === 0) return;
+
+        // If resuming or starting from a valid card
+        if (autoplayIndex < 0 || autoplayIndex >= autoplayTriggers.length) {
+            autoplayIndex = -1;
+            updateAutoplayUI('playing');
+            triggerNextAutoplay();
+        } else {
+            updateAutoplayUI('playing');
+            speakCurrentAutoplayCard();
+        }
+    };
+
+    window.pauseAutoplay = function() {
+        if (!isAutoplayActive) return;
+        isAutoplayPaused = true;
+
+        if (autoplayTimeoutId) {
+            clearTimeout(autoplayTimeoutId);
+            autoplayTimeoutId = null;
+        }
+
+        if (activeAudio && !activeAudio.paused) {
+            activeAudio.pause();
+        }
+        if (activeTtsButton) {
+            resetButtonIcon(activeTtsButton);
+        }
+
+        updateAutoplayUI('paused');
+    };
+
+    window.resumeAutoplay = function() {
+        if (!isAutoplayActive) {
+            window.startAutoplay();
+            return;
+        }
+
+        isAutoplayPaused = false;
+        updateAutoplayUI('playing');
+
+        // If existing audio was paused mid-stream, resume it!
+        if (activeAudio && activeAudio.paused && activeAudio.currentTime > 0 && !activeAudio.ended) {
+            if (activeTtsButton) {
+                setButtonIconPlaying(activeTtsButton);
+            }
+            activeAudio.play().catch(err => {
+                console.warn("[Autoplay Resume Play Error]", err);
+                speakCurrentAutoplayCard();
+            });
+            return;
+        }
+
+        speakCurrentAutoplayCard();
     };
 
     window.stopAutoplay = function() {
         isAutoplayActive = false;
+        isAutoplayPaused = false;
         autoplayIndex = -1;
         autoplayTriggers = [];
         
@@ -1644,18 +1818,23 @@ document.addEventListener("DOMContentLoaded", () => {
             activeTextElement = null;
         }
 
-        updateAutoplayUI(false);
+        updateAutoplayUI('stopped');
     };
 
     window.toggleAutoplay = function() {
-        if (isAutoplayActive) {
-            window.stopAutoplay();
+        if (isAutoplayActive && !isAutoplayPaused) {
+            window.pauseAutoplay();
+        } else if (isAutoplayActive && isAutoplayPaused) {
+            window.resumeAutoplay();
         } else {
             window.startAutoplay();
         }
     };
 
-    function updateAutoplayUI(isPlaying) {
+    function updateAutoplayUI(state) {
+        const isPlaying = state === 'playing' || state === true;
+        const isPaused = state === 'paused';
+
         const buttons = document.querySelectorAll('.btn-autoplay-tts, #btn-autoplay-tts-floating');
         buttons.forEach(btn => {
             const icon = btn.querySelector('i');
@@ -1666,11 +1845,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 btn.classList.add('btn-danger');
                 if (icon) icon.className = "bi bi-stop-circle-fill";
                 if (textSpan) textSpan.textContent = "Stop Auto Play";
+                btn.setAttribute('aria-label', "Stop Auto Play");
+            } else if (isPaused) {
+                btn.classList.remove('btn-danger');
+                btn.classList.add('btn-outline-primary');
+                if (icon) icon.className = "bi bi-play-circle-fill";
+                if (textSpan) textSpan.textContent = "Resume Auto Play";
+                btn.setAttribute('aria-label', "Resume Auto Play");
             } else {
                 btn.classList.remove('btn-danger');
                 btn.classList.add('btn-outline-primary');
                 if (icon) icon.className = "bi bi-play-circle-fill";
                 if (textSpan) textSpan.textContent = "Auto Play TTS";
+                btn.setAttribute('aria-label', "Auto Play TTS");
             }
         });
     }
@@ -1683,25 +1870,39 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // If autoplay is active and the user manually clicked a different TTS trigger, stop autoplay
-        if (isAutoplayActive && btnElement && btnElement !== autoplayTriggers[autoplayIndex]) {
-            window.stopAutoplay();
+        // If autoplay is active and the user manually clicked a different card, update autoplay to that card
+        if (isAutoplayActive && btnElement) {
+            autoplayTriggers = Array.from(document.querySelectorAll('.tts-trigger'));
+            const clickedIdx = autoplayTriggers.indexOf(btnElement);
+            if (clickedIdx !== -1) {
+                autoplayIndex = clickedIdx;
+                isAutoplayPaused = false;
+                updateAutoplayUI('playing');
+            }
         }
 
         // Toggle behavior: If the active audio is playing and we click the same button, pause it
         if (activeAudio && activeTtsButton === btnElement && !activeAudio.paused) {
+            if (isAutoplayActive) {
+                window.pauseAutoplay();
+                return;
+            }
             activeAudio.pause();
             resetButtonIcon(btnElement);
-            if (activeTextElement) {
-                restoreOriginalText(activeTextElement);
-            }
-            activeAudio = null;
-            activeTtsButton = null;
-            activeTextElement = null;
-            
             if (window.TelemetryTracker && window.TelemetryTracker.trackTTSPause) {
                 window.TelemetryTracker.trackTTSPause();
             }
+            return;
+        }
+
+        // Resume behavior: If the active audio is paused and we click the same button, resume it
+        if (activeAudio && activeTtsButton === btnElement && activeAudio.paused) {
+            if (isAutoplayActive) {
+                window.resumeAutoplay();
+                return;
+            }
+            setButtonIconPlaying(btnElement);
+            activeAudio.play().catch(err => console.warn(err));
             return;
         }
 
@@ -1842,12 +2043,19 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         // Hook HTML5 Audio events to our UI and Telemetry
-        audio.addEventListener("play", () => {
+        const handlePlaybackStart = () => {
             audio.playbackRate = bodyTtsRate;
             setButtonIconPlaying(btnElement);
             if (targetTextEl) {
+                if (!targetTextEl.querySelector('.tts-word')) {
+                    wrapTextInWords(targetTextEl);
+                }
                 startHighlightLoop(audio, targetTextEl, text);
             }
+        };
+
+        audio.addEventListener("play", () => {
+            handlePlaybackStart();
             if (window.TelemetryTracker && window.TelemetryTracker.trackTTSPlay) {
                 window.TelemetryTracker.trackTTSPlay();
             }
@@ -1855,9 +2063,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         audio.addEventListener("pause", () => {
             resetButtonIcon(btnElement);
-            if (targetTextEl) {
-                restoreOriginalText(targetTextEl);
-            }
             if (window.TelemetryTracker && window.TelemetryTracker.trackTTSPause) {
                 window.TelemetryTracker.trackTTSPause();
             }
@@ -1875,7 +2080,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             // Hook: Autoplay progression
-            if (isAutoplayActive) {
+            if (isAutoplayActive && !isAutoplayPaused) {
                 autoplayTimeoutId = setTimeout(() => {
                     triggerNextAutoplay();
                 }, 800);
@@ -1895,7 +2100,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             // Hook: Autoplay progression on error
-            if (isAutoplayActive) {
+            if (isAutoplayActive && !isAutoplayPaused) {
                 autoplayTimeoutId = setTimeout(() => {
                     triggerNextAutoplay();
                 }, 800);
@@ -1910,7 +2115,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 restoreOriginalText(targetTextEl);
             }
             // Hook: Autoplay progression on play error
-            if (isAutoplayActive) {
+            if (isAutoplayActive && !isAutoplayPaused) {
                 autoplayTimeoutId = setTimeout(() => {
                     triggerNextAutoplay();
                 }, 800);
@@ -1930,8 +2135,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // ── Agency Controller Event Bindings ──
-    const agencySnackbar = document.getElementById("agency-snackbar");
+    // ── Agency Controller Event Bindings (Floating Action Button & Card) ──
+    const agencySnackbar = document.getElementById("ai-rec-widget") || document.getElementById("agency-snackbar");
+    const recExpandCard = document.getElementById("rec-expand-card");
+    const btnRecFab = document.getElementById("btn-rec-fab");
     const btnAgencyAccept = document.getElementById("btn-agency-accept");
     const btnAgencyDecline = document.getElementById("btn-agency-decline");
     const btnAgencyClose = document.getElementById("btn-agency-close");
@@ -1942,13 +2149,39 @@ document.addEventListener("DOMContentLoaded", () => {
         recSignature = btnAgencyAccept.getAttribute("data-pending-settings") || "";
     }
 
-    // Hide snackbar immediately if ignored or silenced for this session
+    // Hide widget immediately if ignored or silenced for this session
     if (agencySnackbar) {
         const isSilenced = sessionStorage.getItem("silence_ai_recommendations") === "true";
         const ignoredRec = sessionStorage.getItem("ignored_ai_recommendation");
         if (isSilenced || (recSignature && ignoredRec === recSignature)) {
             agencySnackbar.style.display = "none";
         }
+    }
+
+    // Toggle Expandable Recommendation Card on FAB click
+    if (btnRecFab && recExpandCard) {
+        btnRecFab.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const isHidden = recExpandCard.classList.contains("d-none");
+            if (isHidden) {
+                recExpandCard.classList.remove("d-none");
+                btnRecFab.classList.add("d-none");
+                btnRecFab.setAttribute("aria-expanded", "true");
+            } else {
+                recExpandCard.classList.add("d-none");
+                btnRecFab.classList.remove("d-none");
+                btnRecFab.setAttribute("aria-expanded", "false");
+            }
+        });
+
+        // Close card if user clicks outside the widget
+        document.addEventListener("click", (e) => {
+            if (agencySnackbar && !agencySnackbar.contains(e.target) && !recExpandCard.classList.contains("d-none")) {
+                recExpandCard.classList.add("d-none");
+                btnRecFab.classList.remove("d-none");
+                btnRecFab.setAttribute("aria-expanded", "false");
+            }
+        });
     }
 
     function dismissSnackbar() {
@@ -1965,7 +2198,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (agencySnackbar) {
         if (btnAgencyClose) {
-            btnAgencyClose.addEventListener("click", dismissSnackbar);
+            btnAgencyClose.addEventListener("click", (e) => {
+                e.stopPropagation();
+                if (chkAgencyDontShow && chkAgencyDontShow.checked) {
+                    dismissSnackbar();
+                } else if (recExpandCard) {
+                    recExpandCard.classList.add("d-none");
+                    if (btnRecFab) {
+                        btnRecFab.classList.remove("d-none");
+                        btnRecFab.setAttribute("aria-expanded", "false");
+                    }
+                } else {
+                    dismissSnackbar();
+                }
+            });
         }
 
         if (btnAgencyDecline) {
@@ -2195,10 +2441,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         let minDistance = Infinity;
         let closestIdx = 0;
+        const viewportCenter = window.innerHeight / 2;
 
         cards.forEach((card, idx) => {
             const rect = card.getBoundingClientRect();
-            const dist = Math.abs(rect.top - 120); // offset header
+            const cardCenter = (rect.top + rect.bottom) / 2;
+            const dist = Math.abs(cardCenter - viewportCenter);
             if (dist < minDistance) {
                 minDistance = dist;
                 closestIdx = idx;
@@ -2222,26 +2470,80 @@ document.addEventListener("DOMContentLoaded", () => {
     const triggerActiveTTS = () => {
         const page = document.body.getAttribute('data-page');
         if (page === 'flashcard_deck') {
+            // Priority 1: If speech is currently playing, PAUSE it!
+            if (activeAudio && !activeAudio.paused) {
+                if (isAutoplayActive) {
+                    window.pauseAutoplay();
+                } else {
+                    activeAudio.pause();
+                    if (activeTtsButton) resetButtonIcon(activeTtsButton);
+                }
+                return;
+            }
+
+            // Priority 2: If autoplay is in paused state, RESUME it!
+            if (isAutoplayActive && isAutoplayPaused) {
+                window.resumeAutoplay();
+                return;
+            }
+
+            // Priority 3: If single audio is paused, resume playback
+            if (activeAudio && activeAudio.paused && activeAudio.currentTime > 0 && !activeAudio.ended) {
+                activeAudio.play().catch(err => console.warn(err));
+                if (activeTtsButton) setButtonIconPlaying(activeTtsButton);
+                return;
+            }
+
+            // Priority 4: No active/paused audio. Speak the currently active or nearest visible card.
             const cards = document.querySelectorAll('.flashcard-item');
             if (cards.length === 0) return;
 
-            let minDistance = Infinity;
-            let closestCard = null;
+            let targetCard = null;
+            if (document.activeElement && document.activeElement.closest('.flashcard-item')) {
+                targetCard = document.activeElement.closest('.flashcard-item');
+            }
 
-            cards.forEach(card => {
-                const rect = card.getBoundingClientRect();
-                const dist = Math.abs(rect.top - 120);
-                if (dist < minDistance) {
-                    minDistance = dist;
-                    closestCard = card;
-                }
-            });
+            if (!targetCard && isAutoplayActive && autoplayIndex >= 0 && autoplayIndex < cards.length) {
+                targetCard = cards[autoplayIndex];
+            }
 
-            if (closestCard) {
-                const trigger = closestCard.querySelector('.tts-trigger');
+            if (!targetCard) {
+                const viewportCenter = window.innerHeight / 2;
+                let minDistance = Infinity;
+
+                cards.forEach(card => {
+                    const rect = card.getBoundingClientRect();
+                    // Card must be at least partially visible in viewport
+                    if (rect.bottom > 80 && rect.top < window.innerHeight) {
+                        const cardCenter = (rect.top + rect.bottom) / 2;
+                        const dist = Math.abs(cardCenter - viewportCenter);
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            targetCard = card;
+                        }
+                    }
+                });
+            }
+
+            if (!targetCard && cards.length > 0) {
+                targetCard = cards[0];
+            }
+
+            if (targetCard) {
+                const trigger = targetCard.querySelector('.tts-trigger');
                 if (trigger) trigger.click();
             }
         } else if (page === 'quiz_deck') {
+            if (activeAudio && !activeAudio.paused) {
+                activeAudio.pause();
+                if (activeTtsButton) resetButtonIcon(activeTtsButton);
+                return;
+            }
+            if (activeAudio && activeAudio.paused && activeAudio.currentTime > 0 && !activeAudio.ended) {
+                activeAudio.play().catch(err => console.warn(err));
+                if (activeTtsButton) setButtonIconPlaying(activeTtsButton);
+                return;
+            }
             const quizTtsBtn = document.getElementById('btn-quiz-tts');
             if (quizTtsBtn) quizTtsBtn.click();
         }
@@ -2528,6 +2830,24 @@ document.addEventListener("DOMContentLoaded", () => {
         // Look up action in hotkey map
         const activeMap = getActiveHotkeyMap();
 
+        // Check for Pause / Continue Hotkey toggle (Alt+K by default)
+        const isPauseKey = (
+            pressedStr === (activeMap.toggle_pause || 'Alt+k') || 
+            pressedStr.toLowerCase() === (activeMap.toggle_pause || 'Alt+k').toLowerCase() ||
+            pressedStr === 'Alt+k' || 
+            pressedStr === 'Alt+K'
+        );
+        if (isPauseKey) {
+            e.preventDefault();
+            window.toggleKeyboardNavigationPause();
+            return;
+        }
+
+        // If keyboard navigation is currently paused by user, bypass all hotkeys!
+        if (window.isKeyboardNavPaused) {
+            return;
+        }
+
         // 1. Sidebar Navigation Shortcuts (Only enabled if user is authenticated)
         const userId = document.body.getAttribute('data-user-id');
         const isUserAuthenticated = userId && userId.trim() !== "";
@@ -2593,6 +2913,13 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+        // Global Escape: Stop Autoplay if running or paused
+        if (e.key === 'Escape' && isAutoplayActive) {
+            e.preventDefault();
+            window.stopAutoplay();
+            return;
+        }
+
         // Quiz actions
         const currentPage = document.body.getAttribute('data-page') || '';
         const isQuizPage = currentPage === 'quiz_deck' || currentPage === 'quiz' || !!document.getElementById('options-container');
@@ -2632,6 +2959,69 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     document.addEventListener('keydown', handleKeyboardNavigation);
+
+    // ── Keyboard Navigation Pause & Resume Controller ──
+    window.isKeyboardNavPaused = false;
+
+    window.toggleKeyboardNavigationPause = function(forceState) {
+        if (typeof forceState === 'boolean') {
+            window.isKeyboardNavPaused = forceState;
+        } else {
+            window.isKeyboardNavPaused = !window.isKeyboardNavPaused;
+        }
+
+        const pauseBadge = document.getElementById('keyboard-nav-pause-badge');
+        const activeMap = typeof getActiveHotkeyMap === 'function' ? getActiveHotkeyMap() : { toggle_pause: 'Alt+k' };
+        const pauseHotkeyLabel = activeMap.toggle_pause || 'Alt+k';
+
+        if (pauseBadge) {
+            if (window.isKeyboardNavPaused) {
+                pauseBadge.classList.remove('d-none');
+                const resumeBtn = pauseBadge.querySelector('#btn-resume-keyboard-nav');
+                if (resumeBtn) {
+                    resumeBtn.innerText = `Continue (${pauseHotkeyLabel})`;
+                }
+            } else {
+                pauseBadge.classList.add('d-none');
+            }
+        }
+
+        if (window.isKeyboardNavPaused) {
+            if (window.speakScreenReader) {
+                window.speakScreenReader(`Keyboard navigation paused. Press ${pauseHotkeyLabel} or click continue to resume.`);
+            }
+        } else {
+            showResumeToast();
+            if (window.speakScreenReader) {
+                window.speakScreenReader("Keyboard navigation resumed.");
+            }
+        }
+    };
+
+    function showResumeToast() {
+        const existing = document.getElementById('keyboard-nav-resume-toast');
+        if (existing) existing.remove();
+        const toast = document.createElement('div');
+        toast.id = 'keyboard-nav-resume-toast';
+        toast.className = 'keyboard-nav-resume-toast';
+        toast.setAttribute('role', 'status');
+        toast.innerHTML = '<i class="bi bi-play-circle-fill"></i> <span>Keyboard Navigation Resumed</span>';
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translate(-50%, -20px)';
+            toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 1800);
+    }
+
+    const btnResumeNav = document.getElementById('btn-resume-keyboard-nav');
+    if (btnResumeNav) {
+        btnResumeNav.addEventListener('click', (e) => {
+            e.stopPropagation();
+            window.toggleKeyboardNavigationPause(false);
+        });
+    }
 
     // ── Built-in Screen Reader Focus Speaker (Static Rule-Based Accessibility) ──
     const getAccessibleNarration = (target) => {

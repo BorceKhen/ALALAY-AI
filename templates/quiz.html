@@ -71,7 +71,14 @@ ALALAY-AI | Main Interface
                     <i class="bi bi-trophy-fill"></i>
                 </div>
                 <h2 class="fw-bold mb-3 text-dark">Quiz Completed!</h2>
-                <p class="text-muted mb-4 fs-5" id="quiz-results-score-text">You scored 0 out of 0 (0%)</p>
+                <div class="d-flex align-items-center justify-content-center gap-2 mb-4" role="status" aria-live="polite">
+                    <p class="text-muted mb-0 fs-5" id="quiz-results-score-text">You scored 0 out of 0 (0%)</p>
+                    <button type="button" id="btn-results-tts" class="btn btn-outline-primary btn-sm rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 38px; height: 38px; min-width: 38px;" aria-label="Read Score Aloud" title="Read Score Aloud">
+                        <i class="bi bi-volume-up-fill fs-6"></i>
+                    </button>
+                </div>
+                <!-- Live region for real-time answer feedback announcement -->
+                <div id="quiz-live-feedback" class="visually-hidden" aria-live="assertive" role="alert"></div>
                 
                 <!-- Answer Overview Panel -->
                 <div class="mb-4 text-start" id="quiz-answers-overview" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background-color: #f8fafc;">
@@ -168,6 +175,21 @@ document.addEventListener("DOMContentLoaded", function() {
             ...item,
             options: normOpts
         };
+    });
+
+    // Automatically shuffle question sequence & option choices for this session (0 API tokens consumed)
+    for (let i = quizData.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [quizData[i], quizData[j]] = [quizData[j], quizData[i]];
+    }
+
+    quizData.forEach(q => {
+        if (Array.isArray(q.options) && q.options.length > 1) {
+            for (let i = q.options.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [q.options[i], q.options[j]] = [q.options[j], q.options[i]];
+            }
+        }
     });
 
     let currentIndex = 0;
@@ -340,6 +362,139 @@ document.addEventListener("DOMContentLoaded", function() {
             .replace(/'/g, "&#039;");
     }
 
+    // ── Web Audio API Sound Effects Engine ──
+    let audioCtx = null;
+    function getAudioContext() {
+        if (!audioCtx) {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (AudioContextClass) {
+                audioCtx = new AudioContextClass();
+            }
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        return audioCtx;
+    }
+
+    // Gentle descending buzzer for wrong answers (180Hz -> 130Hz)
+    function playErrorSound() {
+        try {
+            const ctx = getAudioContext();
+            if (!ctx) return;
+            const now = ctx.currentTime;
+            
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(180, now);
+            osc.frequency.exponentialRampToValueAtTime(130, now + 0.22);
+            
+            // Soft volume envelope to avoid sharp pop/click
+            gain.gain.setValueAtTime(0.001, now);
+            gain.gain.linearRampToValueAtTime(0.18, now + 0.03);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            
+            osc.start(now);
+            osc.stop(now + 0.22);
+        } catch (e) {
+            console.warn('[Quiz Audio] Error sound notice:', e);
+        }
+    }
+
+    // Pleasant two-tone chime for correct answers (C5 523Hz -> G5 784Hz)
+    function playSuccessSound() {
+        try {
+            const ctx = getAudioContext();
+            if (!ctx) return;
+            const now = ctx.currentTime;
+            
+            const osc1 = ctx.createOscillator();
+            const osc2 = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc1.type = 'sine';
+            osc2.type = 'sine';
+            
+            osc1.frequency.setValueAtTime(523.25, now);
+            osc2.frequency.setValueAtTime(783.99, now + 0.08);
+            
+            gain.gain.setValueAtTime(0.001, now);
+            gain.gain.linearRampToValueAtTime(0.14, now + 0.03);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            
+            osc1.connect(gain);
+            osc2.connect(gain);
+            gain.connect(ctx.destination);
+            
+            osc1.start(now);
+            osc1.stop(now + 0.1);
+            osc2.start(now + 0.08);
+            osc2.stop(now + 0.25);
+        } catch (e) {
+            console.warn('[Quiz Audio] Success sound notice:', e);
+        }
+    }
+
+    // Live feedback announcement for screen readers
+    function announceFeedback(message) {
+        const feedbackEl = document.getElementById("quiz-live-feedback");
+        if (feedbackEl) {
+            feedbackEl.textContent = "";
+            void feedbackEl.offsetWidth; // force DOM reflow
+            feedbackEl.textContent = message;
+        }
+        if (document.body.getAttribute("data-screen-reader") === "on" && window.speakScreenReader) {
+            window.speakScreenReader(message);
+        }
+    }
+
+    // Text-to-Speech narration for quiz score
+    function speakScoreAloud(text, forceUserClick = false) {
+        const isTtsEnabled = document.body.getAttribute("data-tts") !== "off";
+        const isScreenReaderOn = document.body.getAttribute("data-screen-reader") === "on";
+
+        // Respect settings unless user manually clicked the speaker button
+        if (!forceUserClick && !isTtsEnabled && !isScreenReaderOn) {
+            return;
+        }
+
+        if (window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+            if (window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+            }
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = "en-US";
+            utterance.rate = 0.95;
+
+            const voices = window.speechSynthesis.getVoices();
+            if (voices && voices.length > 0) {
+                const preferred = voices.find(v => v.name.includes("Zira") || (v.lang === "en-US" && !v.name.includes("David")))
+                               || voices.find(v => v.lang.startsWith("en-US"))
+                               || voices[0];
+                if (preferred) utterance.voice = preferred;
+            }
+
+            const btnIcon = document.querySelector("#btn-results-tts i");
+            if (btnIcon) btnIcon.className = "bi bi-volume-up-fill text-primary";
+
+            utterance.onend = () => {
+                if (btnIcon) btnIcon.className = "bi bi-volume-up-fill";
+            };
+            utterance.onerror = () => {
+                if (btnIcon) btnIcon.className = "bi bi-volume-up-fill";
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
     function showQuizResults() {
         const totalQuestions = quizData.length;
         // Calculate score
@@ -376,6 +531,31 @@ document.addEventListener("DOMContentLoaded", function() {
         const scoreText = document.getElementById("quiz-results-score-text");
         if (scoreText) {
             scoreText.innerHTML = `You scored <strong class="text-primary fs-3 d-block my-2">${correctCount} / ${totalQuestions} (${scorePercentage}%)</strong>`;
+        }
+
+        // Formulate spoken score text
+        let scoreSpeech = `Quiz completed! You scored ${correctCount} out of ${totalQuestions}, which is ${scorePercentage} percent.`;
+        if (scorePercentage === 100) {
+            scoreSpeech += " Perfect score! Outstanding job!";
+        } else if (scorePercentage >= 75) {
+            scoreSpeech += " Great performance!";
+        } else if (scorePercentage >= 50) {
+            scoreSpeech += " Good job! Keep it up.";
+        } else {
+            scoreSpeech += " Good effort. Keep practicing to master this deck!";
+        }
+
+        // Auto-play score announcement
+        setTimeout(() => {
+            speakScoreAloud(scoreSpeech);
+        }, 500);
+
+        // Bind replay button
+        const btnResultsTts = document.getElementById("btn-results-tts");
+        if (btnResultsTts) {
+            btnResultsTts.onclick = function() {
+                speakScoreAloud(scoreSpeech, true);
+            };
         }
 
         // Render Answers Overview
@@ -432,6 +612,18 @@ document.addEventListener("DOMContentLoaded", function() {
         // Mark as answered
         answeredState[qIndex] = true;
         selectedOptions[qIndex] = selectedOpt.text;
+        
+        // Find whether selected answer is correct
+        const isChoiceCorrect = selectedOpt && selectedOpt.is_correct;
+        if (isChoiceCorrect) {
+            playSuccessSound();
+            announceFeedback("Correct!");
+        } else {
+            playErrorSound();
+            const correctOpt = (quizData[qIndex].options || []).find(o => o && o.is_correct);
+            const correctText = correctOpt ? correctOpt.text : "";
+            announceFeedback(`Incorrect. The correct answer is: ${correctText}`);
+        }
         
         // Disable all buttons in container
         const buttons = optionsContainer.querySelectorAll("button");

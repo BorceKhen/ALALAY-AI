@@ -8,7 +8,7 @@
     <title>{% block title %}ALALAY-AI{% endblock %}</title>
 
     <!-- Website Icon -->
-    <link rel="icon" href="{{ url_for('static', filename='assets/ALALAY-AI_Logo.png') }}" type="image"
+    <link rel="icon" href="{{ url_for('static', filename='assets/Updated Logo.png') }}" type="image"
         alt="ALALAY-AI Logo">
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -116,35 +116,54 @@
             {% if pending.content_level != current.content_level %}{% set _ = recs.append("Content Level (" ~ pending.content_level ~ ")") %}{% endif %}
 
             {% if recs | length > 0 %}
-            <div id="agency-snackbar" class="agency-snackbar shadow-lg p-3 rounded-4" style="display: block;">
-                <div class="d-flex flex-column gap-2">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <span class="badge bg-primary-subtle text-primary rounded-pill px-2 py-1 small">
-                            <i class="bi bi-robot me-1"></i> AI Recommendation
-                        </span>
-                        <button type="button" class="btn-close btn-close-white" id="btn-agency-close" aria-label="Close"
-                            style="font-size: 0.75rem;"></button>
+            <!-- Floating AI Recommendation Widget (FAB + Expandable Card) -->
+            <div id="ai-rec-widget" class="ai-rec-widget" style="display: block;">
+                <!-- 1. The Collapsed Floating Action Button (FAB) -->
+                <button type="button" id="btn-rec-fab" class="btn-rec-fab shadow-lg" 
+                        aria-label="AI Accessibility Recommendation Available" 
+                        aria-expanded="false" 
+                        aria-controls="rec-expand-card"
+                        title="AI Recommendation Available">
+                    <img src="{{ url_for('static', filename='assets/Circle Icon.png') }}" alt="AI Recommendation Star" class="fab-star-img">
+                    <span class="rec-notification-badge" aria-hidden="true">✦</span>
+                </button>
+
+                <!-- 2. The Expandable Frosted Recommendation Card -->
+                <div id="rec-expand-card" class="rec-expand-card shadow-xl d-none" role="region" aria-label="AI Recommendation Details">
+                    <div class="d-flex align-items-center justify-content-between mb-2 pb-2" style="border-bottom: 1px solid rgba(255, 255, 255, 0.15);">
+                        <div class="d-flex align-items-center gap-2" style="min-width: 0;">
+                            <img src="{{ url_for('static', filename='assets/Circle Icon.png') }}" alt="" style="width: 20px; height: 20px; object-fit: contain; flex-shrink: 0;">
+                            <span class="rec-card-title fw-bold text-white">AI Recommendation</span>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white flex-shrink-0" id="btn-agency-close" aria-label="Collapse" style="font-size: 0.7rem;"></button>
                     </div>
-                    <p class="mb-2 text-white small" style="line-height: 1.4;">
+                    
+                    <p class="mb-2 text-white rec-card-desc">
                         Our AI model detected reading friction during your session. We recommend adapting:
-                        <span class="d-block mt-1 text-info fw-bold">
-                            {{ recs | join(" + ") }}
-                        </span>
                     </p>
+
+                    <div class="d-flex flex-wrap gap-1 mb-2 rec-pills-container">
+                        {% for r in recs %}
+                        <span class="rec-pill-badge">
+                            {{ r }}
+                        </span>
+                        {% endfor %}
+                    </div>
+
                     <!-- Don't Show Again Option -->
-                    <div class="form-check mb-2 text-start">
+                    <div class="form-check mb-3 text-start">
                         <input class="form-check-input" type="checkbox" id="chk-agency-dont-show" style="cursor: pointer;">
-                        <label class="form-check-label text-white-50 small" for="chk-agency-dont-show" style="font-size: 0.72rem; cursor: pointer; user-select: none;">
+                        <label class="form-check-label rec-card-checkbox-label" for="chk-agency-dont-show">
                             Don't show this recommendation again during this session
                         </label>
                     </div>
-                    <div class="d-flex gap-2 justify-content-end">
+
+                    <div class="d-flex gap-2 justify-content-end mt-1">
                         <button id="btn-agency-decline"
-                            class="btn btn-sm btn-outline-light rounded-pill px-3 py-1 text-uppercase fw-bold"
-                            style="font-size: 0.7rem;">Decline</button>
+                            class="btn btn-sm btn-outline-light rounded-pill rec-card-btn fw-bold">Decline</button>
                         <button id="btn-agency-accept"
-                            class="btn btn-sm btn-light rounded-pill px-3 py-1 text-uppercase fw-bold"
-                            style="font-size: 0.7rem;" data-pending-settings='{{ pending | tojson | safe }}'>Accept</button>
+                            class="btn btn-sm btn-light rounded-pill rec-card-btn fw-bold"
+                            data-pending-settings='{{ pending | tojson | safe }}'>Accept</button>
                     </div>
                 </div>
             </div>
@@ -152,39 +171,259 @@
         {% endif %}
 
         <style>
-            .agency-snackbar {
+            .ai-rec-widget {
                 position: fixed;
                 bottom: 24px;
                 right: 24px;
                 z-index: 1060;
-                width: 320px;
-                background: rgba(30, 41, 59, 0.9);
-                /* Deep slate with blur */
-                backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                color: #fff;
-                animation: slideUpSnackbar 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-                box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-                transition: opacity 0.3s ease, transform 0.3s ease;
+                display: flex;
+                flex-direction: column;
+                align-items: flex-end;
             }
 
-            @keyframes slideUpSnackbar {
+            /* The Floating Star Button (FAB) */
+            .btn-rec-fab {
+                width: 66px;
+                height: 66px;
+                border-radius: 50%;
+                background-color: rgba(255, 255, 255, 0.5);
+                backdrop-filter: blur(18px);
+                -webkit-backdrop-filter: blur(18px);
+                border: 3px solid #ffffff;
+                padding: 6px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                position: relative;
+                transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+                animation: recGlowPulse 2.8s infinite ease-in-out;
+            }
+
+            .btn-rec-fab:hover {
+                transform: scale(1.08);
+                box-shadow: 0 12px 30px rgba(67, 56, 202, 0.35);
+            }
+
+            .btn-rec-fab:active {
+                transform: scale(0.95);
+            }
+
+            .fab-star-img {
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                object-fit: contain;
+                display: block;
+            }
+
+            /* Golden Sparkle Notification Badge */
+            .rec-notification-badge {
+                position: absolute;
+                top: -2px;
+                right: -2px;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: #f59e0b;
+                color: #ffffff;
+                font-size: 0.75rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 2px solid #ffffff;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+                z-index: 2;
+            }
+
+            @keyframes recGlowPulse {
+                0%, 100% {
+                    box-shadow: 0 8px 24px rgba(67, 56, 202, 0.25), 0 0 0 0 rgba(255, 255, 255, 0.65);
+                }
+                50% {
+                    box-shadow: 0 12px 28px rgba(67, 56, 202, 0.4), 0 0 0 8px rgba(255, 255, 255, 0);
+                }
+            }
+
+            /* Expandable Frosted Glass Card */
+            .rec-expand-card {
+                width: 350px;
+                max-width: calc(100vw - 32px);
+                background: rgba(26, 34, 52, 0.96) !important;
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.18);
+                border-radius: 1.25rem;
+                padding: 1.15rem;
+                color: #fff !important;
+                margin-bottom: 0;
+                box-shadow: 0 16px 40px -6px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+                animation: recCardSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                transform-origin: bottom right;
+                box-sizing: border-box !important;
+                flex-shrink: 0;
+            }
+
+            /* Isolate card text from global extreme letter-spacing & line-height */
+            .rec-expand-card,
+            .rec-expand-card p,
+            .rec-expand-card span,
+            .rec-expand-card label,
+            .rec-expand-card div,
+            .rec-expand-card button {
+                letter-spacing: normal !important;
+                word-break: normal !important;
+            }
+
+            .rec-expand-card .rec-card-title {
+                font-size: 0.95rem !important;
+                font-weight: 700 !important;
+                color: #ffffff !important;
+                white-space: nowrap !important;
+                letter-spacing: -0.01em !important;
+            }
+
+            .rec-expand-card .rec-card-desc {
+                font-size: 0.85rem !important;
+                line-height: 1.4 !important;
+                color: rgba(255, 255, 255, 0.9) !important;
+            }
+
+            .rec-pill-badge {
+                background: rgba(255, 255, 255, 0.12) !important;
+                border: 1px solid rgba(255, 255, 255, 0.22) !important;
+                color: #93c5fd !important;
+                font-size: 0.78rem !important;
+                font-weight: 600 !important;
+                padding: 0.22rem 0.55rem !important;
+                border-radius: 9999px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                line-height: 1.25 !important;
+                white-space: nowrap !important;
+            }
+
+            .rec-expand-card .rec-card-checkbox-label {
+                font-size: 0.76rem !important;
+                line-height: 1.35 !important;
+                color: rgba(255, 255, 255, 0.75) !important;
+                user-select: none;
+                cursor: pointer;
+            }
+
+            .rec-expand-card .rec-card-btn {
+                font-size: 0.74rem !important;
+                padding: 0.3rem 0.85rem !important;
+                letter-spacing: 0.5px !important;
+                white-space: nowrap !important;
+                text-transform: uppercase !important;
+            }
+
+            @keyframes recCardSlideUp {
                 from {
                     opacity: 0;
-                    transform: translateY(30px);
+                    transform: scale(0.9) translateY(15px);
                 }
-
                 to {
                     opacity: 1;
-                    transform: translateY(0);
+                    transform: scale(1) translateY(0);
                 }
             }
 
-            .agency-snackbar.fade-out {
+            .ai-rec-widget.fade-out {
                 opacity: 0;
                 transform: translateY(20px);
+                transition: opacity 0.3s ease, transform 0.3s ease;
                 pointer-events: none;
+            }
+
+            /* On mobile devices: keep above bottom navigation bar */
+            @media (max-width: 768px) {
+                .ai-rec-widget {
+                    bottom: 5.5rem;
+                    right: 1.25rem;
+                }
+                .rec-expand-card {
+                    width: calc(100vw - 2.5rem);
+                    max-width: 350px;
+                }
+            }
+
+            /* Floating Keyboard Navigation Pause / Continue Badge */
+            .keyboard-nav-pause-badge {
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 9999;
+                background: rgba(15, 23, 42, 0.94);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                border: 1px solid rgba(245, 158, 11, 0.45);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 15px rgba(245, 158, 11, 0.2);
+                border-radius: 9999px;
+                padding: 0.5rem 1.15rem;
+                color: #ffffff;
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                animation: pauseBadgeSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                letter-spacing: normal !important;
+            }
+
+            @keyframes pauseBadgeSlideDown {
+                from {
+                    opacity: 0;
+                    transform: translate(-50%, -20px) scale(0.95);
+                }
+                to {
+                    opacity: 1;
+                    transform: translate(-50%, 0) scale(1);
+                }
+            }
+
+            .keyboard-nav-resume-toast {
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 9999;
+                background: rgba(16, 185, 129, 0.95);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+                border-radius: 9999px;
+                padding: 0.45rem 1.25rem;
+                color: #ffffff;
+                font-weight: 600;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                animation: resumeToastPop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                letter-spacing: normal !important;
+            }
+
+            @keyframes resumeToastPop {
+                from {
+                    opacity: 0;
+                    transform: translate(-50%, -15px) scale(0.95);
+                }
+                to {
+                    opacity: 1;
+                    transform: translate(-50%, 0) scale(1);
+                }
+            }
+
+            @media (max-width: 768px) {
+                .keyboard-nav-pause-badge {
+                    top: 15px;
+                    width: calc(100vw - 2rem);
+                    max-width: 360px;
+                    justify-content: space-between;
+                }
             }
         </style>
 
@@ -211,6 +450,15 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Floating Keyboard Navigation Paused / Continue Indicator -->
+        <div id="keyboard-nav-pause-badge" class="keyboard-nav-pause-badge d-none" role="status" aria-live="polite">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-pause-circle-fill text-warning fs-5"></i>
+                <span class="fw-semibold small text-white" style="font-size: 0.85rem !important;">Keyboard Navigation Paused</span>
+            </div>
+            <button type="button" id="btn-resume-keyboard-nav" class="btn btn-sm btn-primary rounded-pill px-3 py-1 fw-bold text-uppercase" style="font-size: 0.72rem !important; letter-spacing: 0.5px !important;">Continue (Alt+K)</button>
         </div>
 
         <!-- Reading Mask Overlay for Line Focus & Color Overlays -->

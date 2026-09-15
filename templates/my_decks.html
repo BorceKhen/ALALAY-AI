@@ -73,8 +73,8 @@
     <!-- Dynamically generated decks from flashcard generation -->
     {% for deck in decks %}
     <div class="col deck-col-item" data-deck-name="{{ deck.name }}" data-is-static="false">
-        <a href="{{ url_for('flashcard_deck', deck_name=deck.name) }}" class="deck-card-link text-decoration-none">
-            <div class="deck-card border p-4 shadow-sm rounded-4 text-left h-80 overflow-hidden position-relative">
+        <a href="{{ url_for('flashcard_deck', deck_name=deck.name) }}" class="deck-card-link text-decoration-none h-100 d-block">
+            <div class="deck-card border p-4 shadow-sm rounded-4 text-left h-100 position-relative d-flex flex-column">
                 <div class="select-indicator d-none">
                     <input class="form-check-input deck-select-checkbox" type="checkbox" data-deck-name="{{ deck.name }}">
                 </div>
@@ -82,19 +82,21 @@
                 <div class="deck-color" data-bg="{{ deck.color }}"></div>
 
                 <!-- DECK DETAILS -->
-                <h5 class="fw-semibold" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
-                    title="{{ deck.original_filename }}">{{ deck.name }}</h5>
-                <div class="d-flex align-items-center justify-content-between mt-2">
-                    <p class="text-muted mb-0 small">{{ deck.card_count }} cards</p>
-                    {% if deck.deck_structure == 'descriptive' %}
-                    <span class="badge rounded-pill bg-light text-primary border border-primary-subtle px-2 py-1" style="font-size: 0.7rem;">
-                        <i class="bi bi-card-text"></i> Descriptive
-                    </span>
-                    {% else %}
-                    <span class="badge rounded-pill bg-light text-secondary border px-2 py-1" style="font-size: 0.7rem;">
-                        <i class="bi bi-patch-question"></i> Question
-                    </span>
-                    {% endif %}
+                <div class="deck-card-body d-flex flex-column justify-content-between flex-grow-1" style="min-height: 80px;">
+                    <h5 class="fw-semibold mb-2" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+                        title="{{ deck.original_filename or deck.name }}">{{ deck.name }}</h5>
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-auto pt-1">
+                        <span class="text-muted mb-0 small text-nowrap fw-medium">{{ deck.card_count }} cards</span>
+                        {% if deck.deck_structure == 'descriptive' %}
+                        <span class="badge rounded-pill bg-light text-primary border border-primary-subtle px-2 py-1 text-nowrap flex-shrink-0" style="font-size: 0.72rem;">
+                            <i class="bi bi-card-text me-1"></i>Descriptive
+                        </span>
+                        {% else %}
+                        <span class="badge rounded-pill bg-light text-primary border border-primary-subtle px-2 py-1 text-nowrap flex-shrink-0" style="font-size: 0.72rem;">
+                            <i class="bi bi-patch-question me-1"></i>Question
+                        </span>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </a>

@@ -7,6 +7,41 @@
 {% endblock %}
 
 {% block content %}
+<!-- Login Success Transition Overlay -->
+<div id="loginTransitionOverlay" class="login-transition-overlay d-none" role="dialog" aria-modal="true" aria-live="polite" aria-label="Logging in to ALALAY-AI">
+    <div class="transition-backdrop"></div>
+    <div class="transition-content">
+        <!-- Floating twinkles/sparkles around the logo -->
+        <div class="sparkle-group" aria-hidden="true">
+            <span class="sparkle sparkle-1">✦</span>
+            <span class="sparkle sparkle-2">★</span>
+            <span class="sparkle sparkle-3">✦</span>
+            <span class="sparkle sparkle-4">★</span>
+            <span class="sparkle sparkle-5">✦</span>
+        </div>
+
+        <!-- Radiant Aura behind logo -->
+        <div class="logo-aura" aria-hidden="true"></div>
+
+        <!-- Animated Floating Logo with Light Shimmer -->
+        <div class="logo-stage">
+            <img src="{{ url_for('static', filename='assets/Updated Logo.png') }}" 
+                 alt="ALALAY-AI" 
+                 class="transition-logo">
+            <div class="logo-shimmer-sweep" aria-hidden="true"></div>
+        </div>
+
+        <!-- Text & Progress Indicator -->
+        <div class="transition-info">
+            <h2 class="transition-title">Entering ALALAY-AI</h2>
+            <p class="transition-subtitle" id="transitionSubtitle">Preparing your study space...</p>
+            <div class="transition-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                <div class="transition-progress-bar"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <main class="auth-wrapper d-flex align-items-center justify-content-center min-vh-100 py-5">
     <div class="auth-card p-5 bg-white shadow-xl state-signup" id="authCard" role="region" aria-label="User Authentication">
         
@@ -386,6 +421,39 @@
     function hideAlert() {
         authAlert.classList.add('d-none');
         authAlert.textContent = '';
+    }
+
+    // ── Login Transition Animation with Updated Logo ──
+    function playLoginTransition(targetUrl, subtitleText) {
+        const overlay = document.getElementById('loginTransitionOverlay');
+        const subtitleEl = document.getElementById('transitionSubtitle');
+        if (subtitleText && subtitleEl) {
+            subtitleEl.textContent = subtitleText;
+        }
+
+        // Screen reader announcement
+        speakWithNarrator(subtitleText || "Login successful. Entering ALALAY-AI...");
+
+        if (overlay) {
+            overlay.classList.remove('d-none');
+            // Force reflow for clean CSS animation restart
+            void overlay.offsetWidth;
+            overlay.classList.add('active');
+
+            // Pre-exit zoom transition at 1.7s
+            setTimeout(() => {
+                overlay.classList.add('exiting');
+            }, 1700);
+
+            // Navigate to destination at 2.05s
+            setTimeout(() => {
+                window.location.href = targetUrl;
+            }, 2050);
+        } else {
+            setTimeout(() => {
+                window.location.href = targetUrl;
+            }, 1000);
+        }
     }
 
     // Check if redirect contains a deletion or logout message
@@ -1812,20 +1880,15 @@
 
             const syncData = await syncRes.json();
             if (syncData.success) {
-                showAlert("Registration successful! Redirecting...", false);
+                showAlert("Registration successful! Preparing your space...", false);
                 clearAllSignUpValidation();
                 document.getElementById('signUpForm').reset();
                 if (dateInput) {
                     dateInput.type = 'text';
                     dateInput.placeholder = 'Birthdate';
                 }
-                setTimeout(() => {
-                    if (disability === 'Color Blindness') {
-                        window.location.href = '/ishihara-prompt';
-                    } else {
-                        window.location.href = '/home';
-                    }
-                }, 1000);
+                const targetUrl = (disability === 'Color Blindness') ? '/ishihara-prompt' : '/home';
+                playLoginTransition(targetUrl, "Account created! Welcome to ALALAY-AI...");
             } else {
                 showAlert("Profile saved, but session sync failed: " + syncData.error);
             }
@@ -1929,10 +1992,8 @@
         }
 
         if (!firebaseAuth) {
-            showAlert("Firebase client is not configured yet. Redirecting to home...", false);
-            setTimeout(() => {
-                window.location.href = '/home';
-            }, 1000);
+            showAlert("Firebase client is not configured yet. Entering ALALAY-AI...", false);
+            playLoginTransition('/home', "Entering your study space...");
             return;
         }
 
@@ -1961,11 +2022,8 @@
 
             const syncData = await syncRes.json();
             if (syncData.success) {
-                showAlert("Login successful! Redirecting...", false);
                 clearAllSignInValidation();
-                setTimeout(() => {
-                    window.location.href = '/home';
-                }, 1000);
+                playLoginTransition('/home', "Welcome back! Preparing your study space...");
             } else {
                 showAlert("Login succeeded, but session sync failed: " + syncData.error);
             }
@@ -2134,9 +2192,7 @@
 
             if (!firebaseAuth) {
                 showAlert("Firebase credentials not configured. Google Sign-In simulated!", false);
-                setTimeout(() => {
-                    window.location.href = '/home';
-                }, 1000);
+                playLoginTransition('/home', "Entering ALALAY-AI...");
                 return;
             }
 
@@ -2187,10 +2243,7 @@
 
                 const syncData = await syncRes.json();
                 if (syncData.success) {
-                    showAlert("Login successful! Redirecting...", false);
-                    setTimeout(() => {
-                        window.location.href = '/home';
-                    }, 1000);
+                    playLoginTransition('/home', "Welcome back! Entering your study space...");
                 } else {
                     showAlert("Google OAuth succeeded, but session sync failed: " + syncData.error);
                 }
@@ -2366,19 +2419,14 @@
 
             const syncData = await syncRes.json();
             if (syncData.success) {
-                showAlert("Profile completed! Redirecting...", false);
+                showAlert("Profile completed! Entering ALALAY-AI...", false);
                 document.getElementById('completeProfileForm').reset();
                 if (completeDateInput) {
                     completeDateInput.type = 'text';
                     completeDateInput.placeholder = 'Birthdate';
                 }
-                setTimeout(() => {
-                    if (disability === 'Color Blindness') {
-                        window.location.href = '/ishihara-prompt';
-                    } else {
-                        window.location.href = '/home';
-                    }
-                }, 1000);
+                const targetUrl = (disability === 'Color Blindness') ? '/ishihara-prompt' : '/home';
+                playLoginTransition(targetUrl, "Profile completed! Entering ALALAY-AI...");
             } else {
                 showAlert("Profile saved, but session sync failed: " + syncData.error);
             }
