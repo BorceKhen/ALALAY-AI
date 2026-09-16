@@ -1127,7 +1127,7 @@ def update_profile():
             recommended["letter_spacing"] = "wide"
             recommended["line_spacing"] = "wide"
         elif disability == "Complete Blindness":
-            recommended["screen_reader"] = "on"
+            recommended["screen_reader"] = "off"
         elif disability == "Color Blindness":
             recommended["color_filter"] = "deuteranopia"
             

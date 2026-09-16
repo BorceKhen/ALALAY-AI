@@ -895,14 +895,21 @@
             localStorage.setItem(getStorageKey('letterSpacing'), 'wide');
             localStorage.setItem(getStorageKey('lineSpacing'), 'wide');
         } else if (disability === 'Complete Blindness') {
-            isScreenReaderActive = true;
-            document.body.setAttribute('data-screen-reader', 'on');
-            localStorage.setItem(getStorageKey('screenReader'), 'on');
-            localStorage.setItem(getStorageKey('access_screen_reader'), '1');
+            // User utilizes device/external screen reader (e.g. TalkBack)
+            // Turn off in-app narration and do not enable built-in screen reader
+            isScreenReaderActive = false;
+            document.body.setAttribute('data-screen-reader', 'off');
+            localStorage.setItem(getStorageKey('screenReader'), 'off');
+            localStorage.setItem(getStorageKey('access_screen_reader'), '0');
             if (window.speechSynthesis) {
                 window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance("Screen reader support activated. Let's proceed to account details.");
-                window.speechSynthesis.speak(utterance);
+            }
+            if (currentAudio) {
+                try {
+                    currentAudio.pause();
+                    currentAudio.currentTime = 0;
+                } catch(e) {}
+                currentAudio = null;
             }
         } else if (disability === 'Color Blindness') {
             document.documentElement.setAttribute('data-color-filter', 'deuteranopia');
@@ -947,8 +954,12 @@
             signUpNextBtn.disabled = false;
 
             if (val === 'Complete Blindness') {
-                const title = cardEl.querySelector('.card-title')?.innerText || val;
-                speakWithNarrator(`${title} profile selected. Press Down button to navigate to the Next button.`);
+                isScreenReaderActive = false;
+                if (window.speechSynthesis) window.speechSynthesis.cancel();
+                if (currentAudio) {
+                    try { currentAudio.pause(); currentAudio.currentTime = 0; } catch(e) {}
+                    currentAudio = null;
+                }
             }
         };
 
@@ -1021,8 +1032,12 @@
             completeNextBtn.disabled = false;
 
             if (val === 'Complete Blindness') {
-                const title = cardEl.querySelector('.card-title')?.innerText || val;
-                speakWithNarrator(`${title} profile selected. Press Down button to navigate to the Next button.`);
+                isScreenReaderActive = false;
+                if (window.speechSynthesis) window.speechSynthesis.cancel();
+                if (currentAudio) {
+                    try { currentAudio.pause(); currentAudio.currentTime = 0; } catch(e) {}
+                    currentAudio = null;
+                }
             }
         };
 
@@ -1893,7 +1908,7 @@
                 initialRecs.letter_spacing = 'wide';
                 initialRecs.line_spacing = 'wide';
             } else if (disability === 'Complete Blindness') {
-                initialRecs.screen_reader = 'on';
+                initialRecs.screen_reader = 'off';
             } else if (disability === 'Color Blindness') {
                 initialRecs.color_filter = 'deuteranopia';
             }
@@ -2451,7 +2466,7 @@
                 initialRecs.letter_spacing = 'wide';
                 initialRecs.line_spacing = 'wide';
             } else if (disability === 'Complete Blindness') {
-                initialRecs.screen_reader = 'on';
+                initialRecs.screen_reader = 'off';
             } else if (disability === 'Color Blindness') {
                 initialRecs.color_filter = 'deuteranopia';
             }

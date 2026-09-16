@@ -61,6 +61,7 @@ nav .nav-link:hover {
     color: var(--secondary-text) !important;
     border: 2px solid var(--primary-border) !important;
     transition: all 0.2s ease;
+    width: 100%;
 }
 
 .btn-logout:hover {
@@ -151,11 +152,16 @@ body.text-size-xl .sidebar hr {
     margin: 0.6rem 0 !important;
 }
 
-body.text-size-large .sidebar .btn-logout,
+body.text-size-large .sidebar .btn-logout {
+    padding: 0.65rem 1.25rem !important;
+    font-size: 1.15rem !important;
+    width: 100% !important;
+}
+
 body.text-size-xl .sidebar .btn-logout {
-    padding: 0.45rem 1rem !important;
-    font-size: 0.95rem !important;
-    margin-bottom: 0.25rem !important;
+    padding: 0.75rem 1.35rem !important;
+    font-size: 1.25rem !important;
+    width: 100% !important;
 }
 
 body.text-size-large .sidebar h6,
@@ -448,17 +454,30 @@ Dashboard Layout Lock & Scrollable Panels
 /* Sidebar Deck Ticker Carousel Styles */
 .sidebar-deck-ticker {
     position: relative;
-    height: 42px;
+    min-height: 42px;
+    height: auto;
     width: 100%;
     overflow: hidden;
     border: 2px solid var(--primary-border) !important;
     background-color: var(--secondary-white) !important;
 }
 
+body.text-size-large .sidebar-deck-ticker,
+body.bigger-ui-mode .sidebar-deck-ticker {
+    min-height: 46px;
+}
+
+body.text-size-xl .sidebar-deck-ticker,
+body.bigger-ui-mode-xl .sidebar-deck-ticker {
+    min-height: 52px;
+}
+
 .ticker-slide-wrapper {
     position: relative;
     width: 100%;
     height: 100%;
+    min-height: 26px;
+    overflow: hidden;
 }
 
 .ticker-slide {
@@ -470,16 +489,37 @@ Dashboard Layout Lock & Scrollable Panels
     display: flex;
     align-items: center;
     opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
     transform: translateX(100%);
-    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s ease;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s ease, visibility 0.6s;
 }
 
 .ticker-slide.active {
     opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
     transform: translateX(0);
 }
 
 .ticker-slide.slide-out {
     opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
     transform: translateX(-100%);
+}
+
+.ticker-deck-name {
+    font-size: 0.85rem;
+    max-width: 140px;
+}
+
+body.text-size-large .ticker-deck-name,
+body.bigger-ui-mode .ticker-deck-name {
+    font-size: 0.95rem !important;
+}
+
+body.text-size-xl .ticker-deck-name,
+body.bigger-ui-mode-xl .ticker-deck-name {
+    font-size: 1.05rem !important;
 }

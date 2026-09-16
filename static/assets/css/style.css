@@ -202,42 +202,123 @@ body[data-font-style="georgia"] .deck-card {
 }
 
 
-/* Text Sizing Options */
+/* Text Sizing Options (Large & Extra Large) */
 
-
+/* ── Large Mode (115%) ── */
 body.text-size-large,
+body.bigger-ui-mode,
 body.text-size-large p,
-body.text-size-large span,
-body.text-size-large a,
-body.text-size-large h1,
-body.text-size-large h2,
-body.text-size-large h3,
-body.text-size-large h4,
-body.text-size-large h5,
-body.text-size-large h6,
+body.bigger-ui-mode p,
 body.text-size-large .nav-link,
+body.bigger-ui-mode .nav-link,
 body.text-size-large .btn,
+body.bigger-ui-mode .btn,
+body.text-size-large label,
+body.bigger-ui-mode label,
+body.text-size-large .access-card,
+body.bigger-ui-mode .access-card,
 body.text-size-large .deck-card,
-body.text-size-large .access-card {
+body.bigger-ui-mode .deck-card {
     font-size: 1.15em !important;
 }
 
-body.text-size-xl,
-body.text-size-xl p,
-body.text-size-xl span,
-body.text-size-xl a,
-body.text-size-xl h1,
-body.text-size-xl h2,
-body.text-size-xl h3,
-body.text-size-xl h4,
-body.text-size-xl h5,
-body.text-size-xl h6,
-body.text-size-xl .nav-link,
-body.text-size-xl .btn,
-body.text-size-xl .deck-card,
-body.text-size-xl .access-card {
-    font-size: 1.3em !important;
+body.text-size-large small,
+body.text-size-large .small,
+body.text-size-large .fatigue-desc,
+body.bigger-ui-mode small,
+body.bigger-ui-mode .small,
+body.bigger-ui-mode .fatigue-desc {
+    font-size: 1rem !important;
+    line-height: 1.5 !important;
 }
+
+body.text-size-large .metric-title,
+body.bigger-ui-mode .metric-title {
+    font-size: 1.05rem !important;
+    line-height: 1.35 !important;
+}
+
+body.text-size-large .rec-badge,
+body.bigger-ui-mode .rec-badge {
+    font-size: 0.98rem !important;
+}
+
+body.text-size-large .rec-tips-title,
+body.bigger-ui-mode .rec-tips-title {
+    font-size: 1.15rem !important;
+}
+
+body.text-size-large .rec-tips-body,
+body.bigger-ui-mode .rec-tips-body {
+    font-size: 1.05rem !important;
+    line-height: 1.55 !important;
+}
+
+/* ── Extra Large Mode (130%) ── */
+body.text-size-xl,
+body.bigger-ui-mode-xl,
+body.text-size-xl p,
+body.bigger-ui-mode-xl p,
+body.text-size-xl .nav-link,
+body.bigger-ui-mode-xl .nav-link,
+body.text-size-xl .btn,
+body.bigger-ui-mode-xl .btn,
+body.text-size-xl label,
+body.bigger-ui-mode-xl label,
+body.text-size-xl .access-card,
+body.bigger-ui-mode-xl .access-card,
+body.text-size-xl .deck-card,
+body.bigger-ui-mode-xl .deck-card {
+    font-size: 1.25em !important;
+}
+
+body.text-size-xl small,
+body.text-size-xl .small,
+body.text-size-xl .fatigue-desc,
+body.bigger-ui-mode-xl small,
+body.bigger-ui-mode-xl .small,
+body.bigger-ui-mode-xl .fatigue-desc {
+    font-size: 1.12rem !important;
+    line-height: 1.55 !important;
+}
+
+body.text-size-xl .metric-title,
+body.bigger-ui-mode-xl .metric-title {
+    font-size: 1.15rem !important;
+    line-height: 1.35 !important;
+}
+
+body.text-size-xl .rec-badge,
+body.bigger-ui-mode-xl .rec-badge {
+    font-size: 1.08rem !important;
+}
+
+body.text-size-xl .rec-tips-title,
+body.bigger-ui-mode-xl .rec-tips-title {
+    font-size: 1.25rem !important;
+}
+
+body.text-size-xl .rec-tips-body,
+body.bigger-ui-mode-xl .rec-tips-body {
+    font-size: 1.18rem !important;
+    line-height: 1.6 !important;
+}
+
+/* Headings scale in proportion with container bounds */
+body.text-size-large h1, body.bigger-ui-mode h1 { font-size: 2.2rem !important; }
+body.text-size-large h2, body.bigger-ui-mode h2 { font-size: 1.85rem !important; }
+body.text-size-large h3, body.bigger-ui-mode h3 { font-size: 1.6rem !important; }
+body.text-size-large h4, body.bigger-ui-mode h4 { font-size: 1.4rem !important; }
+body.text-size-large h5, body.bigger-ui-mode h5 { font-size: 1.25rem !important; }
+body.text-size-large h6, body.bigger-ui-mode h6 { font-size: 1.15rem !important; }
+
+body.text-size-xl h1, body.bigger-ui-mode-xl h1 { font-size: 2.45rem !important; }
+body.text-size-xl h2, body.bigger-ui-mode-xl h2 { font-size: 2.05rem !important; }
+body.text-size-xl h3, body.bigger-ui-mode-xl h3 { font-size: 1.75rem !important; }
+body.text-size-xl h4, body.bigger-ui-mode-xl h4 { font-size: 1.5rem !important; }
+body.text-size-xl h5, body.bigger-ui-mode-xl h5 { font-size: 1.35rem !important; }
+body.text-size-xl h6, body.bigger-ui-mode-xl h6 { font-size: 1.25rem !important; }
+
 
 
 /* Letter Spacing Options */

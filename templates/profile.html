@@ -100,44 +100,34 @@
                 <span class="fw-bold text-dark small text-uppercase" style="letter-spacing: 0.5px;">AI Recommended Adaptations</span>
             </div>
             <div class="d-flex flex-wrap gap-2 align-items-center" id="ai-recommendations-list">
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1"
-                    style="font-size: 0.85rem;">
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1 rec-badge">
                     <i class="bi bi-type text-primary me-1"></i> Text Size: <strong class="text-primary">{{ profile.recommended_settings.get('text_size', 'medium') | capitalize }}</strong>
                 </span>
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1"
-                    style="font-size: 0.85rem;">
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1 rec-badge">
                     <i class="bi bi-mortarboard text-primary me-1"></i> Content Level: <strong class="text-primary">{{ profile.recommended_settings.get('content_level', 'Medium') }}</strong>
                 </span>
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1"
-                    style="font-size: 0.85rem;">
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1 rec-badge">
                     <i class="bi bi-volume-up text-primary me-1"></i> Screen Reader: <strong class="text-primary">{{ profile.recommended_settings.get('screen_reader', 'off') | upper }}</strong>
                 </span>
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1"
-                    style="font-size: 0.85rem;">
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1 rec-badge">
                     <i class="bi bi-distribute-vertical text-primary me-1"></i> Line Focus: <strong class="text-primary">{{ profile.recommended_settings.get('line_focus', 'off') | upper }}</strong>
                 </span>
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1"
-                    style="font-size: 0.85rem;">
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1 rec-badge">
                     <i class="bi bi-arrow-down-circle text-primary me-1"></i> Auto Scroll: <strong class="text-primary">{{ profile.recommended_settings.get('auto_scroll', 'off') | upper }}</strong>
                 </span>
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1"
-                    style="font-size: 0.85rem;">
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1 rec-badge">
                     <i class="bi bi-fonts text-primary me-1"></i> Dyslexia Font: <strong class="text-primary">{{ profile.recommended_settings.get('dyslexia_font', 'off') | upper }}</strong>
                 </span>
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1"
-                    style="font-size: 0.85rem;">
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1 rec-badge">
                     <i class="bi bi-arrows-expand text-primary me-1"></i> Letter Spacing: <strong class="text-primary">{{ profile.recommended_settings.get('letter_spacing', 'normal') | capitalize }}</strong>
                 </span>
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1"
-                    style="font-size: 0.85rem;">
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1 rec-badge">
                     <i class="bi bi-arrows-vertical text-primary me-1"></i> Line Spacing: <strong class="text-primary">{{ profile.recommended_settings.get('line_spacing', 'normal') | capitalize }}</strong>
                 </span>
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1"
-                    style="font-size: 0.85rem;">
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1 rec-badge">
                     <i class="bi bi-palette text-primary me-1"></i> Color Filter: <strong class="text-primary">{{ profile.recommended_settings.get('color_filter', 'none') | capitalize }}</strong>
                 </span>
-                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1"
-                    style="font-size: 0.85rem;">
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill font-monospace d-inline-flex align-items-center gap-1 rec-badge">
                     <i class="bi bi-circle-half text-primary me-1"></i> Contrast Theme: <strong class="text-primary">{{ profile.recommended_settings.get('contrast_theme', 'none') | capitalize }}</strong>
                 </span>
             </div>
@@ -177,21 +167,15 @@
                 <div>
                     {% set state = profile.get('current_behavioral_state', 'Normal') %}
                     {% if state == 'Struggling' %}
-                    <span
-                        class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill font-monospace"
-                        style="font-size: 0.85rem;">
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill font-monospace rec-badge">
                         🔴 Current State: <strong>STRUGGLING</strong>
                     </span>
                     {% elif state == 'Efficient' %}
-                    <span
-                        class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill font-monospace"
-                        style="font-size: 0.85rem;">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill font-monospace rec-badge">
                         🟢 Current State: <strong>EFFICIENT</strong>
                     </span>
                     {% else %}
-                    <span
-                        class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-2 rounded-pill font-monospace"
-                        style="font-size: 0.85rem;">
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-2 rounded-pill font-monospace rec-badge">
                         🟡 Current State: <strong>NORMAL</strong>
                     </span>
                     {% endif %}
@@ -202,79 +186,82 @@
             <div class="row g-4 mt-1">
                 <!-- CLI Progress -->
                 <div class="col-md-4">
-                    <div class="d-flex justify-content-between mb-1 small text-muted">
-                        <span>Cognitive Load Index (CLI)</span>
-                        <strong>{{ (profile.get('latest_cli_score', 0) * 100) | round(0) }}%</strong>
+                    <div class="fatigue-metric-card d-flex flex-column h-100">
+                        <div class="d-flex justify-content-between align-items-baseline mb-1 text-muted">
+                            <span class="fw-medium text-dark metric-title">Cognitive Load Index (CLI)</span>
+                            <strong class="text-dark ms-2 flex-shrink-0">{{ (profile.get('latest_cli_score', 0) * 100) | round(0) }}%</strong>
+                        </div>
+                        <div class="progress rounded-pill mb-2" style="height: 10px;">
+                            {% set cli_pct = (profile.get('latest_cli_score', 0) * 100) | round(0) %}
+                            {% set cli_bar_color = 'bg-success' if cli_pct < 30 else ('bg-warning' if cli_pct < 60 else 'bg-danger' ) %}
+                            <div class="progress-bar {{ cli_bar_color }} rounded-pill"
+                                role="progressbar" data-width="{{ cli_pct }}" aria-valuenow="{{ cli_pct }}"
+                                aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <small class="text-secondary d-block fatigue-desc mt-auto">Calculates mental strain from reading
+                            time, scroll regressions, audio replays, audio pauses, and idle time.</small>
                     </div>
-                    <div class="progress rounded-pill" style="height: 10px;">
-                        {% set cli_pct = (profile.get('latest_cli_score', 0) * 100) | round(0) %}
-                        {% set cli_bar_color = 'bg-success' if cli_pct < 30 else ('bg-warning' if cli_pct < 60
-                            else 'bg-danger' ) %} <div class="progress-bar {{ cli_bar_color }} rounded-pill"
-                            role="progressbar" data-width="{{ cli_pct }}" aria-valuenow="{{ cli_pct }}"
-                            aria-valuemin="0" aria-valuemax="100">
+                </div>
+
+                <!-- NPC Progress -->
+                <div class="col-md-4">
+                    <div class="fatigue-metric-card d-flex flex-column h-100">
+                        <div class="d-flex justify-content-between align-items-baseline mb-1 text-muted">
+                            <span class="fw-medium text-dark metric-title">Navigation Pattern Consistency (NPC)</span>
+                            <strong class="text-dark ms-2 flex-shrink-0">{{ (profile.get('latest_nfi_score', 0) * 100) | round(0) }}%</strong>
+                        </div>
+                        <div class="progress rounded-pill mb-2" style="height: 10px;">
+                            {% set nfi_pct = (profile.get('latest_nfi_score', 0) * 100) | round(0) %}
+                            {% set nfi_bar_color = 'bg-success' if nfi_pct < 30 else ('bg-warning' if nfi_pct < 60 else 'bg-danger' ) %}
+                            <div class="progress-bar {{ nfi_bar_color }} rounded-pill"
+                                role="progressbar" data-width="{{ nfi_pct }}" aria-valuenow="{{ nfi_pct }}"
+                                aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <small class="text-secondary d-block fatigue-desc mt-auto">Measures physical frustration from dead
+                            clicks, magnification frequency, and scroll velocity.</small>
                     </div>
                 </div>
-                <small class="text-secondary d-block mt-1" style="font-size: 0.85rem; line-height: 1.45;">Calculates mental strain from reading
-                    time, scroll regressions, audio replays, audio pauses, and idle time.</small>
-            </div>
 
-            <!-- NFI Progress -->
-            <div class="col-md-4">
-                <div class="d-flex justify-content-between mb-1 small text-muted">
-                    <span>Navigation Friction Index (NFI)</span>
-                    <strong>{{ (profile.get('latest_nfi_score', 0) * 100) | round(0) }}%</strong>
+                <!-- DI Progress -->
+                <div class="col-md-4">
+                    <div class="fatigue-metric-card d-flex flex-column h-100">
+                        <div class="d-flex justify-content-between align-items-baseline mb-1 text-muted">
+                            <span class="fw-medium text-dark metric-title">Difficulty Index (DI)</span>
+                            <strong class="text-dark ms-2 flex-shrink-0">{{ (profile.get('latest_di_score', 0) * 100) | round(0) }}%</strong>
+                        </div>
+                        <div class="progress rounded-pill mb-2" style="height: 10px;">
+                            {% set di_pct = (profile.get('latest_di_score', 0) * 100) | round(0) %}
+                            {% set di_bar_color = 'bg-success' if di_pct < 30 else ('bg-warning' if di_pct < 70 else 'bg-danger' ) %}
+                            <div class="progress-bar {{ di_bar_color }} rounded-pill" role="progressbar"
+                                data-width="{{ di_pct }}" aria-valuenow="{{ di_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <small class="text-secondary d-block fatigue-desc mt-auto">Calculates comprehension difficulty based on
+                            quiz scores, lesson completion rates, and deck revisit frequency.</small>
+                    </div>
                 </div>
-                <div class="progress rounded-pill" style="height: 10px;">
-                    {% set nfi_pct = (profile.get('latest_nfi_score', 0) * 100) | round(0) %}
-                    {% set nfi_bar_color = 'bg-success' if nfi_pct < 30 else ('bg-warning' if nfi_pct < 60
-                        else 'bg-danger' ) %} <div class="progress-bar {{ nfi_bar_color }} rounded-pill"
-                        role="progressbar" data-width="{{ nfi_pct }}" aria-valuenow="{{ nfi_pct }}" aria-valuemin="0"
-                        aria-valuemax="100">
+            </div>
+
+            <!-- Personalized Recommendation Tips -->
+            <div class="mt-4 p-3 bg-light rounded-3 border-start border-primary border-3">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <img src="{{ url_for('static', filename='assets/Circle Icon.png') }}" alt="AI Recommendation" style="width: 22px; height: 22px; object-fit: contain;">
+                    <h6 class="fw-bold mb-0 rec-tips-title">
+                        Smart Accessibility Recommendations:
+                    </h6>
                 </div>
+                <p class="mb-0 text-secondary rec-tips-body">
+                    {% if state == 'Struggling' %}
+                    Our engine detected navigation friction or high cognitive strain. We recommend trying out the Dyslexia Font,
+                    enabling Line Focus to reduce distraction, or slowing down the Text-to-Speech playback speed.
+                    {% elif state == 'Efficient' %}
+                    Your interaction indicators are optimal! Keep learning at your current pace. If desired, you can try enabling
+                    Auto Scroll to speed up card pacing.
+                    {% else %}
+                    Your learn flow is steady. Consider updating font preferences, letter-spacing, or contrast options in the
+                    Accessibility options menu if needed.
+                    {% endif %}
+                </p>
             </div>
-            <small class="text-secondary d-block mt-1" style="font-size: 0.85rem; line-height: 1.45;">Measures physical frustration from dead
-                clicks, magnification frequency, and scroll velocity.</small>
-        </div>
-
-        <!-- DI Progress -->
-        <div class="col-md-4">
-            <div class="d-flex justify-content-between mb-1 small text-muted">
-                <span>Difficulty Index (DI)</span>
-                <strong>{{ (profile.get('latest_di_score', 0) * 100) | round(0) }}%</strong>
-            </div>
-            <div class="progress rounded-pill" style="height: 10px;">
-                {% set di_pct = (profile.get('latest_di_score', 0) * 100) | round(0) %}
-                {% set di_bar_color = 'bg-success' if di_pct < 30 else ('bg-warning' if di_pct < 70 else 'bg-danger' )
-                    %} <div class="progress-bar {{ di_bar_color }} rounded-pill" role="progressbar"
-                    data-width="{{ di_pct }}" aria-valuenow="{{ di_pct }}" aria-valuemin="0" aria-valuemax="100">
-            </div>
-        </div>
-        <small class="text-secondary d-block mt-1" style="font-size: 0.85rem; line-height: 1.45;">Calculates comprehension difficulty based on
-            quiz scores, lesson completion rates, and deck revisit frequency.</small>
-    </div>
-</div>
-
-<!-- Personalized Recommendation Tips -->
-<div class="mt-4 p-3 bg-light rounded-3 border-start border-primary border-3">
-    <div class="d-flex align-items-center gap-2 mb-2">
-        <img src="{{ url_for('static', filename='assets/Circle Icon.png') }}" alt="AI Recommendation" style="width: 22px; height: 22px; object-fit: contain;">
-        <h6 class="fw-bold mb-0" style="font-size: 1rem;">
-            Smart Accessibility Recommendations:
-        </h6>
-    </div>
-    <p class="mb-0 text-secondary" style="font-size: 0.95rem; line-height: 1.5;">
-        {% if state == 'Struggling' %}
-        Our engine detected navigation friction or high cognitive strain. We recommend trying out the Dyslexia Font,
-        enabling Line Focus to reduce distraction, or slowing down the Text-to-Speech playback speed.
-        {% elif state == 'Efficient' %}
-        Your interaction indicators are optimal! Keep learning at your current pace. If desired, you can try enabling
-        Auto Scroll to speed up card pacing.
-        {% else %}
-        Your learn flow is steady. Consider updating font preferences, letter-spacing, or contrast options in the
-        Accessibility options menu if needed.
-        {% endif %}
-    </p>
-</div>
 {% else %}
 <div class="text-muted small mt-2">
     <em>No study session telemetry logged yet. Your behavioral indices and fatigue flags will appear here once you

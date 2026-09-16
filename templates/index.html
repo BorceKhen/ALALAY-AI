@@ -64,7 +64,7 @@ ALALAY-AI | Main Interface
 
                         <!-- BUTTONS -->
                         <div class="d-grid gap-2 mb-4">
-                            <a href="#" class="btn-logout btn btn-lg rounded-pill text-decoration-none d-inline-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#logoutConfirmModal">
+                            <a href="#" class="btn-logout btn btn-lg rounded-pill text-decoration-none w-100 d-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#logoutConfirmModal">
                                 Logout
                             </a>
                         </div>
@@ -89,7 +89,7 @@ ALALAY-AI | Main Interface
                                                   style="width:14px;height:14px;"
                                                   data-bg="{{ deck.get('color', '#D8C8FF') }}">
                                             </span>
-                                            <span class="text-truncate fw-semibold text-dark text-start" style="max-width: 140px; font-size: 0.85rem;" title="{{ deck.get('name') }}">
+                                            <span class="text-truncate fw-semibold text-dark text-start ticker-deck-name" style="max-width: 140px;" title="{{ deck.get('name') }}">
                                                 {{ deck.get('name') }}
                                             </span>
                                         </a>
