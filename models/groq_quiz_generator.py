@@ -275,6 +275,21 @@ CRITICAL QUIZ GENERATION REQUIREMENTS:
                     if norm:
                         normalized.append(norm)
 
+            # Final safety guarantee: if still short of needed, synthesize contextual variations from existing cards
+            if len(normalized) < needed and (flashcards or normalized):
+                source_pool = normalized if normalized else []
+                idx = 0
+                while len(normalized) < needed and source_pool:
+                    base = source_pool[idx % len(source_pool)]
+                    idx += 1
+                    var_item = {
+                        "question": f"Review: {base['question']}",
+                        "correct_answer": base["correct_answer"],
+                        "options": [dict(o) for o in base["options"]]
+                    }
+                    random.shuffle(var_item["options"])
+                    normalized.append(var_item)
+
             return normalized[:needed]
         except Exception as e:
             print(f"[Groq-QuizGen] Failed to generate descriptive quiz: {e}")
@@ -301,19 +316,21 @@ Study Content:
 Requirements:
 1. Generate exactly {needed} unique questions.
 2. Keep the exact same language as the text (Filipino/Tagalog or English).
-3. Output MUST be a valid JSON array of objects without markdown wrappers:
-[
-  {{
-    "question": "Question text here...",
-    "correct_answer": "Correct answer here...",
-    "options": [
-      {{"text": "Option 1", "is_correct": false}},
-      {{"text": "Correct answer here...", "is_correct": true}},
-      {{"text": "Option 3", "is_correct": false}},
-      {{"text": "Option 4", "is_correct": false}}
-    ]
-  }}
-]
+3. Output MUST be a strictly valid JSON object with a "questions" key:
+{{
+  "questions": [
+    {{
+      "question": "Question text here...",
+      "correct_answer": "Correct answer here...",
+      "options": [
+        {{"text": "Option 1", "is_correct": false}},
+        {{"text": "Correct answer here...", "is_correct": true}},
+        {{"text": "Option 3", "is_correct": false}},
+        {{"text": "Option 4", "is_correct": false}}
+      ]
+    }}
+  ]
+}}
 """
             try:
                 response = self.client.chat.completions.create(
@@ -332,13 +349,34 @@ Requirements:
                     response_format={"type": "json_object"}
                 )
             if response and response.choices:
-                res_items = json.loads(response.choices[0].message.content.strip())
-                if isinstance(res_items, list):
-                    return res_items
-                elif isinstance(res_items, dict) and "questions" in res_items:
-                    return res_items["questions"]
+                raw_text = response.choices[0].message.content.strip()
+                res_data = json.loads(raw_text)
+                if isinstance(res_data, list):
+                    return res_data
+                elif isinstance(res_data, dict):
+                    if "questions" in res_data and isinstance(res_data["questions"], list):
+                        return res_data["questions"]
+                    elif "quiz" in res_data and isinstance(res_data["quiz"], list):
+                        return res_data["quiz"]
+                    else:
+                        lists = [v for v in res_data.values() if isinstance(v, list)]
+                        if lists:
+                            return lists[0]
         except Exception as e:
-            print(f"[Groq-QuizGen] Failed to generate extra quiz items: {e}")
+            print(f"[Groq-QuizGen] Failed to generate extra quiz items via Groq: {e}")
+
+        # Fallback to Gemini if Groq failed or couldn't generate extra items
+        if os.environ.get("GEMINI_API_KEY"):
+            try:
+                from models.gemini_quiz_generator import GeminiQuizGenerator
+                gem_gen = GeminiQuizGenerator.get_instance()
+                gem_extra = gem_gen._generate_extra_quiz_questions(text, flashcards, needed=needed, content_level=content_level)
+                if gem_extra:
+                    print(f"[Groq-QuizGen] Gemini successfully generated {len(gem_extra)} extra quiz items as fallback.")
+                    return gem_extra
+            except Exception as ge:
+                print(f"[Groq-QuizGen] Gemini extra quiz generation fallback failed: {ge}")
+
         return []
 
     def _generate_batch_distractors(self, items: List[Dict]) -> Dict[str, List[str]]:

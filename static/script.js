@@ -1149,6 +1149,9 @@ document.addEventListener("DOMContentLoaded", () => {
             document.body.setAttribute('data-tts', e.target.checked ? 'on' : 'off');
             toggleSpeedContainer(e.target.checked);
             applyTtsVisibility();
+            if (e.target.checked && typeof updateSliderFill === 'function') {
+                updateSliderFill();
+            }
             
             // Stop active speech playback if toggled off
             if (!e.target.checked) {
@@ -1167,6 +1170,16 @@ document.addEventListener("DOMContentLoaded", () => {
             ttsRateValue.textContent = `${parseFloat(savedRate).toFixed(2)}x`;
         }
 
+        var updateSliderFill = () => {
+            const min = parseFloat(sliderTtsRate.min) || 0.5;
+            const max = parseFloat(sliderTtsRate.max) || 2.0;
+            const val = parseFloat(sliderTtsRate.value) || 1.0;
+            const pct = Math.min(Math.max(((val - min) / (max - min)) * 100, 0), 100);
+            sliderTtsRate.style.background = `linear-gradient(to right, var(--primary-blue, #5671C9) 0%, var(--primary-blue, #5671C9) ${pct}%, #e2e8f0 ${pct}%, #e2e8f0 100%)`;
+        };
+
+        updateSliderFill();
+
         sliderTtsRate.addEventListener('input', (e) => {
             const rate = e.target.value;
             localStorage.setItem(getStorageKey('ttsPlaybackRate'), rate);
@@ -1174,9 +1187,14 @@ document.addEventListener("DOMContentLoaded", () => {
             if (ttsRateValue) {
                 ttsRateValue.textContent = `${parseFloat(rate).toFixed(2)}x`;
             }
+            if (window.TelemetryTracker && typeof window.TelemetryTracker.setTTSPlaybackRate === 'function') {
+                window.TelemetryTracker.setTTSPlaybackRate(rate);
+            }
+            updateSliderFill();
         });
 
         sliderTtsRate.addEventListener('change', () => {
+            updateSliderFill();
             syncSettingsToBackend();
         });
     }

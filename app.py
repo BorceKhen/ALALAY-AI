@@ -648,6 +648,9 @@ def quiz_deck(deck_name):
         if len(quiz_items) < 20:
             print(f"[Quiz-Route] Cached quiz has only {len(quiz_items)} questions (target 20). Purging cache for full 20-question generation.")
             quiz_items = None
+            deck['quiz_items'] = None
+            deck['quiz_items_simplified'] = None
+            deck['quiz_items_hard'] = None
         else:
             distractor_counts = {}
             for item in quiz_items:
@@ -661,6 +664,9 @@ def quiz_deck(deck_name):
                 if max_freq > (len(quiz_items) * 0.35):
                     print(f"[Quiz-Route] Stale repetitive distractors detected (max_freq={max_freq}/{len(quiz_items)}). Purging stale cache for fresh smart distractor generation.")
                     quiz_items = None
+                    deck['quiz_items'] = None
+                    deck['quiz_items_simplified'] = None
+                    deck['quiz_items_hard'] = None
     
     # Fetch user recommended content level from Firestore profile document
     db = get_db()
@@ -688,14 +694,29 @@ def quiz_deck(deck_name):
                 except Exception as e:
                     print(f"[Quiz-Generation] Groq failed: {e}")
  
-            if not quiz_items and os.environ.get("GEMINI_API_KEY"):
+            # If Groq produced no items or fewer than 20 items, invoke Gemini to catch up and complete the 20-question target!
+            if (not quiz_items or len(quiz_items) < 20) and os.environ.get("GEMINI_API_KEY"):
                 try:
-                    print(f"[Quiz-Generation] Trying Gemini Quiz Generator (level={content_level}, structure={deck_structure})...")
                     from models.gemini_quiz_generator import GeminiQuizGenerator
-                    generator = GeminiQuizGenerator.get_instance()
-                    quiz_items = generator.generate_quiz(extracted_text, cards, max_questions=20, content_level=content_level, deck_structure=deck_structure)
+                    gemini_gen = GeminiQuizGenerator.get_instance()
+                    if not quiz_items:
+                        print(f"[Quiz-Generation] Groq produced no quiz items. Trying Gemini Quiz Generator (level={content_level}, structure={deck_structure})...")
+                        quiz_items = gemini_gen.generate_quiz(extracted_text, cards, max_questions=20, content_level=content_level, deck_structure=deck_structure)
+                    elif len(quiz_items) < 20:
+                        shortfall = 20 - len(quiz_items)
+                        print(f"[Quiz-Generation] Groq generated {len(quiz_items)} items. Asking Gemini to catch up remaining {shortfall} items to reach 20...")
+                        extra_items = gemini_gen._generate_extra_quiz_questions(extracted_text, cards, needed=shortfall, content_level=content_level)
+                        if extra_items:
+                            answer_pool = [c.get('answer', '') or c.get('question', '') for c in cards if isinstance(c, dict)]
+                            for ex in extra_items:
+                                norm = gemini_gen._normalize_quiz_item(ex, answer_pool, content_level=content_level)
+                                if norm:
+                                    quiz_items.append(norm)
+                                if len(quiz_items) >= 20:
+                                    break
+                            print(f"[Quiz-Generation] Gemini topped up quiz. Total items now: {len(quiz_items)}")
                 except Exception as e:
-                    print(f"[Quiz-Generation] Gemini failed: {e}")
+                    print(f"[Quiz-Generation] Gemini catch-up failed: {e}")
              
             # Fall back to local T5 only if local pipeline files exist (local machine development)
             if not quiz_items:
@@ -725,7 +746,10 @@ def quiz_deck(deck_name):
     # If content level is "easy", simplify the loaded quiz items (or fetch cached simplified version)
     if content_level.lower() == "easy" and quiz_items:
         simplified_quiz = deck.get('quiz_items_simplified')
-        if simplified_quiz and quiz_items:
+        if simplified_quiz and (len(simplified_quiz) < 20 or (quiz_items and len(simplified_quiz) < len(quiz_items))):
+            print(f"[Quiz-Simplification] Cached simplified quiz has only {len(simplified_quiz)} questions (target 20). Purging cache for regeneration.")
+            simplified_quiz = None
+        elif simplified_quiz and quiz_items:
             orig_sample = " ".join([q.get('question', '') for q in quiz_items[:3]])
             simp_sample = " ".join([q.get('question', '') for q in simplified_quiz[:3]])
             tagalog_keywords = {"ang", "mga", "ano", "paano", "bakit", "saan", "kailan", "sa", "ng", "na", "at", "o"}
@@ -754,16 +778,15 @@ def quiz_deck(deck_name):
         quiz_items = simplified_quiz
     elif content_level.lower() == "hard" and quiz_items:
         hard_quiz = deck.get('quiz_items_hard')
-        if hard_quiz and quiz_items:
+        if hard_quiz and (len(hard_quiz) < 20 or (quiz_items and len(hard_quiz) < len(quiz_items))):
+            print(f"[Quiz-Enhancement] Cached hard quiz has only {len(hard_quiz)} questions (target 20). Purging cache for regeneration.")
+            hard_quiz = None
+        elif hard_quiz and quiz_items:
             orig_sample = " ".join([q.get('question', '') for q in quiz_items[:3]])
             hard_sample = " ".join([q.get('question', '') for q in hard_quiz[:3]])
             tagalog_keywords = {"ang", "mga", "ano", "paano", "bakit", "saan", "kailan", "sa", "ng", "na", "at", "o"}
             orig_is_tagalog = len(set(orig_sample.lower().split()).intersection(tagalog_keywords)) >= 1
             hard_is_tagalog = len(set(hard_sample.lower().split()).intersection(tagalog_keywords)) >= 1
-            if orig_is_tagalog and not hard_is_tagalog:
-                print("[Quiz-Enhancement] Stale cache mismatch. Forcing regeneration.")
-                hard_quiz = None
-
         if not hard_quiz:
             try:
                 from models.text_simplifier import TextSimplifier
@@ -1016,15 +1039,24 @@ def generate_flashcard():
         else:
             generation_errors.append("GROQ_API_KEY is not configured in Azure Settings")
 
-        # If Groq returned fewer than 20 cards (or failed) and Gemini is available, try Gemini to reach the standard 20
+        # If Groq returned fewer than 20 cards (or failed) and Gemini is available, invoke Gemini to reach the standard 20
         if len(cards) < 20 and os.environ.get("GEMINI_API_KEY"):
             try:
-                print(f"[Flashcard-Generation] Groq yielded {len(cards)} cards (< 20). Trying Gemini Flashcard Generator (level={content_level}, structure={deck_structure})...", flush=True)
+                print(f"[Flashcard-Generation] Groq yielded {len(cards)} cards (< 20). Invoking Gemini Flashcard Generator to reach 20 standard cards...", flush=True)
                 from models.gemini_flashcard_generator import GeminiFlashcardGenerator
                 generator = GeminiFlashcardGenerator.get_instance()
                 gemini_cards = generator.generate_deck(extracted_text, content_level=content_level, deck_structure=deck_structure)
-                if len(gemini_cards) > len(cards):
+                if not cards:
                     cards = gemini_cards
+                elif gemini_cards:
+                    seen_q = {c.get('question', '').strip().lower() for c in cards if isinstance(c, dict)}
+                    for gc in gemini_cards:
+                        if isinstance(gc, dict) and gc.get('question', '').strip().lower() not in seen_q:
+                            cards.append(gc)
+                            seen_q.add(gc.get('question', '').strip().lower())
+                        if len(cards) >= 20:
+                            break
+                    print(f"[Flashcard-Generation] Gemini merged with Groq cards. Total count now: {len(cards)}", flush=True)
             except Exception as e:
                 print(f"[Flashcard-Generation] Gemini failed: {e}", flush=True)
                 generation_errors.append(f"Gemini: {e}")

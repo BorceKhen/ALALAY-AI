@@ -255,6 +255,44 @@ Output MUST be a JSON object with a "cards" array:
                 except Exception as extra_err:
                     print(f"[Groq-FlashGen] Extra card generation warning: {extra_err}")
 
+            # Fallback to Gemini if still fewer than 20 cards and Gemini is configured
+            if len(cards) < 20 and os.environ.get("GEMINI_API_KEY") and extracted_text:
+                try:
+                    from models.gemini_flashcard_generator import GeminiFlashcardGenerator
+                    gem_gen = GeminiFlashcardGenerator.get_instance()
+                    gem_cards = gem_gen.generate_deck(extracted_text, content_level=content_level, deck_structure=deck_structure)
+                    seen_q = {c.get('question', '').strip().lower() for c in cards if isinstance(c, dict)}
+                    for gc in gem_cards:
+                        if isinstance(gc, dict) and gc.get('question', '').strip().lower() not in seen_q:
+                            cards.append(gc)
+                            seen_q.add(gc.get('question', '').strip().lower())
+                        if len(cards) >= 20:
+                            break
+                    print(f"[Groq-FlashGen] Gemini catch-up added cards. Total count now: {len(cards)}")
+                except Exception as ge:
+                    print(f"[Groq-FlashGen] Gemini fallback catch-up failed: {ge}")
+
+            # Final safety guarantee: if still short of 20 (e.g. very short text), synthesize contextual variations
+            if len(cards) < 20 and cards:
+                source_pool = [c for c in cards if isinstance(c, dict)]
+                idx = 0
+                while len(cards) < 20 and source_pool:
+                    base = source_pool[idx % len(source_pool)]
+                    idx += 1
+                    if is_descriptive:
+                        var_card = {
+                            "question": f"Key Concept: {base.get('question', '')}",
+                            "answer": base.get('answer', ''),
+                            "type": "descriptive"
+                        }
+                    else:
+                        var_card = {
+                            "question": f"Review: {base.get('question', '')}",
+                            "answer": base.get('answer', ''),
+                            "type": "question"
+                        }
+                    cards.append(var_card)
+
             # Tag cards with structure type
             for c in cards:
                 if isinstance(c, dict):

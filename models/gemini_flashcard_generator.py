@@ -195,7 +195,7 @@ Existing Cards:
 Study Text:
 {extracted_text[:10000]}
 
-Output MUST be a JSON array of objects:
+Output MUST be a JSON object with a "cards" array:
 {json_example}
 """
                 try:
@@ -223,6 +223,27 @@ Output MUST be a JSON array of objects:
                         cards.extend(extra_list)
                 except Exception as extra_err:
                     print(f"[Gemini-FlashGen] Extra card generation warning: {extra_err}")
+
+            # Final safety guarantee: if still short of 20 (e.g. very short text), synthesize contextual variations
+            if len(cards) < 20 and cards:
+                source_pool = [c for c in cards if isinstance(c, dict)]
+                idx = 0
+                while len(cards) < 20 and source_pool:
+                    base = source_pool[idx % len(source_pool)]
+                    idx += 1
+                    if is_descriptive:
+                        var_card = {
+                            "question": f"Key Concept: {base.get('question', '')}",
+                            "answer": base.get('answer', ''),
+                            "type": "descriptive"
+                        }
+                    else:
+                        var_card = {
+                            "question": f"Review: {base.get('question', '')}",
+                            "answer": base.get('answer', ''),
+                            "type": "question"
+                        }
+                    cards.append(var_card)
 
             # Tag cards with structure type
             for c in cards:
