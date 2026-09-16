@@ -159,13 +159,13 @@
                             <span class="auth-label-text">Password <span class="required-star" aria-hidden="true" title="Required">*</span></span>
                         </label>
                         <div class="password-input-wrapper">
-                            <input type="password" id="signUpPassword" class="form-control auth-input" placeholder="Create password (min. 8 characters)" minlength="8" required>
+                            <input type="password" id="signUpPassword" class="form-control auth-input" placeholder="Create password" minlength="6" required>
                             <button type="button" class="password-toggle-btn" id="toggleSignUpPassword" aria-label="Show password" title="Show password" aria-controls="signUpPassword" aria-pressed="false" tabindex="0">
                                 <i class="bi bi-eye"></i>
                             </button>
                         </div>
                         <div class="field-error-text d-none" id="signUpPasswordError"></div>
-                        <small id="passwordHelp" class="form-text text-muted visually-hidden">Password must be at least 8 characters long.</small>
+                        <small id="passwordHelp" class="form-text text-muted visually-hidden">Password must be at least 6 characters long.</small>
                     </div>
                     <div class="mb-4">
                         <label for="signUpRePassword" class="auth-label">
@@ -633,7 +633,7 @@
             'signUpEmail': { text: "Email address input field. Type your email address or press down button to select gender.", key: "input_signup_email" },
             'signUpGender': { text: "Gender dropdown. Press Space to show options, choose your gender, then press Right button to enter birthdate.", key: "select_gender" },
             'signUpBirthdate': { text: "Birthdate input field. ... In: day, ... month, ... and year format. Enter your date of birth, then press Down button to enter password.", key: "input_birthdate" },
-            'signUpPassword': { text: "Password input field. Type a secure password of at least 8 characters.", key: "input_signup_password" },
+            'signUpPassword': { text: "Password input field. Type a secure password of at least 6 characters.", key: "input_signup_password" },
             'toggleSignUpPassword': { text: "Show or hide password button. Press Enter to toggle visibility.", key: "btn_toggle_password" },
             'signUpRePassword': { text: "Re-enter password. Type your password again to confirm.", key: "input_signup_repassword" },
             'toggleSignUpRePassword': { text: "Show or hide confirm password button. Press Enter to toggle visibility.", key: "btn_toggle_repassword" },
@@ -1620,20 +1620,69 @@
     setupPasswordToggle('toggleSignUpRePassword', 'signUpRePassword');
     setupPasswordToggle('toggleSignInPassword', 'signInPassword');
 
+    // -------------------------------------------------------------
+    // BIRTHDATE VALIDATION HELPER
+    // -------------------------------------------------------------
+    const todayIsoDate = new Date().toISOString().split('T')[0];
+
+    function validateBirthdateValue(val) {
+        if (!val || !val.trim()) {
+            return { valid: false, msg: "Birthdate is required." };
+        }
+        val = val.trim();
+        let parsedDate = null;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+            const parts = val.split('-');
+            parsedDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        } else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(val)) {
+            const parts = val.split('/');
+            parsedDate = new Date(parseInt(parts[2], 10), parseInt(parts[0], 10) - 1, parseInt(parts[1], 10));
+        } else {
+            parsedDate = new Date(val);
+        }
+
+        if (!parsedDate || isNaN(parsedDate.getTime())) {
+            return { valid: false, msg: "Please enter a valid birthdate." };
+        }
+
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        if (parsedDate > today) {
+            return { valid: false, msg: "Birthdate cannot be in the future." };
+        }
+
+        const year = parsedDate.getFullYear();
+        if (year < 1900) {
+            return { valid: false, msg: "Please enter a valid birth year (1900 or later)." };
+        }
+
+        return { valid: true };
+    }
+
     // Native Datepicker styling trick to show placeholder "Birthdate" on non-focused states
     const dateInput = document.getElementById('signUpBirthdate');
-    dateInput.addEventListener('focus', () => {
-        dateInput.type = 'date';
-    });
-    // If empty, return to text type to display 'Birthdate' text styling
-    dateInput.type = 'text';
-    dateInput.placeholder = 'Birthdate';
-    dateInput.addEventListener('blur', () => {
-        if (!dateInput.value) {
-            dateInput.type = 'text';
-            dateInput.placeholder = 'Birthdate';
-        }
-    });
+    if (dateInput) {
+        dateInput.max = todayIsoDate;
+        dateInput.addEventListener('focus', () => {
+            dateInput.type = 'date';
+        });
+        // If empty, return to text type to display 'Birthdate' text styling
+        dateInput.type = 'text';
+        dateInput.placeholder = 'Birthdate';
+        dateInput.addEventListener('blur', () => {
+            if (!dateInput.value) {
+                dateInput.type = 'text';
+                dateInput.placeholder = 'Birthdate';
+            } else {
+                const check = validateBirthdateValue(dateInput.value);
+                if (!check.valid) {
+                    markFieldInvalid(dateInput, signUpBirthdateError, check.msg);
+                } else {
+                    clearFieldInvalid(dateInput, signUpBirthdateError);
+                }
+            }
+        });
+    }
 
     // -------------------------------------------------------------
     // SIGN UP FIELD VALIDATION & WARNINGS
@@ -1774,10 +1823,19 @@
             return;
         }
 
+        // Validate birthdate (cannot be in the future, must be valid)
+        const birthdateCheck = validateBirthdateValue(birthdate);
+        if (!birthdateCheck.valid) {
+            markFieldInvalid(signUpBirthdateInput, signUpBirthdateError, birthdateCheck.msg);
+            showAlert(birthdateCheck.msg);
+            signUpBirthdateInput.focus();
+            return;
+        }
+
         // Validate password length
         if (password.length < 6) {
             markFieldInvalid(signUpPasswordInput, signUpPasswordError, "Password must be at least 6 characters.");
-            showAlert("Password must be at least 6 characters long for Firebase.");
+            showAlert("Password must be at least 6 characters long.");
             signUpPasswordInput.focus();
             return;
         }
@@ -2259,6 +2317,7 @@
     // -------------------------------------------------------------
     const completeDateInput = document.getElementById('completeBirthdate');
     if (completeDateInput) {
+        completeDateInput.max = todayIsoDate;
         completeDateInput.addEventListener('focus', () => {
             completeDateInput.type = 'date';
         });
@@ -2268,6 +2327,13 @@
             if (!completeDateInput.value) {
                 completeDateInput.type = 'text';
                 completeDateInput.placeholder = 'Birthdate';
+            } else {
+                const check = validateBirthdateValue(completeDateInput.value);
+                if (!check.valid) {
+                    markFieldInvalid(completeDateInput, completeBirthdateError, check.msg);
+                } else {
+                    clearFieldInvalid(completeDateInput, completeBirthdateError);
+                }
             }
         });
     }
@@ -2334,6 +2400,15 @@
         if (completeHasError) {
             showAlert("Please fill in all required profile fields.");
             if (completeFirstInvalid) completeFirstInvalid.focus();
+            return;
+        }
+
+        // Validate birthdate for complete profile
+        const completeBirthCheck = validateBirthdateValue(birthdate);
+        if (!completeBirthCheck.valid) {
+            markFieldInvalid(completeBirthdateInput, completeBirthdateError, completeBirthCheck.msg);
+            showAlert(completeBirthCheck.msg);
+            if (completeBirthdateInput) completeBirthdateInput.focus();
             return;
         }
 

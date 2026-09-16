@@ -557,6 +557,10 @@
         const form = document.getElementById('editProfileForm');
         const alertEl = document.getElementById('modalAlert');
         const submitBtn = document.getElementById('saveProfileBtn');
+        const editBirthdateInput = document.getElementById('editBirthdate');
+        if (editBirthdateInput) {
+            editBirthdateInput.max = new Date().toISOString().split('T')[0];
+        }
 
         if (form) {
             form.addEventListener('submit', async (e) => {
@@ -567,11 +571,27 @@
 
                 const disability = document.getElementById('editDisability').value;
                 const gender = document.getElementById('editGender').value;
-                const birthdate = document.getElementById('editBirthdate').value;
+                const birthdate = editBirthdateInput ? editBirthdateInput.value : '';
 
                 if (!disability || !gender || !birthdate) {
                     alertEl.className = 'alert alert-danger mb-3';
                     alertEl.textContent = 'Please fill in all fields.';
+                    alertEl.classList.remove('d-none');
+                    return;
+                }
+
+                const birthDateObj = new Date(birthdate);
+                const today = new Date();
+                today.setHours(23, 59, 59, 999);
+                if (birthDateObj > today) {
+                    alertEl.className = 'alert alert-danger mb-3';
+                    alertEl.textContent = 'Birthdate cannot be in the future.';
+                    alertEl.classList.remove('d-none');
+                    return;
+                }
+                if (birthDateObj.getFullYear() < 1900) {
+                    alertEl.className = 'alert alert-danger mb-3';
+                    alertEl.textContent = 'Please enter a valid birth year (1900 or later).';
                     alertEl.classList.remove('d-none');
                     return;
                 }

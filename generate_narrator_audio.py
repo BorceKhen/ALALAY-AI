@@ -30,7 +30,7 @@ PROMPTS = {
     "input_signup_email": "Email address input field. Type your email address or press down button to select gender.",
     "select_gender": "Gender dropdown. Press Space to show options, choose your gender, then press Right button to enter birthdate.",
     "input_birthdate": "Birthdate input field. In: day, month, and year format. Enter your date of birth, then press Down button to enter password.",
-    "input_signup_password": "Password input field. Type a secure password of at least 8 characters.",
+    "input_signup_password": "Password input field. Type a secure password of at least 6 characters.",
     "input_signup_repassword": "Re-enter password. Type your password again to confirm.",
     "btn_back": "Back button. Press Enter to return to step 1 accessibility profiles.",
     "btn_signup_submit": "Sign up button. Press Enter to register your account.",
