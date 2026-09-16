@@ -2263,6 +2263,13 @@
         btn.addEventListener('click', async () => {
             hideAlert();
 
+            // 1. Native Android Google Play Services Bridge (Photo 1 - 1-tap Account Picker)
+            if (window.AndroidAuthBridge && typeof window.AndroidAuthBridge.launchGoogleSignIn === 'function') {
+                window.AndroidAuthBridge.launchGoogleSignIn();
+                return;
+            }
+
+            // 2. Standard Web Browser Fallback
             if (!firebaseAuth) {
                 showAlert("Firebase credentials not configured. Google Sign-In simulated!", false);
                 playLoginTransition('/home', "Entering ALALAY-AI...");
@@ -2329,6 +2336,73 @@
             }
         });
     });
+
+    // -------------------------------------------------------------
+    // NATIVE ANDROID GOOGLE PLAY SERVICES CALLBACKS (PHOTO 1 SUPPORT)
+    // -------------------------------------------------------------
+    window.handleNativeGoogleSignIn = async function(idToken) {
+        if (!idToken) {
+            showAlert("Failed to receive Google ID token from device.");
+            return;
+        }
+
+        try {
+            const credential = firebase.auth.GoogleAuthProvider.credential(idToken);
+            const result = await firebaseAuth.signInWithCredential(credential);
+            const user = result.user;
+
+            // Check if profile exists and is complete
+            const docRef = firebaseDb.collection("profiles").doc(user.uid);
+            const docSnap = await docRef.get();
+            let isComplete = false;
+            if (docSnap.exists) {
+                const data = docSnap.data();
+                if (data && data.disability_type && data.gender && data.birthdate) {
+                    isComplete = true;
+                }
+            }
+
+            if (!isComplete) {
+                // Hide Mode Toggle tablist
+                document.querySelector('.toggle-container').classList.add('d-none');
+                signUpView.classList.add('d-none');
+                signInView.classList.add('d-none');
+                document.getElementById('completeProfileView').classList.remove('d-none');
+                window.pendingGoogleUser = user;
+                return;
+            }
+
+            // Sync session with Flask backend
+            const userToken = await user.getIdToken();
+            const syncRes = await fetch('/login', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user: {
+                        id: user.uid,
+                        email: user.email
+                    },
+                    idToken: userToken
+                })
+            });
+
+            const syncData = await syncRes.json();
+            if (syncData.success) {
+                playLoginTransition('/home', "Welcome back! Entering your study space...");
+            } else {
+                showAlert("Google Sign-In succeeded, but session sync failed: " + syncData.error);
+            }
+        } catch (err) {
+            showAlert("Google Sign-In failed: " + err.message);
+        }
+    };
+
+    window.handleNativeGoogleSignInError = function(errMsg) {
+        if (errMsg && errMsg !== "Canceled") {
+            showAlert("Google Sign-In: " + errMsg);
+        }
+    };
 
     // -------------------------------------------------------------
     // COMPLETE PROFILE ACTION HANDLER
