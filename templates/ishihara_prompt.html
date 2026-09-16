@@ -2,6 +2,40 @@
 
 {% block title %}ALALAY-AI | Color Blindness Guide{% endblock %}
 
+{% block styles %}
+<style>
+    /* Premium focus-visible state for keyboard navigation */
+    .btn:focus-visible {
+        outline: 3px solid #764ba2 !important;
+        outline-offset: 2px !important;
+        box-shadow: none !important;
+    }
+    
+    .ishihara-pulse-icon {
+        animation: pulseGlow 3s infinite alternate;
+    }
+    
+    .ishihara-btn-glow {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .ishihara-btn-glow:hover {
+        transform: translateY(-0.125rem);
+        box-shadow: 0 0.625rem 1.56rem rgba(118, 75, 162, 0.4) !important;
+    }
+    
+    @keyframes pulseGlow {
+        0% {
+            transform: scale(1);
+            box-shadow: 0 0.625rem 1.25rem rgba(118, 75, 162, 0.3);
+        }
+        100% {
+            transform: scale(1.05);
+            box-shadow: 0 0.625rem 1.875rem rgba(118, 75, 162, 0.6);
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="d-flex align-items-center justify-content-center min-vh-100 px-3" 
      style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
@@ -53,35 +87,4 @@
     </div>
 </div>
 
-<style>
-    /* Premium focus-visible state for keyboard navigation */
-    .btn:focus-visible {
-        outline: 3px solid #764ba2 !important;
-        outline-offset: 2px !important;
-        box-shadow: none !important;
-    }
-    
-    .ishihara-pulse-icon {
-        animation: pulseGlow 3s infinite alternate;
-    }
-    
-    .ishihara-btn-glow {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .ishihara-btn-glow:hover {
-        transform: translateY(-0.125rem);
-        box-shadow: 0 0.625rem 1.56rem rgba(118, 75, 162, 0.4) !important;
-    }
-    
-    @keyframes pulseGlow {
-        0% {
-            transform: scale(1);
-            box-shadow: 0 0.625rem 1.25rem rgba(118, 75, 162, 0.3);
-        }
-        100% {
-            transform: scale(1.05);
-            box-shadow: 0 0.625rem 1.875rem rgba(118, 75, 162, 0.6);
-        }
-    }
-</style>
 {% endblock %}

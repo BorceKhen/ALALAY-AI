@@ -293,6 +293,132 @@
                     justify-content: space-between;
                 }
             }
+        
+
+            /* Quiz Pop Loading Modal Styles */
+        .quiz-pop-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            animation: fadeInOverlay 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeInOverlay {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .quiz-pop-modal-card {
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            border-radius: 2rem;
+            max-width: 440px;
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgba(79, 70, 229, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+            animation: popInModal 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            transform-origin: center center;
+        }
+
+        @keyframes popInModal {
+            0% { opacity: 0; transform: scale(0.6) translateY(20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .quiz-pop-icon-wrapper {
+            position: relative;
+            width: 90px;
+            height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .quiz-pop-glow-ring {
+            position: absolute;
+            inset: -6px;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, #4f46e5, #ec4899, #8b5cf6, #4f46e5);
+            animation: spinGlow 3s linear infinite;
+            filter: blur(6px);
+            opacity: 0.8;
+        }
+
+        @keyframes spinGlow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .quiz-pop-icon-container {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4);
+            z-index: 2;
+            animation: pulseIcon 2s ease-in-out infinite;
+        }
+
+        @keyframes pulseIcon {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        .quiz-pop-main-icon {
+            font-size: 2.5rem;
+            color: #ffffff;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .quiz-pop-sparkle {
+            position: absolute;
+            font-size: 1.4rem;
+            z-index: 3;
+            animation: floatSparkle 2s ease-in-out infinite alternate;
+        }
+
+        .sparkle-1 { top: -10px; right: -10px; animation-delay: 0s; }
+        .sparkle-2 { bottom: -5px; left: -10px; animation-delay: 0.6s; }
+        .sparkle-3 { top: 10px; left: -15px; animation-delay: 1.2s; }
+
+        @keyframes floatSparkle {
+            0% { transform: translateY(0) scale(0.9); opacity: 0.7; }
+            100% { transform: translateY(-8px) scale(1.2); opacity: 1; }
+        }
+
+        .quiz-pop-title {
+            background: linear-gradient(135deg, #1e1b4b, #4338ca);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .quiz-pop-quote {
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .quiz-pop-quote.quote-swap {
+            opacity: 0;
+            transform: translateY(-5px);
+        }
         </style>
 </head>
 
@@ -523,131 +649,6 @@
             </div>
         </div>
 
-        <style>
-        .quiz-pop-modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(15, 23, 42, 0.65);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            z-index: 99999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1.5rem;
-            animation: fadeInOverlay 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-
-        @keyframes fadeInOverlay {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .quiz-pop-modal-card {
-            background: rgba(255, 255, 255, 0.95);
-            border: 2px solid rgba(255, 255, 255, 0.8);
-            border-radius: 2rem;
-            max-width: 440px;
-            width: 100%;
-            box-shadow: 0 25px 50px -12px rgba(79, 70, 229, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
-            animation: popInModal 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-            transform-origin: center center;
-        }
-
-        @keyframes popInModal {
-            0% { opacity: 0; transform: scale(0.6) translateY(20px); }
-            100% { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        .quiz-pop-icon-wrapper {
-            position: relative;
-            width: 90px;
-            height: 90px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .quiz-pop-glow-ring {
-            position: absolute;
-            inset: -6px;
-            border-radius: 50%;
-            background: conic-gradient(from 0deg, #4f46e5, #ec4899, #8b5cf6, #4f46e5);
-            animation: spinGlow 3s linear infinite;
-            filter: blur(6px);
-            opacity: 0.8;
-        }
-
-        @keyframes spinGlow {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        .quiz-pop-icon-container {
-            position: relative;
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4);
-            z-index: 2;
-            animation: pulseIcon 2s ease-in-out infinite;
-        }
-
-        @keyframes pulseIcon {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.08); }
-        }
-
-        .quiz-pop-main-icon {
-            font-size: 2.5rem;
-            color: #ffffff;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-        }
-
-        .quiz-pop-sparkle {
-            position: absolute;
-            font-size: 1.4rem;
-            z-index: 3;
-            animation: floatSparkle 2s ease-in-out infinite alternate;
-        }
-
-        .sparkle-1 { top: -10px; right: -10px; animation-delay: 0s; }
-        .sparkle-2 { bottom: -5px; left: -10px; animation-delay: 0.6s; }
-        .sparkle-3 { top: 10px; left: -15px; animation-delay: 1.2s; }
-
-        @keyframes floatSparkle {
-            0% { transform: translateY(0) scale(0.9); opacity: 0.7; }
-            100% { transform: translateY(-8px) scale(1.2); opacity: 1; }
-        }
-
-        .quiz-pop-title {
-            background: linear-gradient(135deg, #1e1b4b, #4338ca);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: -0.5px;
-        }
-
-        .quiz-pop-quote {
-            min-height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: opacity 0.3s ease, transform 0.3s ease;
-        }
-
-        .quiz-pop-quote.quote-swap {
-            opacity: 0;
-            transform: translateY(-5px);
-        }
-        </style>
 
         <script>
         window.showQuizPopLoading = function(titleText, initialMessage) {
