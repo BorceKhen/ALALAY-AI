@@ -351,21 +351,100 @@
         text-align: center !important;
     }
 
+    body.text-size-large .profile-header-container h1,
+    body.bigger-ui-mode .profile-header-container h1 {
+        font-size: 1.8rem !important;
+    }
+
+    body.text-size-xl .profile-header-container h1,
+    body.bigger-ui-mode-xl .profile-header-container h1 {
+        font-size: 2.1rem !important;
+    }
+
     .profile-header-container p.text-muted {
         font-size: 0.9rem !important;
         text-align: center !important;
         margin-bottom: 1rem !important;
     }
 
-    /* Settings badges layout on mobile */
-    #ai-recommendations-list {
-        justify-content: center !important;
-        gap: 0.5rem !important;
+    body.text-size-large .profile-header-container p.text-muted,
+    body.bigger-ui-mode .profile-header-container p.text-muted {
+        font-size: 1.05rem !important;
     }
 
-    #ai-recommendations-list .badge {
-        font-size: 0.78rem !important;
-        padding: 0.4rem 0.75rem !important;
+    body.text-size-xl .profile-header-container p.text-muted,
+    body.bigger-ui-mode-xl .profile-header-container p.text-muted {
+        font-size: 1.2rem !important;
+    }
+
+    /* AI Recommendations Adaptation Header on Mobile */
+    .ai-recommendations-heading {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin-top: 1.25rem !important;
+        margin-bottom: 0.75rem !important;
+        width: 100% !important;
+        text-align: center !important;
+    }
+
+    body.text-size-large .ai-recommendations-heading span,
+    body.bigger-ui-mode .ai-recommendations-heading span {
+        font-size: 0.95rem !important;
+    }
+
+    body.text-size-xl .ai-recommendations-heading span,
+    body.bigger-ui-mode-xl .ai-recommendations-heading span {
+        font-size: 1.1rem !important;
+    }
+
+    /* Perfectly aligned 2-column grid for AI Recommendations on mobile */
+    #ai-recommendations-list {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.5rem !important;
+        width: 100% !important;
+        max-width: 480px !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+    }
+
+    #ai-recommendations-list .rec-badge {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        width: 100% !important;
+        min-height: 40px !important;
+        padding: 0.45rem 0.55rem !important;
+        font-size: 0.8rem !important;
+        line-height: 1.25 !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+        box-sizing: border-box !important;
+        border-radius: 50rem !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+    }
+
+    /* Responsive text size scaling for AI recommendation pills */
+    body.text-size-large #ai-recommendations-list .rec-badge,
+    body.bigger-ui-mode #ai-recommendations-list .rec-badge {
+        font-size: 0.95rem !important;
+        min-height: 46px !important;
+        padding: 0.5rem 0.65rem !important;
+    }
+
+    body.text-size-xl #ai-recommendations-list .rec-badge,
+    body.bigger-ui-mode-xl #ai-recommendations-list .rec-badge {
+        font-size: 1.05rem !important;
+        min-height: 52px !important;
+        padding: 0.6rem 0.75rem !important;
+    }
+
+    @media (max-width: 360px) {
+        body.text-size-xl #ai-recommendations-list {
+            grid-template-columns: 1fr !important;
+        }
     }
 
     /* Adjust divider-line to fit mobile bounds without causing overflow scroll */

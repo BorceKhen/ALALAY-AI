@@ -95,7 +95,7 @@
                 profile.get('gender', 'Not Specified') }} | Birthdate: {{ profile.get('birthdate', 'N/A') }}</p>
 
             {% if profile.get('recommended_settings') %}
-            <div class="d-flex align-items-center gap-2 mt-3 mb-2">
+            <div class="d-flex align-items-center gap-2 mt-3 mb-2 ai-recommendations-heading">
                 <img src="{{ url_for('static', filename='assets/Circle Icon.png') }}" alt="AI Recommendation" style="width: 22px; height: 22px; object-fit: contain;">
                 <span class="fw-bold text-dark small text-uppercase" style="letter-spacing: 0.5px;">AI Recommended Adaptations</span>
             </div>
