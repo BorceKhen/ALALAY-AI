@@ -8,8 +8,7 @@
     <title>{% block title %}ALALAY-AI{% endblock %}</title>
 
     <!-- Website Icon -->
-    <link rel="icon" href="{{ url_for('static', filename='assets/Updated Logo.png') }}" type="image"
-        alt="ALALAY-AI Logo">
+    <link rel="icon" href="{{ url_for('static', filename='assets/Updated Logo.png') }}" type="image/png">
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -39,137 +38,6 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100..700&family=Open+Sans:wght@300..800&display=swap"
         rel="stylesheet">
-</head>
-
-<body
-    data-page="{% if request.endpoint %}{{ request.endpoint }}{% else %}unknown{% endif %}"
-    class="{% if request.endpoint != 'auth' and user_recommended_settings %}{% if user_recommended_settings.text_size == 'large' %}bigger-ui-mode{% elif user_recommended_settings.text_size == 'xl' %}bigger-ui-mode-xl{% endif %}{% endif %}"
-    data-user-id="{% if request.endpoint != 'auth' %}{{ session.get('user', {}).get('id', '') }}{% endif %}"
-    data-screen-reader="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.screen_reader }}{% else %}off{% endif %}"
-    data-tts="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.tts }}{% else %}off{% endif %}"
-    data-tts-rate="{% if request.endpoint != 'auth' and user_profile %}{{ user_profile.tts_playback_rate }}{% else %}1.0{% endif %}"
-    data-tts-engine="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.tts_engine | default('azure') }}{% else %}azure{% endif %}"
-    data-tts-voice="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.tts_voice }}{% else %}en-US-AvaNeural{% endif %}"
-    data-text-size="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.text_size }}{% else %}medium{% endif %}"
-    data-line-focus="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.line_focus }}{% else %}off{% endif %}"
-    data-auto-scroll="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.auto_scroll }}{% else %}off{% endif %}"
-    data-hotkeys="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.keyboard_shortcuts | default('on') }}{% else %}on{% endif %}"
-    data-hotkey-map="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.hotkey_map | default('{}') }}{% else %}{}{% endif %}"
-    data-color-filter="{% if request.endpoint != 'auth' and request.endpoint != 'ishihara_test' and request.endpoint != 'ishihara_prompt' and user_recommended_settings %}{{ user_recommended_settings.color_filter }}{% else %}none{% endif %}"
-    data-contrast-theme="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.contrast_theme }}{% else %}none{% endif %}"
-    data-dyslexia-font="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.dyslexia_font }}{% else %}off{% endif %}"
-    data-letter-spacing="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.letter_spacing }}{% else %}normal{% endif %}"
-    data-line-spacing="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.line_spacing }}{% else %}normal{% endif %}"
-    data-content-level="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.content_level }}{% else %}medium{% endif %}"
-    data-ruler-thickness="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.ruler_thickness }}{% else %}medium{% endif %}"
-    data-ruler-length="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.ruler_length }}{% else %}full{% endif %}"
-    data-magnetic-ruler="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.magnetic_ruler }}{% else %}off{% endif %}"
-    data-font-style="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.font_style | default('default') }}{% else %}default{% endif %}">
-
-    {% block content %}{% endblock %}
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- App JS (frontend ↔ backend bridge) -->
-    <script src="{{ url_for('static', filename='script.js') }}?v={{ range(1000, 9999) | random }}"></script>
-    <script src="{{ url_for('static', filename='telemetry.js') }}?v={{ range(1000, 9999) | random }}"></script>
-
-    <!-- SVG Color Blindness Daltonization Filters -->
-    <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
-        <defs>
-            <!-- Protanopia (Red Weakness) -->
-            <filter id="daltonize-protanopia">
-                <feColorMatrix type="matrix" values="
-                    0.622774 0.264275 0.216821 0 0
-                    0.702302 0.354143 -0.056445 0 0
-                    0.315611 -0.229158 0.913547 0 0
-                    0 0 0 1 0" />
-            </filter>
-
-            <!-- Deuteranopia (Green Weakness) -->
-            <filter id="daltonize-deuteranopia">
-                <feColorMatrix type="matrix" values="
-                    0.288299 0.528345 0.183356 0 0
-                    0.380312 0.490520 0.129168 0 0
-                    -0.016335 0.056156 0.960179 0 0
-                    0 0 0 1 0" />
-            </filter>
-
-            <!-- Tritanopia (Blue Weakness) -->
-            <filter id="daltonize-tritanopia">
-                <feColorMatrix type="matrix" values="
-                    1.017277 0.027029 -0.044306 0 0
-                    0.022066 0.812080 0.165854 0 0
-                    0.023645 0.234400 0.741955 0 0
-                    0 0 0 1 0" />
-            </filter>
-        </defs>        <!-- Agency Controller AI Recommendation Snackbar -->
-        {% if request.endpoint != 'auth' and user_profile and user_profile.pending_settings %}
-            {% set pending = user_profile.pending_settings %}
-            {% set current = user_recommended_settings or {} %}
-            {% set recs = [] %}
-            {% if pending.text_size != current.text_size %}{% set _ = recs.append("Text Size (" ~ pending.text_size | upper ~ ")") %}{% endif %}
-            {% if pending.line_focus != current.line_focus %}{% set _ = recs.append("Line Focus (" ~ pending.line_focus | upper ~ ")") %}{% endif %}
-            {% if pending.auto_scroll != current.auto_scroll %}{% set _ = recs.append("Auto Scroll (" ~ pending.auto_scroll | upper ~ ")") %}{% endif %}
-            {% if pending.tts != current.tts %}{% set _ = recs.append("Text-to-Speech (" ~ pending.tts | upper ~ ")") %}{% endif %}
-            {% if pending.content_level != current.content_level %}{% set _ = recs.append("Content Level (" ~ pending.content_level ~ ")") %}{% endif %}
-
-            {% if recs | length > 0 %}
-            <!-- Floating AI Recommendation Widget (FAB + Expandable Card) -->
-            <div id="ai-rec-widget" class="ai-rec-widget" style="display: block;">
-                <!-- 1. The Collapsed Floating Action Button (FAB) -->
-                <button type="button" id="btn-rec-fab" class="btn-rec-fab shadow-lg" 
-                        aria-label="AI Accessibility Recommendation Available" 
-                        aria-expanded="false" 
-                        aria-controls="rec-expand-card"
-                        title="AI Recommendation Available">
-                    <img src="{{ url_for('static', filename='assets/Circle Icon.png') }}" alt="AI Recommendation Star" class="fab-star-img">
-                    <span class="rec-notification-badge" aria-hidden="true">✦</span>
-                </button>
-
-                <!-- 2. The Expandable Frosted Recommendation Card -->
-                <div id="rec-expand-card" class="rec-expand-card shadow-xl d-none" role="region" aria-label="AI Recommendation Details">
-                    <div class="d-flex align-items-center justify-content-between mb-2 pb-2" style="border-bottom: 1px solid rgba(255, 255, 255, 0.15);">
-                        <div class="d-flex align-items-center gap-2" style="min-width: 0;">
-                            <img src="{{ url_for('static', filename='assets/Circle Icon.png') }}" alt="" style="width: 20px; height: 20px; object-fit: contain; flex-shrink: 0;">
-                            <span class="rec-card-title fw-bold text-white">AI Recommendation</span>
-                        </div>
-                        <button type="button" class="btn-close btn-close-white flex-shrink-0" id="btn-agency-close" aria-label="Collapse" style="font-size: 0.7rem;"></button>
-                    </div>
-                    
-                    <p class="mb-2 text-white rec-card-desc">
-                        Our AI model detected reading friction during your session. We recommend adapting:
-                    </p>
-
-                    <div class="d-flex flex-wrap gap-1 mb-2 rec-pills-container">
-                        {% for r in recs %}
-                        <span class="rec-pill-badge">
-                            {{ r }}
-                        </span>
-                        {% endfor %}
-                    </div>
-
-                    <!-- Don't Show Again Option -->
-                    <div class="form-check mb-3 text-start">
-                        <input class="form-check-input" type="checkbox" id="chk-agency-dont-show" style="cursor: pointer;">
-                        <label class="form-check-label rec-card-checkbox-label" for="chk-agency-dont-show">
-                            Don't show this recommendation again during this session
-                        </label>
-                    </div>
-
-                    <div class="d-flex gap-2 justify-content-end mt-1">
-                        <button id="btn-agency-decline"
-                            class="btn btn-sm btn-outline-light rounded-pill rec-card-btn fw-bold">Decline</button>
-                        <button id="btn-agency-accept"
-                            class="btn btn-sm btn-light rounded-pill rec-card-btn fw-bold"
-                            data-pending-settings='{{ pending | tojson | safe }}'>Accept</button>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-        {% endif %}
-
         <style>
             .ai-rec-widget {
                 position: fixed;
@@ -426,19 +294,153 @@
                 }
             }
         </style>
+</head>
+
+<body
+    data-page="{% if request.endpoint %}{{ request.endpoint }}{% else %}unknown{% endif %}"
+    class="{% if request.endpoint != 'auth' and user_recommended_settings %}{% if user_recommended_settings.text_size == 'large' %}bigger-ui-mode{% elif user_recommended_settings.text_size == 'xl' %}bigger-ui-mode-xl{% endif %}{% endif %}"
+    data-user-id="{% if request.endpoint != 'auth' %}{{ session.get('user', {}).get('id', '') }}{% endif %}"
+    data-screen-reader="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.screen_reader }}{% else %}off{% endif %}"
+    data-tts="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.tts }}{% else %}off{% endif %}"
+    data-tts-rate="{% if request.endpoint != 'auth' and user_profile %}{{ user_profile.tts_playback_rate }}{% else %}1.0{% endif %}"
+    data-tts-engine="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.tts_engine | default('azure') }}{% else %}azure{% endif %}"
+    data-tts-voice="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.tts_voice }}{% else %}en-US-AvaNeural{% endif %}"
+    data-text-size="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.text_size }}{% else %}medium{% endif %}"
+    data-line-focus="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.line_focus }}{% else %}off{% endif %}"
+    data-auto-scroll="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.auto_scroll }}{% else %}off{% endif %}"
+    data-hotkeys="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.keyboard_shortcuts | default('on') }}{% else %}on{% endif %}"
+    data-hotkey-map="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.hotkey_map | default('{}') }}{% else %}{}{% endif %}"
+    data-color-filter="{% if request.endpoint != 'auth' and request.endpoint != 'ishihara_test' and request.endpoint != 'ishihara_prompt' and user_recommended_settings %}{{ user_recommended_settings.color_filter }}{% else %}none{% endif %}"
+    data-contrast-theme="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.contrast_theme }}{% else %}none{% endif %}"
+    data-dyslexia-font="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.dyslexia_font }}{% else %}off{% endif %}"
+    data-letter-spacing="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.letter_spacing }}{% else %}normal{% endif %}"
+    data-line-spacing="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.line_spacing }}{% else %}normal{% endif %}"
+    data-content-level="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.content_level }}{% else %}medium{% endif %}"
+    data-ruler-thickness="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.ruler_thickness }}{% else %}medium{% endif %}"
+    data-ruler-length="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.ruler_length }}{% else %}full{% endif %}"
+    data-magnetic-ruler="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.magnetic_ruler }}{% else %}off{% endif %}"
+    data-font-style="{% if request.endpoint != 'auth' and user_recommended_settings %}{{ user_recommended_settings.font_style | default('default') }}{% else %}default{% endif %}">
+
+    {% block content %}{% endblock %}
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- App JS (frontend ↔ backend bridge) -->
+    <script src="{{ url_for('static', filename='script.js') }}?v={{ range(1000, 9999) | random }}"></script>
+    <script src="{{ url_for('static', filename='telemetry.js') }}?v={{ range(1000, 9999) | random }}"></script>
+
+    <!-- SVG Color Blindness Daltonization Filters -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+        <defs>
+            <!-- Protanopia (Red Weakness) -->
+            <filter id="daltonize-protanopia">
+                <feColorMatrix type="matrix" values="
+                    0.622774 0.264275 0.216821 0 0
+                    0.702302 0.354143 -0.056445 0 0
+                    0.315611 -0.229158 0.913547 0 0
+                    0 0 0 1 0" />
+            </filter>
+
+            <!-- Deuteranopia (Green Weakness) -->
+            <filter id="daltonize-deuteranopia">
+                <feColorMatrix type="matrix" values="
+                    0.288299 0.528345 0.183356 0 0
+                    0.380312 0.490520 0.129168 0 0
+                    -0.016335 0.056156 0.960179 0 0
+                    0 0 0 1 0" />
+            </filter>
+
+            <!-- Tritanopia (Blue Weakness) -->
+            <filter id="daltonize-tritanopia">
+                <feColorMatrix type="matrix" values="
+                    1.017277 0.027029 -0.044306 0 0
+                    0.022066 0.812080 0.165854 0 0
+                    0.023645 0.234400 0.741955 0 0
+                    0 0 0 1 0" />
+            </filter>
+        </defs>
+    </svg>
+
+    <!-- Agency Controller AI Recommendation Snackbar -->
+        {% if request.endpoint != 'auth' and user_profile and user_profile.pending_settings %}
+            {% set pending = user_profile.pending_settings %}
+            {% set current = user_recommended_settings or {} %}
+            {% set recs = [] %}
+            {% if pending.text_size != current.text_size %}{% set _ = recs.append("Text Size (" ~ pending.text_size | upper ~ ")") %}{% endif %}
+            {% if pending.line_focus != current.line_focus %}{% set _ = recs.append("Line Focus (" ~ pending.line_focus | upper ~ ")") %}{% endif %}
+            {% if pending.auto_scroll != current.auto_scroll %}{% set _ = recs.append("Auto Scroll (" ~ pending.auto_scroll | upper ~ ")") %}{% endif %}
+            {% if pending.tts != current.tts %}{% set _ = recs.append("Text-to-Speech (" ~ pending.tts | upper ~ ")") %}{% endif %}
+            {% if pending.content_level != current.content_level %}{% set _ = recs.append("Content Level (" ~ pending.content_level ~ ")") %}{% endif %}
+
+            {% if recs | length > 0 %}
+            <!-- Floating AI Recommendation Widget (FAB + Expandable Card) -->
+            <div id="ai-rec-widget" class="ai-rec-widget" style="display: block;">
+                <!-- 1. The Collapsed Floating Action Button (FAB) -->
+                <button type="button" id="btn-rec-fab" class="btn-rec-fab shadow-lg" 
+                        aria-label="AI Accessibility Recommendation Available" 
+                        aria-expanded="false" 
+                        aria-controls="rec-expand-card"
+                        title="AI Recommendation Available">
+                    <img src="{{ url_for('static', filename='assets/Circle Icon.png') }}" alt="AI Recommendation Star" class="fab-star-img">
+                    <span class="rec-notification-badge" aria-hidden="true">✦</span>
+                </button>
+
+                <!-- 2. The Expandable Frosted Recommendation Card -->
+                <div id="rec-expand-card" class="rec-expand-card shadow-xl d-none" role="region" aria-label="AI Recommendation Details">
+                    <div class="d-flex align-items-center justify-content-between mb-2 pb-2" style="border-bottom: 1px solid rgba(255, 255, 255, 0.15);">
+                        <div class="d-flex align-items-center gap-2" style="min-width: 0;">
+                            <img src="{{ url_for('static', filename='assets/Circle Icon.png') }}" alt="" style="width: 20px; height: 20px; object-fit: contain; flex-shrink: 0;">
+                            <span class="rec-card-title fw-bold text-white">AI Recommendation</span>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white flex-shrink-0" id="btn-agency-close" aria-label="Collapse" style="font-size: 0.7rem;"></button>
+                    </div>
+                    
+                    <p class="mb-2 text-white rec-card-desc">
+                        Our AI model detected reading friction during your session. We recommend adapting:
+                    </p>
+
+                    <div class="d-flex flex-wrap gap-1 mb-2 rec-pills-container">
+                        {% for r in recs %}
+                        <span class="rec-pill-badge">
+                            {{ r }}
+                        </span>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Don't Show Again Option -->
+                    <div class="form-check mb-3 text-start">
+                        <input class="form-check-input" type="checkbox" id="chk-agency-dont-show" style="cursor: pointer;">
+                        <label class="form-check-label rec-card-checkbox-label" for="chk-agency-dont-show">
+                            Don't show this recommendation again during this session
+                        </label>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end mt-1">
+                        <button id="btn-agency-decline"
+                            class="btn btn-sm btn-outline-light rounded-pill rec-card-btn fw-bold">Decline</button>
+                        <button id="btn-agency-accept"
+                            class="btn btn-sm btn-light rounded-pill rec-card-btn fw-bold"
+                            data-pending-settings='{{ pending | tojson | safe }}'>Accept</button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        {% endif %}
+
 
         {% block modals %}
         {% endblock %}
 
         <!-- Logout Confirmation Modal -->
-        <div class="modal fade" id="logoutConfirmModal" tabindex="-1" aria-labelledby="logoutConfirmModalLabel"
+        <div class="modal fade" id="logoutConfirmModal" tabindex="-1" role="dialog" aria-labelledby="logoutConfirmModalLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content rounded-4 border-0 shadow-lg"
                     style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.2);">
                     <div class="modal-header border-0 pb-0 justify-content-center text-center">
-                        <h5 class="modal-title fw-bold text-dark mt-3" id="logoutConfirmModalLabel">Logout Confirmation
-                        </h5>
+                        <h2 class="modal-title fw-bold text-dark mt-3 h5" id="logoutConfirmModalLabel">Logout Confirmation
+                        </h2>
                     </div>
                     <div class="modal-body text-center py-3">
                         <p class="text-secondary mb-0">Are you sure you want to sign out of your account?</p>
