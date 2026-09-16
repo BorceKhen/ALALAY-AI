@@ -7,7 +7,7 @@ from typing import List, Dict
 class GroqQuizGenerator:
     """
     Generates multiple-choice quiz questions from text using Groq's API.
-    Uses LLaMA 3.1 8B model for extremely fast, reliable, and free generation.
+    Uses openai/gpt-oss-20b model for fast, reliable, and efficient generation.
     """
 
     _instance = None  # Singleton pattern
